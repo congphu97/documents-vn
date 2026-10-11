@@ -1,0 +1,22 @@
+{
+  "slug": "guide/templates/event-listeners",
+  "title": "Lắng nghe sự kiện (Event Binding)",
+  "description": "Lắng nghe các tương tác của người dùng như click, gõ bàn phím với cú pháp (event).",
+  "source": "https://angular.dev/guide/templates/event-listeners",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Sử dụng dấu ngoặc tròn `(event)` để lắng nghe sự kiện từ phần tử DOM hoặc Output từ một custom component."
+    },
+    {
+      "type": "code",
+      "file": "action-button.component.html",
+      "lang": "html",
+      "code": [
+        "<button (click)=\"handleClick($event)\">Nhấn vào đây</button>",
+        "<input (keydown.enter)=\"submitOnEnter()\" />"
+      ]
+    }
+  ]
+}

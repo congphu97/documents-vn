@@ -1,0 +1,111 @@
+{
+  "slug": "guide/components/outputs",
+  "title": "Custom events with outputs",
+  "description": "A component can emit custom events by declaring outputs.",
+  "source": "https://angular.dev/guide/components/outputs",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "This guide assumes you've already read the [Essentials Guide](essentials). Read that first if you're new to Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "A component can emit custom events by declaring **outputs**:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, output} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // Declare an output named 'valueChanged'.",
+        "  valueChanged = output<number>();",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "You can listen for these events in parent component templates using event binding:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<custom-slider (valueChanged)=\"onValueChanged($event)\" />"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "emitting-events",
+      "text": "Emitting events"
+    },
+    {
+      "type": "paragraph",
+      "text": "The `output` function returns an `OutputEmitterRef`. You emit an event by calling its `emit` function:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "export class CustomSlider {",
+        "  valueChanged = output<number>();",
+        "",
+        "  updateValue(newValue: number) {",
+        "    this.valueChanged.emit(newValue);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "output-aliases",
+      "text": "Output aliases"
+    },
+    {
+      "type": "paragraph",
+      "text": "Similar to inputs, you can specify an `alias` for an output to change the property name used in templates:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "export class CustomSlider {",
+        "  valueChanged = output<number>({alias: 'valueChange'});",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "declaring-outputs-with-decorator",
+      "text": "Declaring outputs with the @Output decorator"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular also supports declaring outputs using the `@Output` decorator and `EventEmitter`:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, Output, EventEmitter} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  @Output() valueChanged = new EventEmitter<number>();",
+        "}"
+      ]
+    }
+  ]
+}

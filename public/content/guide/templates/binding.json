@@ -1,0 +1,28 @@
+{
+  "slug": "guide/templates/binding",
+  "title": "Ràng buộc văn bản, thuộc tính động trong Template",
+  "description": "Tìm hiểu cách truyền dữ liệu từ component class vào DOM HTML thông qua interpolation và property binding.",
+  "source": "https://angular.dev/guide/templates/binding",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ nhiều cơ chế ràng buộc dữ liệu để đồng bộ hoá trạng thái giữa mã TypeScript và giao diện người dùng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "property-binding",
+      "text": "Property Binding `[property]`"
+    },
+    {
+      "type": "code",
+      "file": "user-avatar.component.html",
+      "lang": "html",
+      "code": [
+        "<img [src]=\"imageUrl()\" [alt]=\"imageAlt()\" />",
+        "<button [disabled]=\"isLoading()\">Lưu</button>"
+      ]
+    }
+  ]
+}

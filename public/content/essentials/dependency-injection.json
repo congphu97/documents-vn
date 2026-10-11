@@ -1,0 +1,74 @@
+{
+  "slug": "essentials/dependency-injection",
+  "title": "Dependency Injection (DI)",
+  "description": "Dependency Injection là một design pattern mạnh mẽ của Angular cho phép quản lý và cung cấp các service phụ thuộc một cách linh hoạt.",
+  "source": "https://angular.dev/essentials/dependency-injection",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Hệ thống Dependency Injection (DI) của Angular giúp tăng khả năng tái sử dụng mã nguồn và đơn giản hoá việc viết kiểm thử tự động (unit test) bằng cách tách biệt việc tạo đối tượng khỏi nơi sử dụng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "create-service",
+      "text": "Tạo một Injectable Service"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng decorator `@Injectable` với `providedIn: 'root'` để cung cấp service ở cấp toàn ứng dụng (singleton):"
+    },
+    {
+      "type": "code",
+      "file": "calculator.service.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable } from '@angular/core';",
+        "",
+        "@Injectable({",
+        "  providedIn: 'root'",
+        "})",
+        "export class CalculatorService {",
+        "  add(a: number, b: number): number {",
+        "    return a + b;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "inject-service",
+      "text": "Tiêm service vào Component với hàm inject()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong các phiên bản Angular hiện đại, cách được khuyến nghị nhất để tiêm phụ thuộc là sử dụng hàm `inject()` thay vì constructor injection dài dòng:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { CalculatorService } from './calculator.service';",
+        "",
+        "@Component({",
+        "  selector: 'app-root',",
+        "  standalone: true,",
+        "  template: `<p>Kết quả tính: {{ total }}</p>`",
+        "})",
+        "export class AppComponent {",
+        "  private calc = inject(CalculatorService);",
+        "  total = this.calc.add(10, 20);",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Hàm `inject()` có thể được sử dụng trong field initializer của class hoặc trong hàm injection context (như router guards, resolvers)."
+    }
+  ]
+}

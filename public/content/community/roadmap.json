@@ -1,0 +1,32 @@
+{
+  "slug": "community/roadmap",
+  "title": "Lộ trình phát triển (Roadmap)",
+  "description": "Các ưu tiên chiến lược và tính năng sắp ra mắt trong các phiên bản Angular tiếp theo.",
+  "source": "https://angular.dev/roadmap",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Đội ngũ Angular duy trì lộ trình công khai để cộng đồng có thể theo dõi hướng phát triển của framework trong tương lai gần và trung hạn."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "key-initiatives",
+      "text": "Các sáng kiến trọng tâm"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Zoneless Angular**: Loại bỏ hoàn toàn sự phụ thuộc vào zone.js để tối ưu kích thước gói và cải thiện hiệu năng tối đa.",
+        "**Signal-based Forms**: Xây dựng giải pháp form hướng tương lai hoàn toàn dựa trên Signals reactivity.",
+        "**Cải thiện trải nghiệm kiểm thử**: Tối ưu tốc độ unit test với Jest / Vitest kết hợp cùng Angular CLI."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Bạn có thể tham gia thảo luận và đóng góp ý kiến về các RFC (Request for Comments) trên GitHub chính thức của Angular."
+    }
+  ]
+}

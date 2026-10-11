@@ -1,0 +1,202 @@
+{
+  "slug": "guide/components/selectors",
+  "title": "Component selectors",
+  "description": "Mỗi component đều định nghĩa một CSS selector quyết định cách component đó được sử dụng trong template.",
+  "source": "https://angular.dev/guide/components/selectors",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tài liệu này giả định bạn đã đọc qua phần [Kiến thức cốt lõi](essentials/components). Hãy đọc phần đó trước nếu bạn mới làm quen với Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi component đều định nghĩa một [CSS selector](https://developer.mozilla.org/docs/Web/CSS/CSS_selectors) nhằm chỉ định cách component đó được gọi ra sử dụng trong HTML:"
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  template: `<img src=\"profile.jpg\" alt=\"Ảnh đại diện cá nhân\" />`",
+        "})",
+        "export class ProfilePhoto { }"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn sử dụng component bằng cách tạo phần tử HTML tương ứng trong template của các component khác:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  imports: [ProfilePhoto],",
+        "  template: `",
+        "    <profile-photo />",
+        "    <button>Tải lên ảnh đại diện mới</button>",
+        "  `,",
+        "})",
+        "export class UserProfile { }"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular so khớp các selector tĩnh tại thời điểm biên dịch (compile-time). Việc can thiệp thay đổi DOM lúc chạy (run-time), dù thông qua Angular binding hay DOM API thuần, đều không làm thay đổi các component đã được render."
+    },
+    {
+      "type": "paragraph",
+      "text": "Một phần tử HTML chỉ có thể khớp với duy nhất một component selector. Nếu nhiều component selector cùng khớp một phần tử, Angular sẽ báo lỗi. Selector phân biệt chữ hoa và chữ thường (case-sensitive)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "types-of-selectors",
+      "text": "Các kiểu selector được hỗ trợ"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ một tập con các kiểu CSS selector cơ bản:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Type selector**: Khớp phần tử dựa trên tên thẻ HTML (tag name). Ví dụ: `profile-photo`",
+        "**Attribute selector**: Khớp phần tử dựa trên thuộc tính HTML và giá trị chính xác nếu có. Ví dụ: `[dropzone]`, `[type=\"reset\"]`",
+        "**Class selector**: Khớp phần tử dựa trên CSS class. Ví dụ: `.menu-item`"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với giá trị thuộc tính, Angular hỗ trợ toán tử bằng (`=`). Angular không hỗ trợ các toán tử so khớp thuộc tính phức tạp khác."
+    },
+    {
+      "type": "paragraph",
+      "text": "Component selector của Angular không hỗ trợ tổ hợp quan hệ con/họ hàng (combinators như `>`, `+`, `~`, khoảng trắng), và không hỗ trợ namespace."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "not-pseudo-class",
+      "text": "Pseudo-class :not"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ pseudo-class `:not`. Bạn có thể nối thêm pseudo-class này vào bất kỳ selector nào để loại trừ các phần tử không mong muốn. Ví dụ định nghĩa thuộc tính `[dropzone]` nhưng không áp dụng cho thẻ `textarea`:"
+    },
+    {
+      "type": "code",
+      "file": "drop-zone.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: '[dropzone]:not(textarea)',",
+        "  template: `<ng-content />`",
+        "})",
+        "export class DropZone { }"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular không hỗ trợ bất kỳ pseudo-class hoặc pseudo-element nào khác trong component selector."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "combining-selectors",
+      "text": "Kết hợp nhiều selector"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể kết hợp nhiều selector lại với nhau. Ví dụ chỉ khớp với thẻ `<button>` có `type=\"reset\"`:"
+    },
+    {
+      "type": "code",
+      "file": "reset-button.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'button[type=\"reset\"]',",
+        "  template: `<ng-content />`",
+        "})",
+        "export class ResetButton { }"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể khai báo danh sách nhiều selector cách nhau bằng dấu phẩy. Angular sẽ khởi tạo component cho bất kỳ phần tử nào khớp với một trong các selector trong danh sách:"
+    },
+    {
+      "type": "code",
+      "file": "multi-selector.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'drop-zone, [dropzone]',",
+        "  template: `<ng-content />`",
+        "})",
+        "export class DropZone { }"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "choosing-a-selector",
+      "text": "Cách lựa chọn selector phù hợp"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đa số các component nên sử dụng tên custom element (thẻ HTML tự đặt) làm selector. Tất cả custom element nên chứa dấu gạch nối (`-`) theo đúng chuẩn kỹ thuật của HTML."
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, Angular sẽ báo lỗi biên dịch nếu gặp một custom tag name mà không khớp với bất kỳ component nào trong scope, giúp loại bỏ các lỗi chính tả gõ sai tên thẻ."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "selector-prefixes",
+      "text": "Tiền tố selector (Prefixes)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đội ngũ phát triển Angular khuyến nghị bạn nên đặt tiền tố ngắn gọn, nhất quán cho mọi component trong dự án. Ví dụ nếu bạn xây dựng YouTube bằng Angular, bạn có thể đặt tiền tố `yt-` (`yt-menu`, `yt-player`). Việc chia namespace giúp phân biệt rõ nguồn gốc của từng component. Angular CLI mặc định sử dụng tiền tố `app-`."
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Angular sử dụng tiền tố `ng` cho các API chính thức của framework. Tuyệt đối không dùng tiền tố `ng` cho component tự tạo của bạn."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-to-use-attribute-selectors",
+      "text": "Khi nào nên dùng attribute selector?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn nên cân nhắc dùng attribute selector khi muốn tạo component mở rộng ngay trên một thẻ HTML gốc chuẩn. Ví dụ tạo button tùy chỉnh nhưng vẫn tận dụng được toàn bộ hành vi của thẻ `<button>` gốc:"
+    },
+    {
+      "type": "code",
+      "file": "youtube-upload-button.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'button[yt-upload]',",
+        "  template: `<ng-content />`",
+        "})",
+        "export class YouTubeUploadButton { }"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Cách tiếp cận này giúp người dùng component có thể truy cập trực tiếp mọi API nguyên bản của thẻ HTML mà không cần viết wrapper trung gian, đặc biệt hữu ích với các thuộc tính trợ năng ARIA như `aria-label`."
+    }
+  ]
+}

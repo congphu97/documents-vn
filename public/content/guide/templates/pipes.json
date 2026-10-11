@@ -1,0 +1,23 @@
+{
+  "slug": "guide/templates/pipes",
+  "title": "Pipes trong Angular Template",
+  "description": "Biến đổi dữ liệu đầu ra hiển thị trên template bằng các built-in pipes hoặc custom pipes.",
+  "source": "https://angular.dev/guide/templates/pipes",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Pipes là các hàm đơn giản dùng để định dạng dữ liệu (ngày tháng, tiền tệ, số, chữ hoa/thường) ngay trong template trước khi hiển thị."
+    },
+    {
+      "type": "code",
+      "file": "order-details.component.html",
+      "lang": "html",
+      "code": [
+        "<p>Ngày đặt: {{ orderDate | date:'dd/MM/yyyy' }}</p>",
+        "<p>Tổng tiền: {{ price | currency:'VND' }}</p>",
+        "<p>Tên: {{ userName | uppercase }}</p>"
+      ]
+    }
+  ]
+}

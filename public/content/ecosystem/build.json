@@ -1,0 +1,27 @@
+{
+  "slug": "ecosystem/build",
+  "title": "Hệ thống Build với Vite và esbuild",
+  "description": "Kiến trúc Application Builder thế hệ mới giúp tốc độ build phát triển và đóng gói nhanh gấp nhiều lần.",
+  "source": "https://angular.dev/tools/cli/build",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular sử dụng kiến trúc Application Builder mặc định kết hợp sức mạnh của Vite cho môi trường phát triển cục bộ (`ng serve`) và esbuild để đóng gói sản phẩm (`ng build`)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "benefits",
+      "text": "Lợi ích vượt trội"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Tốc độ khởi động máy chủ gần như tức thì**: Nhờ Vite pre-bundling các dependencies.",
+        "**Thời gian build production giảm 2-4 lần**: esbuild xử lý song song trên nhiều lõi CPU.",
+        "**Hỗ trợ SSR và Prerendering đồng thời**: Tích hợp sẵn trong cùng một chu kỳ build duy nhất."
+      ]
+    }
+  ]
+}

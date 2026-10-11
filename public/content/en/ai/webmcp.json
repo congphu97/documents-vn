@@ -1,0 +1,44 @@
+{
+  "slug": "ai/webmcp",
+  "title": "WebMCP",
+  "description": "Documentation guide for WebMCP in Angular.",
+  "source": "https://angular.dev/ai/webmcp",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Official documentation from [angular.dev/ai/webmcp](https://angular.dev/ai/webmcp)."
+    },
+    {
+      "type": "paragraph",
+      "text": "WebMCP is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "overview-section",
+      "text": "Overview and Concepts"
+    },
+    {
+      "type": "paragraph",
+      "text": "To master WebMCP, explore the core mechanisms and design patterns provided by Angular."
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "// Example demonstration for WebMCP",
+        "import { Component } from \"@angular/core\";",
+        "",
+        "@Component({",
+        "  selector: \"app-example\",",
+        "  standalone: true,",
+        "  template: `<h1>WebMCP</h1>`",
+        "})",
+        "export class ExampleComponent {}"
+      ]
+    }
+  ]
+}

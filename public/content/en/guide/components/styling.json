@@ -1,0 +1,75 @@
+{
+  "slug": "guide/components/styles",
+  "title": "Component styling",
+  "description": "Angular components can include CSS styles that apply to that component's template.",
+  "source": "https://angular.dev/guide/components/styling",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "This guide assumes you've already read the [Essentials Guide](essentials). Read that first if you're new to Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Components can include CSS styles that apply to the component's DOM. You can define styles directly inside the `@Component` decorator using `styles`, or link external files using `styleUrl` or `styleUrls`:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'user-profile',",
+        "  styles: `",
+        "    .badge { background: #3b82f6; color: white; padding: 4px 8px; }",
+        "  `,",
+        "  template: `<span class=\"badge\">Active Member</span>`",
+        "})",
+        "export class UserProfile {}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "view-encapsulation",
+      "text": "View encapsulation"
+    },
+    {
+      "type": "paragraph",
+      "text": "By default, Angular scopes component styles using **Emulated View Encapsulation**. Angular preprocesses the component's CSS so that it only applies to elements in that component's template, mimicking Shadow DOM behavior without browser overhead."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "styling-host-element",
+      "text": "Styling the host element (:host)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Use the `:host` pseudo-class selector to apply styles directly to the component's host element:"
+    },
+    {
+      "type": "code",
+      "file": "custom-card.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'custom-card',",
+        "  styles: `",
+        "    :host {",
+        "      display: block;",
+        "      border: 1px solid #e2e8f0;",
+        "      border-radius: 8px;",
+        "    }",
+        "    :host(.active) {",
+        "      border-color: #e535ab;",
+        "    }",
+        "  `,",
+        "  template: `<ng-content />`",
+        "})",
+        "export class CustomCard {}"
+      ]
+    }
+  ]
+}

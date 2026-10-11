@@ -1,0 +1,43 @@
+{
+  "slug": "essentials/ssr",
+  "title": "Server-side rendering (SSR) và Hydration",
+  "description": "Angular hỗ trợ SSR nguyên bản với cơ chế hydration không nháy hình, cải thiện tốc độ tải trang lần đầu và tối ưu SEO.",
+  "source": "https://angular.dev/guide/ssr",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Server-side rendering (SSR) là quá trình render các trang ứng dụng Angular trên server Node.js trước khi gửi HTML hoàn chỉnh tới trình duyệt của người dùng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "hydration",
+      "text": "Non-destructive Hydration"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kể từ Angular 16+, cơ chế hydration giữ nguyên cấu trúc DOM được render từ server và chỉ gắn các event listeners mà không phá hủy/vẽ lại DOM, loại bỏ hoàn toàn hiện tượng nhấp nháy giao diện (flickering)."
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideClientHydration } from '@angular/platform-browser';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideClientHydration()",
+        "  ]",
+        "};"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Để thêm SSR vào một project đã có, bạn chỉ cần chạy lệnh CLI: `ng add @angular/ssr`."
+    }
+  ]
+}

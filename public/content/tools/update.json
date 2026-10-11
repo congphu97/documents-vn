@@ -1,0 +1,25 @@
+{
+  "slug": "tools/update",
+  "title": "Nâng cấp dễ dàng với `ng update`",
+  "description": "Lệnh `ng update` tự động hóa việc cập nhật các gói phụ thuộc và chạy các script di chuyển code an toàn.",
+  "source": "https://angular.dev/tools/cli/update",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Khác với nhiều framework khác khi việc nâng cấp phiên bản lớn thường tốn nhiều công sức sửa đổi code thủ công, Angular cung cấp công cụ `ng update` có khả năng tự động viết lại code theo cú pháp chuẩn của phiên bản mới."
+    },
+    {
+      "type": "code",
+      "file": "terminal",
+      "lang": "bash",
+      "code": [
+        "# Kiểm tra xem có phiên bản mới nào không",
+        "ng update",
+        "",
+        "# Cập nhật Angular core và CLI lên bản mới nhất",
+        "ng update @angular/core @angular/cli"
+      ]
+    }
+  ]
+}

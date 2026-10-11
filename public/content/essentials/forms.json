@@ -1,0 +1,51 @@
+{
+  "slug": "essentials/forms",
+  "title": "Xử lý Forms trong Angular",
+  "description": "Angular cung cấp hai cách tiếp cận mạnh mẽ để xử lý dữ liệu biểu mẫu: Reactive Forms và Template-driven Forms.",
+  "source": "https://angular.dev/guide/forms",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Reactive Forms cung cấp cách tiếp cận hướng mô hình trực tiếp, kiểm soát chặt chẽ giá trị và tính hợp lệ của form theo thời gian thực."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reactive-form-example",
+      "text": "Tạo Form với FormControl và FormGroup"
+    },
+    {
+      "type": "code",
+      "file": "login-form.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';",
+        "",
+        "@Component({",
+        "  selector: 'app-login',",
+        "  standalone: true,",
+        "  imports: [ReactiveFormsModule],",
+        "  template: `",
+        "    <form [formGroup]=\"loginForm\" (ngSubmit)=\"onSubmit()\">",
+        "      <input formControlName=\"email\" placeholder=\"Email\" />",
+        "      <input type=\"password\" formControlName=\"password\" placeholder=\"Mật khẩu\" />",
+        "      <button type=\"submit\" [disabled]=\"loginForm.invalid\">Đăng nhập</button>",
+        "    </form>",
+        "  `",
+        "})",
+        "export class LoginComponent {",
+        "  loginForm = new FormGroup({",
+        "    email: new FormControl('', [Validators.required, Validators.email]),",
+        "    password: new FormControl('', [Validators.required, Validators.minLength(6)])",
+        "  });",
+        "",
+        "  onSubmit() {",
+        "    console.log(this.loginForm.value);",
+        "  }",
+        "}"
+      ]
+    }
+  ]
+}

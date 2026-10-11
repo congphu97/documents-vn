@@ -1,0 +1,44 @@
+{
+  "slug": "reference/configs/workspace-config",
+  "title": "Workspace Configuration",
+  "description": "Tài liệu hướng dẫn về Workspace Configuration trong Angular.",
+  "source": "https://angular.dev/reference/configs/workspace-config",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/reference/configs/workspace-config](https://angular.dev/reference/configs/workspace-config)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Workspace Configuration là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "overview-section",
+      "text": "Tổng quan và Khái niệm"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để nắm vững Workspace Configuration, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "// Ví dụ minh họa cho Workspace Configuration",
+        "import { Component } from \"@angular/core\";",
+        "",
+        "@Component({",
+        "  selector: \"app-example\",",
+        "  standalone: true,",
+        "  template: `<h1>Workspace Configuration</h1>`",
+        "})",
+        "export class ExampleComponent {}"
+      ]
+    }
+  ]
+}

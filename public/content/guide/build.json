@@ -1,0 +1,44 @@
+{
+  "slug": "guide/build",
+  "title": "Build & bundle",
+  "description": "Tài liệu hướng dẫn về Build & bundle trong Angular.",
+  "source": "https://angular.dev/guide/build",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/build](https://angular.dev/guide/build)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Build & bundle là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "overview-section",
+      "text": "Tổng quan và Khái niệm"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để nắm vững Build & bundle, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "// Ví dụ minh họa cho Build & bundle",
+        "import { Component } from \"@angular/core\";",
+        "",
+        "@Component({",
+        "  selector: \"app-example\",",
+        "  standalone: true,",
+        "  template: `<h1>Build & bundle</h1>`",
+        "})",
+        "export class ExampleComponent {}"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "slug": "ecosystem/i18n",
+  "title": "Quốc tế hóa (i18n)",
+  "description": "Giải pháp bản địa hóa đa ngôn ngữ mạnh mẽ được tích hợp trực tiếp vào compiler của Angular.",
+  "source": "https://angular.dev/guide/i18n",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ quốc tế hóa (internationalization - i18n) ngay trong template thông qua thuộc tính `i18n`. Quá trình trích xuất bản dịch và biên dịch bản build riêng biệt cho từng ngôn ngữ giúp tối ưu kích thước gói tải về."
+    },
+    {
+      "type": "code",
+      "file": "greeting.component.html",
+      "lang": "html",
+      "code": [
+        "<h1 i18n=\"@@homeGreeting\">Xin chào cộng đồng Angular!</h1>",
+        "<p i18n>Chào mừng bạn đã đến với tài liệu tiếng Việt.</p>"
+      ]
+    }
+  ]
+}

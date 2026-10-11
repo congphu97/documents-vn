@@ -1,0 +1,112 @@
+{
+  "slug": "essentials/signals",
+  "title": "Angular Signals",
+  "description": "Signals là hệ thống reactivity nền tảng mới của Angular, giúp quản lý state chi tiết và tự động tối ưu hóa việc cập nhật UI.",
+  "source": "https://angular.dev/essentials/signals",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Signal là một wrapper bọc quanh một giá trị, có khả năng thông báo cho các consumers quan tâm khi giá trị đó thay đổi. Signals có thể chứa bất kỳ kiểu dữ liệu nào, từ nguyên thủy đến đối tượng phức tạp."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "writable-signals",
+      "text": "Tạo và cập nhật Writable Signal"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn tạo một writable signal bằng hàm `signal()` và cập nhật giá trị thông qua `.set()` hoặc `.update()`:"
+    },
+    {
+      "type": "code",
+      "file": "counter.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'app-counter',",
+        "  standalone: true,",
+        "  template: `",
+        "    <p>Số đếm hiện tại: {{ count() }}</p>",
+        "    <button (click)=\"increment()\">Tăng thêm</button>",
+        "    <button (click)=\"reset()\">Đặt lại</button>",
+        "  `",
+        "})",
+        "export class CounterComponent {",
+        "  count = signal(0);",
+        "",
+        "  increment() {",
+        "    this.count.update(n => n + 1);",
+        "  }",
+        "",
+        "  reset() {",
+        "    this.count.set(0);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "computed-signals",
+      "text": "Tính toán phụ thuộc với Computed Signals"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một `computed()` signal được tính toán từ các signals khác. Nó có tính chất nhớ kết quả (memoized) và chỉ tính lại khi các signal phụ thuộc bên trong thực sự thay đổi:"
+    },
+    {
+      "type": "code",
+      "file": "computed-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { signal, computed } from '@angular/core';",
+        "",
+        "const count = signal(5);",
+        "const doubleCount = computed(() => count() * 2);",
+        "",
+        "console.log(doubleCount()); // 10",
+        "",
+        "count.set(10);",
+        "console.log(doubleCount()); // 20"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Các computed signals là read-only. Bạn không thể gán trực tiếp giá trị vào computed signal bằng `.set()`."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "effects",
+      "text": "Thực thi tác vụ phụ với Effect"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm `effect()` chạy một đoạn mã mỗi khi một hoặc nhiều signal mà nó đọc có sự thay đổi giá trị. Thường dùng cho ghi log, phân tích hoặc đồng bộ với API bên thứ ba:"
+    },
+    {
+      "type": "code",
+      "file": "effect-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal, effect } from '@angular/core';",
+        "",
+        "@Component({ selector: 'app-logger', template: '' })",
+        "export class LoggerComponent {",
+        "  user = signal('Alice');",
+        "",
+        "  constructor() {",
+        "    effect(() => {",
+        "      console.log(`Người dùng hiện tại đã đổi thành: ${this.user()}`);",
+        "    });",
+        "  }",
+        "}"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "slug": "best-practices/runtime-performance",
+  "title": "Runtime performance",
+  "description": "Tài liệu hướng dẫn về Runtime performance trong Angular.",
+  "source": "https://angular.dev/best-practices/runtime-performance",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/best-practices/runtime-performance](https://angular.dev/best-practices/runtime-performance)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Runtime performance là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "overview-section",
+      "text": "Tổng quan và Khái niệm"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để nắm vững Runtime performance, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "// Ví dụ minh họa cho Runtime performance",
+        "import { Component } from \"@angular/core\";",
+        "",
+        "@Component({",
+        "  selector: \"app-example\",",
+        "  standalone: true,",
+        "  template: `<h1>Runtime performance</h1>`",
+        "})",
+        "export class ExampleComponent {}"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "slug": "guide/components/outputs",
+  "title": "Phát sự kiện tùy chỉnh với outputs (Custom events with outputs)",
+  "description": "Component có thể phát ra các sự kiện tùy chỉnh bằng cách khai báo outputs.",
+  "source": "https://angular.dev/guide/components/outputs",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tài liệu này giả định bạn đã đọc qua phần [Kiến thức cốt lõi](essentials). Hãy đọc phần đó trước nếu bạn mới làm quen với Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Một component có thể phát ra các sự kiện tùy chỉnh (custom events) bằng cách khai báo **outputs**:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, output} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // Khai báo một output có tên 'valueChanged'.",
+        "  valueChanged = output<number>();",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể lắng nghe các sự kiện này trong template của component cha bằng cú pháp event binding `(event)`:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<custom-slider (valueChanged)=\"onValueChanged($event)\" />"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "emitting-events",
+      "text": "Phát sự kiện (Emitting events)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm `output()` trả về một `OutputEmitterRef`. Bạn phát sự kiện bằng cách gọi phương thức `emit()` của nó:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "export class CustomSlider {",
+        "  valueChanged = output<number>();",
+        "",
+        "  updateValue(newValue: number) {",
+        "    this.valueChanged.emit(newValue);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "output-aliases",
+      "text": "Bí danh cho output (Output aliases)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tương tự như inputs, bạn có thể chỉ định `alias` cho một output để đổi tên sự kiện khi được gọi ngoài template:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "export class CustomSlider {",
+        "  valueChanged = output<number>({alias: 'valueChange'});",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "declaring-outputs-with-decorator",
+      "text": "Khai báo output với decorator @Output truyền thống"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular cũng tiếp tục hỗ trợ khai báo output bằng decorator `@Output` và `EventEmitter` cho các dự án cũ:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, Output, EventEmitter} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  @Output() valueChanged = new EventEmitter<number>();",
+        "}"
+      ]
+    }
+  ]
+}

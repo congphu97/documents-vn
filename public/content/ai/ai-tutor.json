@@ -1,0 +1,44 @@
+{
+  "slug": "ai/ai-tutor",
+  "title": "Angular AI Tutor",
+  "description": "Tài liệu hướng dẫn về Angular AI Tutor trong Angular.",
+  "source": "https://angular.dev/ai/ai-tutor",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/ai/ai-tutor](https://angular.dev/ai/ai-tutor)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular AI Tutor là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "overview-section",
+      "text": "Tổng quan và Khái niệm"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để nắm vững Angular AI Tutor, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "// Ví dụ minh họa cho Angular AI Tutor",
+        "import { Component } from \"@angular/core\";",
+        "",
+        "@Component({",
+        "  selector: \"app-example\",",
+        "  standalone: true,",
+        "  template: `<h1>Angular AI Tutor</h1>`",
+        "})",
+        "export class ExampleComponent {}"
+      ]
+    }
+  ]
+}

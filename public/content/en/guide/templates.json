@@ -1,0 +1,67 @@
+{
+  "slug": "guide/templates",
+  "title": "Templates in Angular",
+  "description": "Templates combine HTML with Angular's powerful declarative syntax to bind data and render dynamic UI.",
+  "source": "https://angular.dev/guide/templates",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular templates are HTML snippets enhanced with Angular-specific declarative syntax. They allow you to bind component model data directly into the DOM, listen to user input events, and control conditional rendering structures."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "interpolation-property-binding",
+      "text": "Data Binding (Text Interpolation & Property Binding)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Use double curly braces `{{ }}` to render dynamic text values, or brackets `[property]` to bind directly to HTML element attributes:"
+    },
+    {
+      "type": "code",
+      "file": "greeting.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Text interpolation -->",
+        "<h1>Hello, {{ username() }}!</h1>",
+        "",
+        "<!-- Property binding -->",
+        "<img [src]=\"avatarUrl()\" [alt]=\"username()\" />",
+        "<button [disabled]=\"isSubmitting()\">Submit</button>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "control-flow",
+      "text": "Modern Built-in Control Flow (@if, @for, @switch)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Since Angular 17, the built-in control flow syntax replaces `*ngIf` and `*ngFor` with cleaner syntax, superior runtime performance, and compile-time TypeScript type checking:"
+    },
+    {
+      "type": "code",
+      "file": "user-list.component.html",
+      "lang": "html",
+      "code": [
+        "@if (users().length > 0) {",
+        "  <ul>",
+        "    @for (user of users(); track user.id) {",
+        "      <li>{{ user.name }} - {{ user.role }}</li>",
+        "    }",
+        "  </ul>",
+        "} @else {",
+        "  <p class=\"empty-msg\">No users found.</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "The `track` expression in `@for` is required. It allows Angular to identify each item uniquely and optimize DOM reuse during list updates."
+    }
+  ]
+}

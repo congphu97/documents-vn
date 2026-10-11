@@ -1,0 +1,189 @@
+{
+  "slug": "guide/components",
+  "title": "Cấu trúc giải phẫu của một Component (Anatomy of a component)",
+  "description": "Mỗi component đều định nghĩa một class TypeScript, một template HTML và một CSS selector.",
+  "source": "https://angular.dev/guide/components",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tài liệu này giả định bạn đã đọc qua phần [Kiến thức cốt lõi](essentials/components). Hãy đọc phần đó trước nếu bạn mới làm quen với Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi component trong Angular bắt buộc phải có 3 thành phần chính:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Một **class TypeScript** chứa các hành vi logic như xử lý tương tác của người dùng và gọi dữ liệu từ máy chủ",
+        "Một **template HTML** điều khiển nội dung được render vào cây DOM",
+        "Một **CSS selector** xác định cách component được gọi ra sử dụng trong HTML"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cung cấp thông tin cấu hình cho Angular bằng cách thêm decorator `@Component` phía trên class TypeScript:"
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  template: `<img src=\"profile-photo.jpg\" alt=\"Ảnh đại diện của bạn\"/>`,",
+        "})",
+        "export class ProfilePhoto {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Để tìm hiểu chi tiết về cách viết template trong Angular bao gồm ràng buộc dữ liệu (data binding), xử lý sự kiện và cấu trúc điều khiển, hãy xem [Hướng dẫn Templates](guide/templates)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối tượng được truyền vào decorator `@Component` được gọi là **metadata** của component. Metadata bao gồm `selector`, `template` và các thuộc tính cấu hình khác được mô tả trong tài liệu này."
+    },
+    {
+      "type": "paragraph",
+      "text": "Component có thể tùy chọn khai báo danh sách CSS styles áp dụng riêng cho DOM của nó:"
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  template: `<img src=\"profile-photo.jpg\" alt=\"Ảnh đại diện của bạn\"/>`,",
+        "  styles: `",
+        "    img {",
+        "      border-radius: 50%;",
+        "    }",
+        "  `,",
+        "})",
+        "export class ProfilePhoto {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, CSS của component chỉ ảnh hưởng đến các phần tử được định nghĩa trong template của component đó. Xem thêm [Định kiểu cho Component](guide/components/styling) để hiểu rõ cách tiếp cận scoped CSS của Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể lựa chọn tách template và styles ra thành các file riêng biệt:"
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  templateUrl: 'profile-photo.html',",
+        "  styleUrl: 'profile-photo.css',",
+        "})",
+        "export class ProfilePhoto {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Cách này giúp tách biệt giữa **giao diện hiển thị (presentation)** và **hành vi logic (behavior)** trong dự án. Bạn có thể chọn phong cách này cho toàn dự án hoặc tùy biến linh hoạt cho từng component cụ thể."
+    },
+    {
+      "type": "paragraph",
+      "text": "Cả `templateUrl` và `styleUrl` đều là đường dẫn tương đối so với thư mục chứa file component."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-components",
+      "text": "Sử dụng component"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "imports-in-component-decorator",
+      "text": "Khai báo Imports trong decorator @Component"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để sử dụng một component, directive hoặc pipe trong template, bạn cần khai báo nó vào mảng `imports` của decorator `@Component`:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {ProfilePhoto} from './profile-photo';",
+        "",
+        "@Component({",
+        "  // Import component 'ProfilePhoto'",
+        "  // để sử dụng nó trong template của component này.",
+        "  imports: [ProfilePhoto],",
+        "  /* ... */",
+        "})",
+        "export class UserProfile {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, các component Angular là **standalone**, nghĩa là bạn có thể thêm trực tiếp chúng vào mảng `imports` của component khác. Các component được tạo từ phiên bản Angular cũ hơn có thể khai báo `standalone: false`, khi đó bạn sẽ phải import `NgModule` chứa component đó."
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Trong các phiên bản Angular trước 19.0.0, tùy chọn `standalone` mặc định là `false`."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "showing-components-in-template",
+      "text": "Hiển thị component trong template"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi component đều định nghĩa một CSS selector. Xem tài liệu [Component Selectors](guide/components/selectors) để biết các loại selector được hỗ trợ và cách đặt selector chuẩn mực."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn gọi hiển thị một component bằng cách tạo thẻ HTML tương ứng trong template của component cha:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  template: `<img src=\"profile.jpg\" alt=\"Ảnh đại diện\" />`,",
+        "})",
+        "export class ProfilePhoto {}",
+        "",
+        "@Component({",
+        "  imports: [ProfilePhoto],",
+        "  template: `<profile-photo />`,",
+        "})",
+        "export class UserProfile {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular sẽ khởi tạo một instance của component cho mỗi phần tử HTML khớp với selector mà nó tìm thấy. Phần tử DOM khớp với selector được gọi là **host element** của component. Toàn bộ nội dung template sẽ được render bên trong host element này."
+    },
+    {
+      "type": "paragraph",
+      "text": "Cấu trúc DOM được sinh ra từ template của component được gọi là **view** của component đó."
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi ghép nối các component lại với nhau, ứng dụng Angular sẽ tạo thành một **cây component (tree of components)** (Gốc Root: `AccountSettings` -> Con: `UserProfile`, `PaymentInfo` -> Lá: `ProfilePic`, `UserBio`)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Mô hình cây component này là nền tảng cốt lõi để bạn hiểu các khái niệm quan trọng khác trong Angular như Dependency Injection và truy vấn phần tử con (child queries)."
+    }
+  ]
+}

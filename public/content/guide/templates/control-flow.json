@@ -1,0 +1,31 @@
+{
+  "slug": "guide/templates/control-flow",
+  "title": "Cấu trúc điều khiển (Built-in Control Flow)",
+  "description": "Điều khiển render luồng giao diện có điều kiện với các block @if, @for và @switch.",
+  "source": "https://angular.dev/guide/templates/control-flow",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Built-in control flow là cú pháp mới tích hợp trực tiếp vào Angular template compiler, mang lại hiệu năng cao và type checking mạnh mẽ."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "if-blocks",
+      "text": "Khối @if"
+    },
+    {
+      "type": "code",
+      "file": "user-status.component.html",
+      "lang": "html",
+      "code": [
+        "@if (isLoggedIn()) {",
+        "  <p>Chào mừng bạn quay trở lại!</p>",
+        "} @else {",
+        "  <p>Vui lòng đăng nhập.</p>",
+        "}"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "slug": "guide/directives",
+  "title": "Directives trong Angular",
+  "description": "Directives là các lớp giúp bạn gắn thêm hành vi và điều chỉnh phần tử trong DOM của ứng dụng.",
+  "source": "https://angular.dev/guide/directives",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Directives trong Angular là những class chứa metadata decorator `@Directive()`. Có hai dạng directive phổ biến: Attribute Directives (thay đổi giao diện hoặc hành vi của một phần tử) và Structural Directives (thay đổi cấu trúc DOM bằng cách thêm/bớt phần tử)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "attribute-directives",
+      "text": "Tạo một Attribute Directive"
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ directive tự động đổi màu nền khi người dùng di chuột (hover) qua phần tử:"
+    },
+    {
+      "type": "code",
+      "file": "highlight.directive.ts",
+      "lang": "ts",
+      "code": [
+        "import { Directive, ElementRef, HostListener, inject } from '@angular/core';",
+        "",
+        "@Directive({",
+        "  selector: '[appHighlight]',",
+        "  standalone: true",
+        "})",
+        "export class HighlightDirective {",
+        "  private el = inject(ElementRef);",
+        "",
+        "  @HostListener('mouseenter')",
+        "  onMouseEnter() {",
+        "    this.highlight('#e535ab');",
+        "  }",
+        "",
+        "  @HostListener('mouseleave')",
+        "  onMouseLeave() {",
+        "    this.highlight('');",
+        "  }",
+        "",
+        "  private highlight(color: string) {",
+        "    this.el.nativeElement.style.backgroundColor = color;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "directive-composition-api",
+      "text": "Directive Composition API"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ Directive Composition API cho phép áp dụng hành vi của các directive trực tiếp vào host element của một component mà không cần kế thừa class:"
+    },
+    {
+      "type": "code",
+      "file": "custom-button.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'app-custom-button',",
+        "  standalone: true,",
+        "  hostDirectives: [HighlightDirective],",
+        "  template: `<button><ng-content /></button>`",
+        "})",
+        "export class CustomButtonComponent {}"
+      ]
+    }
+  ]
+}

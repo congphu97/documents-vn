@@ -1,0 +1,299 @@
+{
+  "slug": "guide/components/host-elements",
+  "title": "Component host elements",
+  "description": "Learn how to bind properties, attributes, and events to component host elements in Angular.",
+  "source": "https://angular.dev/guide/components/host-elements",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "This guide assumes you've already read the [Essentials Guide](essentials). Read that first if you're new to Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular creates an instance of a component for every HTML element that matches the component's selector. The DOM element that matches a component's selector is that component's **host element**. The contents of a component's template are rendered inside its host element."
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "// Component source",
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  template: `<img src=\"profile-photo.jpg\" alt=\"Your profile photo\" />`,",
+        "})",
+        "export class ProfilePhoto {}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "parent.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Using the component -->",
+        "<h3>Your profile photo</h3>",
+        "<profile-photo />",
+        "<button>Upload a new profile photo</button>"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "rendered-dom.html",
+      "lang": "html",
+      "code": [
+        "<!-- Rendered DOM -->",
+        "<h3>Your profile photo</h3>",
+        "<profile-photo>",
+        "  <img src=\"profile-photo.jpg\" alt=\"Your profile photo\" />",
+        "</profile-photo>",
+        "<button>Upload a new profile photo</button>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "In the above example, `<profile-photo>` is the host element of the `ProfilePhoto` component."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "binding-to-the-host-element",
+      "text": "Binding to the host element"
+    },
+    {
+      "type": "paragraph",
+      "text": "A component can bind properties, attributes, styles and events to its host element. This behaves identically to bindings on elements inside the component's template, but instead defined with the `host` property in the `@Component` decorator:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'custom-slider',",
+        "  template: `<!-- slider template -->`,",
+        "  host: {",
+        "    'role': 'slider',",
+        "    '[attr.aria-valuenow]': 'value',",
+        "    '[class.active]': 'isActive()',",
+        "    '[style.background]': `hasError() ? 'red' : 'green'`,",
+        "    '[tabIndex]': 'disabled ? -1 : 0',",
+        "    '(keydown)': 'updateValue($event)',",
+        "  },",
+        "})",
+        "export class CustomSlider {",
+        "  value: number = 0;",
+        "  disabled: boolean = false;",
+        "  isActive = signal(false);",
+        "  hasError = signal(false);",
+        "  updateValue(event: KeyboardEvent) { /* ... */ }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "The global target names that can be used to prefix an event name are `document:`, `window:` and `body:`."
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Key names like `'(keydown.enter)'` are matched against `KeyboardEvent.key`, which depends on the user's keyboard layout and input language. To match a physical key regardless of layout, use the `code` modifier instead, e.g. `'(keydown.code.Enter)'`. See [Using key modifiers](guide/templates/event-listeners#using-key-modifiers) for details."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "the-hostbinding-and-hostlistener-decorators",
+      "text": "The @HostBinding and @HostListener decorators"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can alternatively bind to the host element by applying the `@HostBinding` and `@HostListener` decorator to class members."
+    },
+    {
+      "type": "paragraph",
+      "text": "`@HostBinding` lets you bind host properties and attributes to properties and getters:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({/* ... */})",
+        "export class CustomSlider {",
+        "  @HostBinding('attr.aria-valuenow')",
+        "  value: number = 0;",
+        "",
+        "  @HostBinding('tabIndex')",
+        "  get tabIndex() {",
+        "    return this.disabled ? -1 : 0;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "`@HostListener` lets you bind event listeners to the host element. The decorator accepts an event name and an optional array of arguments:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "export class CustomSlider {",
+        "  @HostListener('keydown', ['$event'])",
+        "  updateValue(event: KeyboardEvent) {",
+        "    /* ... */",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "**Always prefer using the `host` property over `@HostBinding` and `@HostListener`.** These decorators exist exclusively for backwards compatibility."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "binding-collisions",
+      "text": "Binding collisions"
+    },
+    {
+      "type": "paragraph",
+      "text": "When you use a component in a template, you can add bindings to that component instance's element. The component may *also* define host bindings for the same properties or attributes."
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  template: `<!-- ... -->`,",
+        "  host: {",
+        "    'role': 'presentation',",
+        "    '[id]': 'id',",
+        "  }",
+        "})",
+        "export class ProfilePhoto { /* ... */ }"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "parent.component.html",
+      "lang": "html",
+      "code": [
+        "<profile-photo role=\"group\" [id]=\"otherId\" />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "In cases like this, the following rules determine which value wins:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "If both values are static, the instance binding wins.",
+        "If one value is static and the other dynamic, the dynamic value wins.",
+        "If both values are dynamic, the component's host binding wins."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "styling-with-css-custom-properties",
+      "text": "Styling with CSS custom properties"
+    },
+    {
+      "type": "paragraph",
+      "text": "Developers often rely on [CSS Custom Properties](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_cascading_variables/Using_CSS_custom_properties) to enable a flexible configuration of their component's styles. You can set such custom properties on a host element with a [style binding](guide/templates/binding#css-style-properties)."
+    },
+    {
+      "type": "code",
+      "file": "my-component.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'my-component',",
+        "  template: `<!-- ... -->`,",
+        "  host: {",
+        "    '[style.--my-background]': 'color()',",
+        "  },",
+        "})",
+        "export class MyComponent {",
+        "  color = signal('lightgreen');",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "In this example, the `--my-background` CSS custom property is bound to the `color` signal. The value of the custom property will automatically update whenever the `color` signal changes. This will affect the current component and all its children that rely on this custom property."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "setting-custom-properties-on-children-components",
+      "text": "Setting custom properties on children components"
+    },
+    {
+      "type": "paragraph",
+      "text": "Alternatively, it is also possible to set css custom properties on the host element of children components with a [style binding](guide/templates/binding#css-style-properties)."
+    },
+    {
+      "type": "code",
+      "file": "my-component.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'my-component',",
+        "  template: `<my-child [style.--my-background]=\"color()\" />`,",
+        "})",
+        "export class MyComponent {",
+        "  color = signal('lightgreen');",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "injecting-host-element-attributes",
+      "text": "Injecting host element attributes"
+    },
+    {
+      "type": "paragraph",
+      "text": "Components and directives can read static attributes from their host element by using `HostAttributeToken` together with the [`inject`](api/core/inject) function."
+    },
+    {
+      "type": "code",
+      "file": "button.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, HostAttributeToken, inject } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'app-button',",
+        "  template: `<button><ng-content /></button>`,",
+        "})",
+        "export class Button {",
+        "  variation = inject(new HostAttributeToken('variation'));",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "parent.component.html",
+      "lang": "html",
+      "code": [
+        "<app-button variation=\"primary\">Click me</app-button>"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "`HostAttributeToken` throws an error if the attribute is missing, unless the injection is marked as optional."
+    }
+  ]
+}

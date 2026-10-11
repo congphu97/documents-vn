@@ -1,0 +1,44 @@
+{
+  "slug": "tutorials/learn-angular",
+  "title": "Start coding! 🚀",
+  "description": "Tài liệu hướng dẫn về Start coding! 🚀 trong Angular.",
+  "source": "https://angular.dev/tutorials/learn-angular",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/tutorials/learn-angular](https://angular.dev/tutorials/learn-angular)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Start coding! 🚀 là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "overview-section",
+      "text": "Tổng quan và Khái niệm"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để nắm vững Start coding! 🚀, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "// Ví dụ minh họa cho Start coding! 🚀",
+        "import { Component } from \"@angular/core\";",
+        "",
+        "@Component({",
+        "  selector: \"app-example\",",
+        "  standalone: true,",
+        "  template: `<h1>Start coding! 🚀</h1>`",
+        "})",
+        "export class ExampleComponent {}"
+      ]
+    }
+  ]
+}

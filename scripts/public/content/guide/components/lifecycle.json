@@ -1,0 +1,449 @@
+{
+  "slug": "guide/components/lifecycle",
+  "title": "Vòng đời của Component (Component Lifecycle)",
+  "description": "Tìm hiểu toàn diện về vòng đời của component trong Angular, các pha thực thi, các lifecycle hook và các hàm render callback.",
+  "source": "https://angular.dev/guide/components/lifecycle",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Hướng dẫn này giả định rằng bạn đã đọc [Hướng dẫn kiến thức cốt lõi (Essentials Guide)](essentials). Hãy đọc hướng dẫn đó trước nếu bạn mới làm quen với Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "**Vòng đời (lifecycle)** của component là chuỗi các bước diễn ra từ khi component được khởi tạo cho đến khi nó bị hủy bỏ. Mỗi bước đại diện cho một phần riêng biệt trong quy trình của Angular để render component và kiểm tra các cập nhật theo thời gian."
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong component của bạn, bạn có thể triển khai các **lifecycle hook** để chạy code trong các bước này. Các hook liên quan đến một instance component cụ thể được hiện thực hóa dưới dạng các method trên class component. Các hook liên quan đến toàn bộ ứng dụng Angular được hiện thực dưới dạng các hàm độc lập nhận callback."
+    },
+    {
+      "type": "paragraph",
+      "text": "Vòng đời của component gắn liền chặt chẽ với cách Angular kiểm tra các thay đổi trên cây ứng dụng. Angular duyệt cây ứng dụng từ trên xuống dưới, kiểm tra các liên kết binding trong template. Các lifecycle hook được kích hoạt trong quá trình duyệt cây này. Quá trình duyệt này ghé thăm mỗi component chính xác một lần, do đó bạn nên tránh thay đổi trạng thái (state changes) ở giữa chu trình."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "summary",
+      "text": "Bảng tổng hợp các Lifecycle Hook (Summary)"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Giai đoạn (Phase)",
+        "Phương thức / Hàm",
+        "Tóm tắt chức năng"
+      ],
+      "rows": [
+        [
+          "Khởi tạo (Creation)",
+          "`constructor`",
+          "Hàm khởi tạo chuẩn của class JavaScript. Chạy khi Angular khởi tạo đối tượng component."
+        ],
+        [
+          "Phát hiện thay đổi (Change Detection)",
+          "`ngOnInit`",
+          "Chạy một lần duy nhất sau khi Angular đã khởi tạo xong tất cả các input của component."
+        ],
+        [
+          "Phát hiện thay đổi",
+          "`ngOnChanges`",
+          "Chạy mỗi khi các giá trị input của component thay đổi."
+        ],
+        [
+          "Phát hiện thay đổi",
+          "`ngDoCheck`",
+          "Chạy mỗi khi component này được kiểm tra thay đổi trong chu kỳ change detection."
+        ],
+        [
+          "Phát hiện thay đổi",
+          "`ngAfterContentInit`",
+          "Chạy một lần sau khi *nội dung được chiếu (content)* của component đã được khởi tạo."
+        ],
+        [
+          "Phát hiện thay đổi",
+          "`ngAfterContentChecked`",
+          "Chạy mỗi khi *content* lồng bên trong component được kiểm tra thay đổi."
+        ],
+        [
+          "Phát hiện thay đổi",
+          "`ngAfterViewInit`",
+          "Chạy một lần sau khi toàn bộ *view template* của component đã được khởi tạo hoàn tất."
+        ],
+        [
+          "Phát hiện thay đổi",
+          "`ngAfterViewChecked`",
+          "Chạy mỗi khi view của component được kiểm tra thay đổi."
+        ],
+        [
+          "Hiển thị (Rendering)",
+          "`afterNextRender`",
+          "Chạy một lần vào lần tiếp theo sau khi **toàn bộ** các component trên trang đã render xong ra DOM."
+        ],
+        [
+          "Hiển thị",
+          "`afterEveryRender`",
+          "Chạy mỗi lần sau khi **toàn bộ** các component trên trang đã hoàn tất render ra DOM."
+        ],
+        [
+          "Hủy bỏ (Destruction)",
+          "`ngOnDestroy`",
+          "Chạy một lần duy nhất ngay trước khi component bị hủy bỏ."
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ngoninit",
+      "text": "ngOnInit"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức `ngOnInit` chạy sau khi Angular đã khởi tạo tất cả các input của component với giá trị khởi đầu của chúng. `ngOnInit` của một component chỉ chạy đúng một lần duy nhất."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bước này diễn ra *trước khi* template của chính component được khởi tạo. Điều này đồng nghĩa với việc bạn có thể cập nhật trạng thái của component dựa trên các giá trị input ban đầu."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ngonchanges",
+      "text": "ngOnChanges"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức `ngOnChanges` chạy sau khi bất kỳ giá trị input nào của component thay đổi."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bước này diễn ra *trước khi* template của component được kiểm tra. Điều này cho phép bạn cập nhật trạng thái component theo các giá trị input mới nhận được."
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong quá trình khởi tạo ban đầu, `ngOnChanges` đầu tiên luôn chạy trước `ngOnInit`."
+    },
+    {
+      "type": "heading",
+      "level": 4,
+      "id": "inspecting-changes",
+      "text": "Kiểm tra các thay đổi với SimpleChanges"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức `ngOnChanges` nhận một tham số `SimpleChanges`. Đối tượng này là một `Record` ánh xạ tên của từng input sang đối tượng `SimpleChange`. Mỗi `SimpleChange` chứa giá trị trước đó (`previousValue`), giá trị hiện tại (`currentValue`) và cờ đánh dấu liệu đây có phải là lần thay đổi đầu tiên hay không (`firstChange`)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể truyền class hiện tại làm tham số generic đầu tiên để có được kiểm tra kiểu TypeScript chặt chẽ:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({/* ... */})",
+        "export class UserProfile {",
+        "  name = input('');",
+        "",
+        "  ngOnChanges(changes: SimpleChanges<UserProfile>) {",
+        "    if (changes.name) {",
+        "      console.log(`Giá trị cũ: ${changes.name.previousValue}`);",
+        "      console.log(`Giá trị mới: ${changes.name.currentValue}`);",
+        "      console.log(`Lần đầu tiên: ${changes.name.firstChange}`);",
+        "    }",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn cung cấp `alias` cho bất kỳ input property nào, đối tượng `SimpleChanges` vẫn sử dụng tên thuộc tính TypeScript làm key chứ không dùng tên alias."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ngondestroy",
+      "text": "ngOnDestroy"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức `ngOnDestroy` chạy một lần ngay trước khi component bị hủy. Angular hủy một component khi nó không còn hiển thị trên trang nữa, chẳng hạn như bị ẩn bởi `@if` hoặc khi người dùng điều hướng sang route khác."
+    },
+    {
+      "type": "heading",
+      "level": 4,
+      "id": "destroyref",
+      "text": "DestroyRef"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một giải pháp thay thế linh hoạt cho `ngOnDestroy` là bạn có thể inject một instance của `DestroyRef`. Bạn đăng ký một callback dọn dẹp bằng cách gọi method `onDestroy` của `DestroyRef`:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({/* ... */})",
+        "export class UserProfile {",
+        "  constructor() {",
+        "    inject(DestroyRef).onDestroy(() => {",
+        "      console.log('Dọn dẹp tài nguyên khi UserProfile bị hủy');",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể truyền đối tượng `DestroyRef` vào các hàm hoặc service bên ngoài component. Mô hình này giúp giữ code khởi tạo gần kề với code dọn dẹp thay vì gom tất cả logic hủy dọn vào một hàm `ngOnDestroy` khổng lồ."
+    },
+    {
+      "type": "heading",
+      "level": 4,
+      "id": "detecting-instance-destruction",
+      "text": "Phát hiện instance đã bị hủy"
+    },
+    {
+      "type": "paragraph",
+      "text": "`DestroyRef` cung cấp thuộc tính `destroyed` cho phép kiểm tra xem một instance cụ thể đã bị hủy hay chưa. Điều này rất hữu ích để tránh chạy các tác vụ bất đồng bộ trên component đã bị hủy, ngăn chặn các lỗi như `NG0911: View has already been destroyed.`."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ngdocheck",
+      "text": "ngDoCheck"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức `ngDoCheck` chạy trước mỗi lần Angular kiểm tra template của component để tìm thay đổi. Bạn có thể sử dụng hook này để tự kiểm tra các thay đổi trạng thái nằm ngoài cơ chế change detection thông thường của Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức này chạy với tần suất cực kỳ cao và có thể ảnh hưởng nghiêm trọng đến hiệu năng trang web. Hãy tránh định nghĩa hook này bất cứ khi nào có thể, chỉ sử dụng khi bạn không còn giải pháp nào khác."
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong quá trình khởi tạo, `ngDoCheck` đầu tiên chạy ngay sau `ngOnInit`."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ngaftercontentinit",
+      "text": "ngAfterContentInit"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức `ngAfterContentInit` chạy một lần sau khi tất cả các phần tử con lồng bên trong component (phần *content* được chiếu vào) đã được khởi tạo."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể sử dụng hook này để đọc kết quả của [truy vấn content (content queries)](guide/components/queries#content-queries). Mặc dù bạn có thể truy cập trạng thái của các truy vấn này, việc cố gắng thay đổi trạng thái trong phương thức này sẽ gây ra lỗi `ExpressionChangedAfterItHasBeenCheckedError`."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ngaftercontentchecked",
+      "text": "ngAfterContentChecked"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức `ngAfterContentChecked` chạy mỗi khi các phần tử con lồng bên trong component (*content*) đã được kiểm tra thay đổi."
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức này chạy rất thường xuyên và ảnh hưởng đến hiệu năng. Tránh định nghĩa hook này nếu không thực sự cần thiết."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ngafterviewinit",
+      "text": "ngAfterViewInit"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức `ngAfterViewInit` chạy một lần sau khi toàn bộ cây view trong template của component (*view*) đã được khởi tạo xong."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể dùng hook này để đọc kết quả từ [view queries](guide/components/queries#view-queries). Lưu ý rằng việc thay đổi trạng thái tại đây sẽ gây ra lỗi `ExpressionChangedAfterItHasBeenCheckedError`."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ngafterviewchecked",
+      "text": "ngAfterViewChecked"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức `ngAfterViewChecked` chạy mỗi khi view trong template của component được kiểm tra thay đổi. Hook này cũng chạy với tần suất rất cao."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "aftereveryrender-and-afternextrender",
+      "text": "afterEveryRender và afterNextRender"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các hàm `afterEveryRender` và `afterNextRender` cho phép bạn đăng ký một **render callback** để được gọi sau khi Angular đã render xong *tất cả các component* trên toàn bộ trang ra DOM."
+    },
+    {
+      "type": "paragraph",
+      "text": "Khác với các lifecycle hook dạng method trên class, đây là các hàm độc lập toàn cục (application-wide). Quá trình thực thi không gắn liền với một component riêng lẻ nào."
+    },
+    {
+      "type": "paragraph",
+      "text": "`afterEveryRender` và `afterNextRender` phải được gọi trong một [ngữ cảnh injection (injection context)](guide/di/dependency-injection-context), điển hình là trong constructor của component."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể sử dụng các render callback này để thực hiện các thao tác DOM thủ công. Các callback này không chạy trong quá trình Server-Side Rendering (SSR) hoặc prerendering tại build-time."
+    },
+    {
+      "type": "heading",
+      "level": 4,
+      "id": "afterrender-phases",
+      "text": "Các giai đoạn phân tách trong after*Render"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi sử dụng `afterEveryRender` hoặc `afterNextRender`, bạn có thể phân chia công việc thành các pha (phases). Điều này cho phép bạn sắp xếp các thao tác *ghi (write)* trước các thao tác *đọc (read)* DOM nhằm hạn chế tối đa hiện tượng [layout thrashing](https://web.dev/avoid-large-complex-layouts-and-layout-thrashing). Các phase có thể truyền kết quả sang phase tiếp theo:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, ElementRef, afterNextRender, inject} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class UserProfile {",
+        "  private prevPadding = 0;",
+        "  private elementHeight = 0;",
+        "",
+        "  constructor() {",
+        "    const elementRef = inject(ElementRef);",
+        "    const nativeElement = elementRef.nativeElement;",
+        "",
+        "    afterNextRender({",
+        "      // Pha `write` dùng để ghi các thuộc tính kích thước/vị trí hình học",
+        "      write: () => {",
+        "        const padding = computePadding();",
+        "        const changed = padding !== this.prevPadding;",
+        "        if (changed) {",
+        "          nativeElement.style.padding = padding;",
+        "        }",
+        "        return changed; // Truyền giá trị báo cho pha `read` biết có thay đổi",
+        "      },",
+        "",
+        "      // Pha `read` dùng để đọc các thuộc tính DOM sau khi mọi thao tác ghi đã kết thúc",
+        "      read: (didWrite) => {",
+        "        if (didWrite) {",
+        "          this.elementHeight = nativeElement.getBoundingClientRect().height;",
+        "        }",
+        "      },",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Có bốn phase được thực thi theo thứ tự:"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Giai đoạn (Phase)",
+        "Mô tả"
+      ],
+      "rows": [
+        [
+          "`earlyRead`",
+          "Đọc các thuộc tính DOM ảnh hưởng đến layout cần thiết cho tính toán tiếp theo. Nên hạn chế dùng."
+        ],
+        [
+          "`write`",
+          "Ghi các thuộc tính DOM và style ảnh hưởng đến layout."
+        ],
+        [
+          "`mixedReadWrite`",
+          "Pha mặc định, dùng khi vừa đọc vừa ghi đồng thời. Nên ưu tiên tách rõ ràng write và read."
+        ],
+        [
+          "`read`",
+          "Đọc các thuộc tính layout DOM sau khi tất cả các pha ghi đã hoàn tất."
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "lifecycle-interfaces",
+      "text": "Các interface Lifecycle trong TypeScript"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular cung cấp một interface TypeScript cho mỗi lifecycle method. Bạn có thể `implement` các interface này để đảm bảo code không bị sai chính tả tên hàm."
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi interface có tên tương ứng với tên method nhưng bỏ tiền tố `ng`. Ví dụ: interface của `ngOnInit` là `OnInit`."
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, OnInit} from '@angular/core';",
+        "",
+        "@Component({/* ... */})",
+        "export class UserProfile implements OnInit {",
+        "  ngOnInit() {",
+        "    /* ... */",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "execution-order",
+      "text": "Thứ tự thực thi các Lifecycle Hook (Execution order)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "during-initialization",
+      "text": "Trong quá trình khởi tạo ban đầu (During initialization)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Thứ tự khởi tạo diễn ra như sau: `constructor` -> `ngOnChanges` (nếu có input) -> `ngOnInit` -> `ngDoCheck` -> `ngAfterContentInit` -> `ngAfterContentChecked` -> `ngAfterViewInit` -> `ngAfterViewChecked` -> `afterNextRender` -> `afterEveryRender`."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "subsequent-updates",
+      "text": "Trong các chu kỳ cập nhật tiếp theo (Subsequent updates)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong các lần chạy change detection tiếp theo, thứ tự là: `ngOnChanges` (nếu có input thay đổi) -> `ngDoCheck` -> `ngAfterContentChecked` -> `ngAfterViewChecked` -> `afterEveryRender`."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ordering-with-directives",
+      "text": "Thứ tự thực thi khi đi kèm Directive"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn gắn một hoặc nhiều directive lên cùng một phần tử với component, framework không đảm bảo thứ tự thực thi của lifecycle hook giữa component và directive. Bạn không nên phụ thuộc vào thứ tự quan sát được vì điều này có thể thay đổi ở các phiên bản sau của Angular."
+    }
+  ]
+}

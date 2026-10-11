@@ -1,0 +1,44 @@
+{
+  "slug": "guide/templates/binding",
+  "title": "Data Binding",
+  "description": "Documentation guide for Data Binding in Angular.",
+  "source": "https://angular.dev/guide/templates/binding",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Official documentation from [angular.dev/guide/templates/binding](https://angular.dev/guide/templates/binding)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Data Binding is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "overview-section",
+      "text": "Overview and Concepts"
+    },
+    {
+      "type": "paragraph",
+      "text": "To master Data Binding, explore the core mechanisms and design patterns provided by Angular."
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "// Example demonstration for Data Binding",
+        "import { Component } from \"@angular/core\";",
+        "",
+        "@Component({",
+        "  selector: \"app-example\",",
+        "  standalone: true,",
+        "  template: `<h1>Data Binding</h1>`",
+        "})",
+        "export class ExampleComponent {}"
+      ]
+    }
+  ]
+}

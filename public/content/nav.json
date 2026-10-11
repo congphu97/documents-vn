@@ -1,0 +1,390 @@
+[
+  {
+    "label": "Introduction",
+    "items": [
+      {
+        "label": "What is Angular?",
+        "path": "overview"
+      },
+      {
+        "label": "Installation",
+        "path": "installation"
+      },
+      {
+        "label": "Essentials",
+        "children": [
+          {
+            "label": "Overview",
+            "path": "essentials"
+          },
+          {
+            "label": "Components",
+            "path": "essentials/components"
+          },
+          {
+            "label": "Signals",
+            "path": "essentials/signals"
+          },
+          {
+            "label": "Dependency Injection",
+            "path": "essentials/dependency-injection"
+          }
+        ]
+      },
+      {
+        "label": "Start coding! 🚀",
+        "path": "tutorials/learn-angular"
+      }
+    ]
+  },
+  {
+    "label": "In-depth Guides",
+    "items": [
+      {
+        "label": "Signals",
+        "badge": "Updated",
+        "children": [
+          {
+            "label": "Overview",
+            "path": "guide/signals"
+          },
+          {
+            "label": "RxJS Interop",
+            "path": "guide/signals/rxjs-interop"
+          },
+          {
+            "label": "Linked Signal",
+            "path": "guide/signals/linked-signal"
+          }
+        ]
+      },
+      {
+        "label": "Components",
+        "children": [
+          {
+            "label": "Overview",
+            "path": "guide/components"
+          },
+          {
+            "label": "Anatomy",
+            "path": "guide/components/anatomy"
+          },
+          {
+            "label": "Selectors",
+            "path": "guide/components/selectors"
+          },
+          {
+            "label": "Inputs",
+            "path": "guide/components/inputs"
+          },
+          {
+            "label": "Outputs",
+            "path": "guide/components/outputs"
+          },
+          {
+            "label": "Events",
+            "path": "guide/components/events"
+          },
+          {
+            "label": "Lifecycle",
+            "path": "guide/components/lifecycle"
+          },
+          {
+            "label": "Content Projection",
+            "path": "guide/components/content-projection"
+          },
+          {
+            "label": "Host Elements",
+            "path": "guide/components/host-elements"
+          },
+          {
+            "label": "Styles",
+            "path": "guide/components/styles"
+          },
+          {
+            "label": "Custom Elements",
+            "path": "guide/elements"
+          }
+        ]
+      },
+      {
+        "label": "Templates",
+        "children": [
+          {
+            "label": "Overview",
+            "path": "guide/templates"
+          },
+          {
+            "label": "Data Binding",
+            "path": "guide/templates/binding"
+          },
+          {
+            "label": "Control Flow",
+            "path": "guide/templates/control-flow"
+          },
+          {
+            "label": "Deferred Loading (@defer)",
+            "path": "guide/templates/defer"
+          },
+          {
+            "label": "Pipes",
+            "path": "guide/templates/pipes"
+          },
+          {
+            "label": "Variables",
+            "path": "guide/templates/variables"
+          }
+        ]
+      },
+      {
+        "label": "Directives",
+        "children": [
+          {
+            "label": "Overview",
+            "path": "guide/directives"
+          },
+          {
+            "label": "Attribute Directives",
+            "path": "guide/directives/attribute-directives"
+          },
+          {
+            "label": "Structural Directives",
+            "path": "guide/directives/structural-directives"
+          }
+        ]
+      },
+      {
+        "label": "Dependency Injection",
+        "badge": "Updated",
+        "children": [
+          {
+            "label": "Overview",
+            "path": "guide/di"
+          },
+          {
+            "label": "Providers",
+            "path": "guide/di/dependency-injection-providers"
+          },
+          {
+            "label": "Hierarchy",
+            "path": "guide/di/dependency-injection-hierarchy"
+          },
+          {
+            "label": "DI in Action",
+            "path": "guide/di/di-in-action"
+          }
+        ]
+      },
+      {
+        "label": "Routing",
+        "children": [
+          {
+            "label": "Overview",
+            "path": "guide/routing"
+          },
+          {
+            "label": "Common Router Tasks",
+            "path": "guide/routing/common-router-tasks"
+          },
+          {
+            "label": "Router Reference",
+            "path": "guide/routing/router-reference"
+          }
+        ]
+      },
+      {
+        "label": "Forms",
+        "badge": "Updated",
+        "children": [
+          {
+            "label": "Overview",
+            "path": "guide/forms"
+          },
+          {
+            "label": "Reactive Forms",
+            "path": "guide/forms/reactive-forms"
+          },
+          {
+            "label": "Template-driven Forms",
+            "path": "guide/forms/template-driven-forms"
+          },
+          {
+            "label": "Validation",
+            "path": "guide/forms/form-validation"
+          }
+        ]
+      },
+      {
+        "label": "HTTP Client",
+        "children": [
+          {
+            "label": "Overview",
+            "path": "guide/http"
+          },
+          {
+            "label": "Making Requests",
+            "path": "guide/http/making-requests"
+          },
+          {
+            "label": "Interceptors",
+            "path": "guide/http/interceptors"
+          }
+        ]
+      },
+      {
+        "label": "Server-side & hybrid-rendering",
+        "children": [
+          {
+            "label": "SSR Overview",
+            "path": "guide/ssr"
+          },
+          {
+            "label": "Hydration",
+            "path": "guide/hydration"
+          },
+          {
+            "label": "Prerendering",
+            "path": "guide/prerendering"
+          }
+        ]
+      },
+      {
+        "label": "Testing",
+        "children": [
+          {
+            "label": "Overview",
+            "path": "guide/testing"
+          },
+          {
+            "label": "Testing Components",
+            "path": "guide/testing/components"
+          },
+          {
+            "label": "Testing Services",
+            "path": "guide/testing/services"
+          }
+        ]
+      },
+      {
+        "label": "Angular Aria",
+        "badge": "New",
+        "path": "guide/aria"
+      },
+      {
+        "label": "Internationalization",
+        "children": [
+          {
+            "label": "Overview",
+            "path": "guide/i18n"
+          },
+          {
+            "label": "Translation",
+            "path": "guide/i18n/translation"
+          }
+        ]
+      },
+      {
+        "label": "Animations",
+        "path": "guide/animations"
+      },
+      {
+        "label": "Drag and drop",
+        "path": "guide/drag-drop"
+      }
+    ]
+  },
+  {
+    "label": "Build with AI",
+    "items": [
+      {
+        "label": "Get Started",
+        "path": "ai"
+      },
+      {
+        "label": "LLM prompts and AI IDE setup",
+        "path": "ai/develop-with-ai"
+      },
+      {
+        "label": "Agent Skills",
+        "badge": "New",
+        "path": "ai/agent-skills"
+      },
+      {
+        "label": "Angular CLI MCP Server setup",
+        "path": "ai/mcp"
+      },
+      {
+        "label": "Angular AI Tutor",
+        "path": "ai/ai-tutor"
+      },
+      {
+        "label": "Design Patterns",
+        "path": "ai/design-patterns"
+      },
+      {
+        "label": "WebMCP",
+        "badge": "New",
+        "path": "ai/webmcp"
+      }
+    ]
+  },
+  {
+    "label": "Developer Tools",
+    "items": [
+      {
+        "label": "Angular CLI",
+        "path": "cli"
+      },
+      {
+        "label": "DevTools",
+        "path": "devtools"
+      },
+      {
+        "label": "Build & bundle",
+        "path": "guide/build"
+      },
+      {
+        "label": "Workspace Configuration",
+        "path": "reference/configs/workspace-config"
+      }
+    ]
+  },
+  {
+    "label": "Best Practices",
+    "items": [
+      {
+        "label": "Runtime performance",
+        "path": "best-practices/runtime-performance"
+      },
+      {
+        "label": "Security",
+        "path": "best-practices/security"
+      },
+      {
+        "label": "Accessibility",
+        "path": "best-practices/accessibility"
+      },
+      {
+        "label": "i18n best practices",
+        "path": "best-practices/i18n"
+      }
+    ]
+  },
+  {
+    "label": "Developer Events & Community",
+    "items": [
+      {
+        "label": "Community Overview",
+        "path": "community"
+      },
+      {
+        "label": "Events",
+        "path": "community/events"
+      },
+      {
+        "label": "Contributing",
+        "path": "community/contributing"
+      }
+    ]
+  }
+]

@@ -1,0 +1,73 @@
+{
+  "slug": "guide/components/host-elements",
+  "title": "Phần tử chủ (Host elements)",
+  "description": "Mỗi instance component đều gắn liền với một host element tương ứng với selector của component đó.",
+  "source": "https://angular.dev/guide/components/host-elements",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tài liệu này giả định bạn đã đọc qua phần [Kiến thức cốt lõi](essentials). Hãy đọc phần đó trước nếu bạn mới làm quen với Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi instance của một component đều gắn liền với một **phần tử chủ (host element)**— chính là phần tử DOM khớp với selector của component. Toàn bộ nội dung trong template của component được render nằm gọn bên trong host element này."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "binding-to-the-host-element",
+      "text": "Ràng buộc thuộc tính và sự kiện lên Host Element"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong Angular, cách được khuyến nghị nhất để gắn attributes, CSS classes, styles và lắng nghe sự kiện trực tiếp lên host element là sử dụng thuộc tính `host` trong metadata của decorator `@Component`:"
+    },
+    {
+      "type": "code",
+      "file": "custom-card.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'custom-card',",
+        "  host: {",
+        "    'role': 'region',",
+        "    '[class.active]': 'isActive()',",
+        "    '[attr.aria-expanded]': 'isExpanded()',",
+        "    '(click)': 'onClick()'",
+        "  },",
+        "  template: `<ng-content />`",
+        "})",
+        "export class CustomCard {",
+        "  isActive = signal(true);",
+        "  isExpanded = signal(false);",
+        "  onClick() { console.log('Đã click vào thẻ Host'); }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "host-directives",
+      "text": "Gắn Directive vào Host (Host Directives)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể kế thừa và áp dụng hành vi của các directive khác lên host element thông qua thuộc tính `hostDirectives`:"
+    },
+    {
+      "type": "code",
+      "file": "custom-button.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'custom-button',",
+        "  hostDirectives: [TooltipDirective],",
+        "  template: `<button><ng-content /></button>`",
+        "})",
+        "export class CustomButton {}"
+      ]
+    }
+  ]
+}

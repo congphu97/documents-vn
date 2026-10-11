@@ -1,0 +1,202 @@
+{
+  "slug": "guide/components/selectors",
+  "title": "Component selectors",
+  "description": "Every component defines a CSS selector that determines how the component is used.",
+  "source": "https://angular.dev/guide/components/selectors",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "This guide assumes you've already read the [Essentials Guide](essentials/components). Read that first if you're new to Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Every component defines a [CSS selector](https://developer.mozilla.org/docs/Web/CSS/CSS_selectors) that determines how the component is used:"
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  template: `<img src=\"profile.jpg\" alt=\"Your profile photo\" />`",
+        "})",
+        "export class ProfilePhoto { }"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "You use a component by creating a matching HTML element in the templates of other components:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  imports: [ProfilePhoto],",
+        "  template: `",
+        "    <profile-photo />",
+        "    <button>Upload a new profile photo</button>",
+        "  `,",
+        "})",
+        "export class UserProfile { }"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular matches selectors statically at compile-time. Changing the DOM at run-time, either via Angular bindings or with DOM APIs, does not affect the components rendered."
+    },
+    {
+      "type": "paragraph",
+      "text": "An element can match exactly one component selector. If multiple component selectors match a single element, Angular reports an error. Component selectors are case-sensitive."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "types-of-selectors",
+      "text": "Types of selectors"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular supports a limited subset of basic CSS selector types in component selectors:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Type selector**: Matches elements based on their HTML tag name, or node name. Example: `profile-photo`",
+        "**Attribute selector**: Matches elements based on the presence of an HTML attribute and, optionally, an exact value for that attribute. Examples: `[dropzone]`, `[type=\"reset\"]`",
+        "**Class selector**: Matches elements based on the presence of a CSS class. Example: `.menu-item`"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "For attribute values, Angular supports matching an exact attribute value with the equals (`=`) operator. Angular does not support other attribute value operators."
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular component selectors do not support combinators, including descendant or child combinators, and do not support specifying namespaces."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "not-pseudo-class",
+      "text": "The :not pseudo-class"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular supports the `:not` pseudo-class. You can append this pseudo-class to any other selector to narrow which elements a component's selector matches. For example, you could define a `[dropzone]` attribute selector and prevent matching `textarea` elements:"
+    },
+    {
+      "type": "code",
+      "file": "drop-zone.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: '[dropzone]:not(textarea)',",
+        "  template: `<ng-content />`",
+        "})",
+        "export class DropZone { }"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular does not support any other pseudo-classes or pseudo-elements in component selectors."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "combining-selectors",
+      "text": "Combining selectors"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can combine multiple selectors by concatenating them. For example, you can match `<button>` elements that specify `type=\"reset\"`:"
+    },
+    {
+      "type": "code",
+      "file": "reset-button.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'button[type=\"reset\"]',",
+        "  template: `<ng-content />`",
+        "})",
+        "export class ResetButton { }"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "You can also define multiple selectors with a comma-separated list. Angular creates a component for each element that matches any of the selectors in the list:"
+    },
+    {
+      "type": "code",
+      "file": "multi-selector.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'drop-zone, [dropzone]',",
+        "  template: `<ng-content />`",
+        "})",
+        "export class DropZone { }"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "choosing-a-selector",
+      "text": "Choosing a selector"
+    },
+    {
+      "type": "paragraph",
+      "text": "The vast majority of components should use a custom element name as their selector. All custom element names should include a hyphen as described by the HTML specification."
+    },
+    {
+      "type": "paragraph",
+      "text": "By default, Angular reports an error if it encounters a custom tag name that does not match any available components, preventing bugs due to mistyped component names."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "selector-prefixes",
+      "text": "Selector prefixes"
+    },
+    {
+      "type": "paragraph",
+      "text": "The Angular team recommends using a short, consistent prefix for all custom components defined inside your project. For example, if you were to build YouTube with Angular, you might prefix your components with `yt-`, with components like `yt-menu`, `yt-player`, etc. Namespacing your selectors like this makes it immediately clear where a particular component comes from. By default, the Angular CLI uses `app-`."
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Angular uses the `ng` selector prefix for its own framework APIs. Never use `ng` as a selector prefix for your own custom components."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-to-use-attribute-selectors",
+      "text": "When to use an attribute selector"
+    },
+    {
+      "type": "paragraph",
+      "text": "You should consider an attribute selector when you want to create a component on a standard native element. For example, if you want to create a custom button component, you can take advantage of the standard `<button>` element by using an attribute selector:"
+    },
+    {
+      "type": "code",
+      "file": "youtube-upload-button.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'button[yt-upload]',",
+        "  template: `<ng-content />`",
+        "})",
+        "export class YouTubeUploadButton { }"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "This approach allows consumers of the component to directly use all the element's standard APIs without extra work. This is especially valuable for ARIA accessibility attributes such as `aria-label`."
+    }
+  ]
+}

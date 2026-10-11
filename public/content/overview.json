@@ -1,0 +1,97 @@
+{
+  "slug": "overview",
+  "title": "What is Angular?",
+  "description": "The web development framework for building modern apps.",
+  "source": "https://angular.dev/overview",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular là một web framework mã nguồn mở do Google và một cộng đồng lập trình viên trên toàn thế giới phát triển và duy trì. Angular mang đến trải nghiệm toàn diện cho việc phát triển ứng dụng web hiện đại từ khởi tạo, phát triển giao diện đến tối ưu hóa hiệu năng và triển khai quy mô lớn."
+    },
+    {
+      "type": "cards",
+      "items": [
+        {
+          "title": "Essentials",
+          "body": "Tổng quan toàn diện về trải nghiệm lập trình với Angular, làm quen với các khái niệm cốt lõi như Component, Template và Signals reactivity.",
+          "link": "Khám phá Essentials",
+          "href": "essentials/components"
+        },
+        {
+          "title": "Tutorials",
+          "body": "Hướng dẫn từng bước thực hành tương tác ngay trên trình duyệt, từ bài học đầu tiên đến xây dựng ứng dụng hoàn chỉnh.",
+          "link": "Bắt đầu học ngay",
+          "href": "https://angular.dev/tutorials"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "development-features",
+      "text": "Tính năng hỗ trợ quá trình phát triển"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular cung cấp một hệ sinh thái đồng nhất với các công cụ tích hợp sẵn giúp nâng cao năng suất lập trình và chất lượng mã nguồn:"
+    },
+    {
+      "type": "cards",
+      "items": [
+        {
+          "title": "Component",
+          "body": "Đóng gói mã TypeScript, cấu trúc HTML và CSS styling thành các khối giao diện độc lập, dễ dàng tái sử dụng và kiểm thử.",
+          "link": "Bắt đầu với Component",
+          "href": "essentials/components"
+        },
+        {
+          "title": "Signals Reactivity",
+          "body": "Mô hình reactivity chi tiết (fine-grained reactivity) mới giúp theo dõi sự thay đổi trạng thái và tự động cập nhật giao diện cực nhanh.",
+          "link": "Tìm hiểu Signals",
+          "href": "essentials/signals"
+        },
+        {
+          "title": "Dependency Injection (DI)",
+          "body": "Cơ chế quản lý và cung cấp dependencies mạnh mẽ, hỗ trợ viết code module hoá, dễ thay thế mock và unit test.",
+          "link": "Khám phá DI",
+          "href": "essentials/dependency-injection"
+        },
+        {
+          "title": "Server-side Rendering (SSR)",
+          "body": "Hỗ trợ SSR và non-destructive hydration giúp tăng tốc độ hiển thị trang ban đầu và tối ưu hoá SEO tối đa.",
+          "link": "Xem chi tiết SSR",
+          "href": "essentials/ssr"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "deployment-confidence",
+      "text": "Triển khai tự tin và bền vững"
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Angular tuân theo lịch trình phát hành phiên bản lớn định kỳ mỗi 6 tháng. Công cụ CLI `ng update` hỗ trợ migration code tự động, giúp nâng cấp an toàn mà không tốn công chuyển đổi thủ công."
+    },
+    {
+      "type": "cards",
+      "items": [
+        {
+          "title": "Kiểm chứng trên Google Monorepo",
+          "body": "Mỗi commit mã nguồn của Angular đều được kiểm chứng tự động trước hàng trăm nghìn dự án thực tế nội bộ tại Google.",
+          "link": "Xem bài viết nghiên cứu của Google",
+          "href": "https://cacm.acm.org/research/why-google-stores-billions-of-lines-of-code-in-a-single-repository/"
+        },
+        {
+          "title": "Bộ công cụ CLI, DevTools & Build thế hệ mới",
+          "body": "Tích hợp sẵn Vite và esbuild cho tốc độ khởi động tức thì, cùng Angular DevTools phân tích hiệu năng và signal graph.",
+          "link": "Tìm hiểu Angular CLI",
+          "href": "tools/cli"
+        }
+      ]
+    }
+  ]
+}

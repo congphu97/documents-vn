@@ -1,0 +1,411 @@
+{
+  "slug": "guide/elements",
+  "title": "Tổng quan về Angular Elements (Custom Elements)",
+  "description": "Tìm hiểu cách chuyển đổi các component Angular thành Web Components (Custom Elements) độc lập thông qua @angular/elements.",
+  "source": "https://angular.dev/guide/elements",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "*Angular elements* là các component Angular được đóng gói dưới dạng *custom elements* (còn được gọi là Web Components), một tiêu chuẩn web mở cho phép định nghĩa các thẻ HTML mới độc lập với mọi framework."
+    },
+    {
+      "type": "paragraph",
+      "text": "[Custom elements](https://developer.mozilla.org/docs/Web/Web_Components/Using_custom_elements) là một tính năng tiêu chuẩn của nền tảng Web có sẵn trên tất cả các trình duyệt hiện đại mà Angular hỗ trợ. Một custom element mở rộng HTML bằng cách cho phép bạn định nghĩa một thẻ mới mà nội dung được tạo và điều khiển bởi JavaScript. Trình duyệt duy trì một bảng đăng ký `CustomElementRegistry`, ánh xạ class JavaScript với một thẻ HTML tùy biến."
+    },
+    {
+      "type": "paragraph",
+      "text": "Gói thư viện `@angular/elements` cung cấp API `createCustomElement()` đóng vai trò cầu nối chuyển tiếp từ giao diện component và cơ chế phát hiện thay đổi (change detection) của Angular sang API DOM có sẵn của trình duyệt."
+    },
+    {
+      "type": "paragraph",
+      "text": "Chuyển đổi một component thành custom element mang toàn bộ hạ tầng cần thiết của Angular đến với trình duyệt. Việc tạo custom element rất trực quan và tự động kết nối view của component với change detection và liên kết dữ liệu (data binding), ánh xạ trực tiếp các tính năng Angular tương ứng với chuẩn HTML."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-custom-elements",
+      "text": "Sử dụng custom elements (Using custom elements)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Custom elements tự khởi động (self-bootstrap) — chúng bắt đầu hoạt động ngay khi được thêm vào DOM và tự động hủy bỏ khi bị xóa khỏi DOM. Một khi custom element đã được gắn vào DOM trên bất kỳ trang web nào, nó hiển thị và tương tác hệt như các phần tử HTML thông thường mà không đòi hỏi người dùng phải có kiến thức chuyên sâu về Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Để thêm gói thư viện `@angular/elements` vào dự án của bạn, hãy chạy lệnh sau:"
+    },
+    {
+      "type": "code",
+      "file": "terminal",
+      "lang": "bash",
+      "code": [
+        "npm install @angular/elements"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "how-it-works",
+      "text": "Cách thức hoạt động (How it works)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm `createCustomElement()` chuyển đổi một component thành một class có thể đăng ký trực tiếp với trình duyệt làm custom element. Sau khi đăng ký class với CustomElementRegistry của trình duyệt, bạn có thể sử dụng phần tử mới này hệt như thẻ HTML tích hợp trong nội dung thêm vào DOM:"
+    },
+    {
+      "type": "code",
+      "file": "index.html",
+      "lang": "html",
+      "code": [
+        "<my-popup message=\"Sử dụng Angular!\" />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi custom element được chèn vào trang, trình duyệt sẽ tạo một thể hiện của class đã đăng ký và đưa vào DOM. Nội dung được cung cấp bởi template của component (sử dụng cú pháp template Angular) và được render đồng bộ với dữ liệu DOM. Các input property trong component tương ứng trực tiếp với các thuộc tính HTML của thẻ."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "transforming-components-to-custom-elements",
+      "text": "Chuyển đổi component thành custom element"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular cung cấp hàm `createCustomElement()` để chuyển đổi một Angular component cùng với các dependency của nó thành một custom element hoàn chỉnh."
+    },
+    {
+      "type": "paragraph",
+      "text": "Quy trình chuyển đổi triển khai interface `NgElementConstructor` và tạo ra một hàm khởi tạo (constructor class) có khả năng sinh ra một thể hiện tự khởi động cho component của bạn."
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng hàm tiêu chuẩn [`customElements.define()`](https://developer.mozilla.org/docs/Web/API/CustomElementRegistry/define) của trình duyệt để đăng ký constructor này cùng tên thẻ custom element với [`CustomElementRegistry`](https://developer.mozilla.org/docs/Web/API/CustomElementRegistry). Khi trình duyệt phát hiện thẻ đã đăng ký trong DOM, nó sẽ gọi constructor để tạo thể hiện custom element."
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "Tránh sử dụng chính selector của component làm tên thẻ custom element. Điều này có thể dẫn đến hành vi không mong muốn do Angular tạo hai thể hiện component cho một phần tử DOM duy nhất: một component Angular thông thường và một custom element."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "mapping",
+      "text": "Cơ chế ánh xạ thuộc tính & sự kiện (Mapping)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một custom element *chứa (hosts)* một Angular component, làm cầu nối giữa dữ liệu / logic của component với các DOM API chuẩn. Các property và logic của component ánh xạ trực tiếp sang HTML attribute và hệ thống sự kiện của trình duyệt."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "API tạo phần tử sẽ duyệt qua component để tìm các input property và thiết lập các HTML attribute tương ứng cho custom element. Tên thuộc tính được chuyển đổi về dạng chữ thường ngăn cách bằng dấu gạch ngang (kebab-case) để tương thích với HTML. Ví dụ: đối với component có `inputProp = input('', {alias: 'myInputProp'})`, custom element sẽ có attribute tương ứng là `my-input-prop`.",
+        "Output của component được phát ra dưới dạng HTML [Custom Events](https://developer.mozilla.org/docs/Web/API/CustomEvent), với tên custom event khớp với tên của output. Ví dụ: component có `valueChanged = output()`, custom element sẽ phát ra sự kiện có tên \"valueChanged\", và dữ liệu phát ra được lưu trong property `detail` của sự kiện. Nếu bạn cung cấp alias, ví dụ `clicks = output<string>({alias: 'myClick'})`, sự kiện phát ra sẽ có tên là \"myClick\"."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Để biết thêm chi tiết, hãy xem tài liệu Web Component về [Tạo custom event](https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Events#creating_custom_events)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "example-a-popup-service",
+      "text": "Ví dụ: Dịch vụ Popup (Popup Service)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để thêm một component vào ứng dụng lúc runtime, bạn có thể [render động bằng code (programmatic rendering)](guide/components/programmatic-rendering) với API `createComponent`. Với hướng tiếp cận này, bạn phải tự quản lý toàn bộ hạ tầng xung quanh: gắn host view của component vào `ApplicationRef` để kích hoạt change detection, gán input, subscribe output, tháo gỡ và hủy dọn dẹp view khi component bị gỡ bỏ."
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng Angular Custom Element giúp quy trình trở nên đơn giản và gọn gàng hơn rất nhiều nhờ việc tự động hóa toàn bộ hạ tầng này — tất cả những gì bạn cần làm là định nghĩa cách thức xử lý sự kiện mong muốn."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Tệp",
+        "Chi tiết"
+      ],
+      "rows": [
+        [
+          "`popup.ts`",
+          "Định nghĩa một phần tử pop-up đơn giản hiển thị thông điệp đầu vào cùng với animation và phong cách hiển thị."
+        ],
+        [
+          "`popup.service.ts`",
+          "Tạo một service cung cấp hai cách kích hoạt `Popup`: dạng component động truyền thống, hoặc dạng custom element. Chú ý sự khác biệt lớn về số lượng code cài đặt hạ tầng giữa hai phương pháp."
+        ],
+        [
+          "`app.ts`",
+          "Định nghĩa root component của ứng dụng, sử dụng `PopupService` để thêm popup vào DOM lúc runtime. Khi ứng dụng chạy, constructor chuyển đổi `Popup` thành một custom element."
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Để so sánh trực quan, ví dụ minh họa cả hai phương pháp. Một nút bấm thêm popup bằng phương thức nạp động truyền thống, và nút kia sử dụng custom element. Kết quả hiển thị giống nhau nhưng cách chuẩn bị đơn giản hơn nhiều."
+    },
+    {
+      "type": "code",
+      "file": "popup.ts",
+      "lang": "ts",
+      "code": [
+        "// #docregion",
+        "import {Component, computed, input, output} from '@angular/core';",
+        "import {animate, state, style, transition, trigger} from '@angular/animations';",
+        "",
+        "@Component({",
+        "  selector: 'my-popup',",
+        "  template: `",
+        "    <span>Popup: {{ message() }}</span>",
+        "    <button type=\"button\" (click)=\"closed.emit()\">&#x2716;</button>",
+        "  `,",
+        "  animations: [",
+        "    trigger('state', [",
+        "      state('opened', style({transform: 'translateY(0%)'})),",
+        "      state('void, closed', style({transform: 'translateY(100%)', opacity: 0})),",
+        "      transition('* => *', animate('100ms ease-in')),",
+        "    ]),",
+        "  ],",
+        "  styles: [",
+        "    `",
+        "      :host {",
+        "        position: absolute;",
+        "        bottom: 0;",
+        "        left: 0;",
+        "        right: 0;",
+        "        background: #009cff;",
+        "        height: 48px;",
+        "        padding: 16px;",
+        "        display: flex;",
+        "        justify-content: space-between;",
+        "        align-items: center;",
+        "        border-top: 1px solid black;",
+        "        font-size: 24px;",
+        "      }",
+        "",
+        "      button {",
+        "        border-radius: 50%;",
+        "      }",
+        "    `,",
+        "  ],",
+        "  host: {",
+        "    '[@state]': 'state()',",
+        "  },",
+        "})",
+        "export class Popup {",
+        "  readonly message = input('');",
+        "  readonly closed = output<void>();",
+        "",
+        "  readonly state = computed(() => (this.message() ? 'opened' : 'closed'));",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "popup.service.ts",
+      "lang": "ts",
+      "code": [
+        "import {",
+        "  ApplicationRef,",
+        "  createComponent,",
+        "  EnvironmentInjector,",
+        "  inject,",
+        "  Injectable,",
+        "} from '@angular/core';",
+        "import {NgElement, WithProperties} from '@angular/elements';",
+        "import {Popup} from './popup';",
+        "",
+        "@Injectable()",
+        "export class PopupService {",
+        "  private readonly injector = inject(EnvironmentInjector);",
+        "  private readonly applicationRef = inject(ApplicationRef);",
+        "",
+        "  // Previous dynamic-loading method required you to set up infrastructure",
+        "  // before adding the popup to the DOM.",
+        "  showAsComponent(message: string) {",
+        "    // Create element",
+        "    const popup = document.createElement('popup-component');",
+        "",
+        "    // Create the component and wire it up with the element",
+        "    const popupComponentRef = createComponent(Popup, {",
+        "      environmentInjector: this.injector,",
+        "      hostElement: popup,",
+        "    });",
+        "",
+        "    // Attach to the view so that the change detector knows to run",
+        "    this.applicationRef.attachView(popupComponentRef.hostView);",
+        "",
+        "    // Listen to the close event",
+        "    popupComponentRef.instance.closed.subscribe(() => {",
+        "      document.body.removeChild(popup);",
+        "      this.applicationRef.detachView(popupComponentRef.hostView);",
+        "    });",
+        "",
+        "    // Set the message",
+        "    popupComponentRef.setInput('message', message);",
+        "",
+        "    // Add to the DOM",
+        "    document.body.appendChild(popup);",
+        "  }",
+        "",
+        "  // This uses the new custom-element method to add the popup to the DOM.",
+        "  showAsElement(message: string) {",
+        "    // Create element",
+        "    const popupEl: NgElement & WithProperties<Popup> = document.createElement(",
+        "      'popup-element',",
+        "    ) as any;",
+        "",
+        "    // Listen to the close event",
+        "    popupEl.addEventListener('closed', () => document.body.removeChild(popupEl));",
+        "",
+        "    // Set the message",
+        "    popupEl.setAttribute('message', message);",
+        "    // Add to the DOM",
+        "    document.body.appendChild(popupEl);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "app.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, Injector} from '@angular/core';",
+        "import {createCustomElement} from '@angular/elements';",
+        "import {Popup} from './popup';",
+        "import {PopupService} from './popup.service';",
+        "",
+        "@Component({",
+        "  selector: 'app-root',",
+        "  template: `",
+        "    <input #input value=\"Message\" />",
+        "    <button type=\"button\" (click)=\"popup.showAsComponent(input.value)\">Show as component</button>",
+        "    <button type=\"button\" (click)=\"popup.showAsElement(input.value)\">Show as element</button>",
+        "  `,",
+        "  providers: [PopupService],",
+        "  imports: [Popup],",
+        "})",
+        "export class App {",
+        "  constructor(",
+        "    injector: Injector,",
+        "    public popup: PopupService,",
+        "  ) {",
+        "    // Convert `PopupComponent` to a custom element.",
+        "    const PopupElement = createCustomElement(Popup, {injector});",
+        "    // Register the custom element with the browser.",
+        "    customElements.define('popup-element', PopupElement);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "typings-for-custom-elements",
+      "text": "Khai báo kiểu TypeScript cho Custom Elements"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các API DOM thông thường như `document.createElement()` hoặc `document.querySelector()` trả về kiểu phần tử phù hợp với tham số truyền vào. Ví dụ: gọi `document.createElement('a')` trả về `HTMLAnchorElement`, TypeScript nhận biết phần tử có thuộc tính `href`. Tương tự, `document.createElement('div')` trả về `HTMLDivElement` không có thuộc tính `href`."
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi gọi với các thẻ lạ chưa biết như tên custom element (`popup-element` trong ví dụ), các hàm trả về kiểu chung chung như `HTMLElement` vì TypeScript không thể tự suy luận kiểu chính xác của phần tử."
+    },
+    {
+      "type": "paragraph",
+      "text": "Custom elements tạo bởi Angular kế thừa `NgElement` (lớp này kế thừa `HTMLElement`). Thêm vào đó, custom element sẽ có một thuộc tính cho mỗi input của component tương ứng. Ví dụ: `popup-element` có thuộc tính `message` kiểu `string`."
+    },
+    {
+      "type": "paragraph",
+      "text": "Có một số cách để bạn có được type checking chính xác cho custom element. Giả sử bạn tạo custom element `my-dialog` từ component sau:"
+    },
+    {
+      "type": "code",
+      "file": "my-dialog.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "class MyDialog {",
+        "  content = input('');",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Cách trực tiếp nhất là ép kiểu (cast) giá trị trả về của các hàm DOM sang kiểu chính xác. Để làm điều đó, hãy dùng kiểu `NgElement` và `WithProperties` (được export từ `@angular/elements`):"
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "const aDialog = document.createElement('my-dialog') as NgElement &",
+        "  WithProperties<{content: string}>;",
+        "aDialog.content = 'Xin chào thế giới!';",
+        "aDialog.content = 123; // <-- LỖI: TypeScript biết đây phải là chuỗi string.",
+        "aDialog.body = 'Tin tức'; // <-- LỖI: TypeScript biết không có thuộc tính `body` trên `aDialog`."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Đây là cách hữu hiệu để tận dụng các tính năng của TypeScript như kiểm tra lỗi kiểu và gợi ý mã code (autocomplete). Tuy nhiên cách này có thể gây lặp lại nếu bạn sử dụng ở nhiều vị trí khác nhau."
+    },
+    {
+      "type": "paragraph",
+      "text": "Một phương pháp thay thế thuận tiện hơn là mở rộng interface toàn cục `HTMLElementTagNameMap`. TypeScript dựa vào bản đồ này để suy luận kiểu trả về dựa trên tên thẻ HTML:"
+    },
+    {
+      "type": "code",
+      "file": "element-types.d.ts",
+      "lang": "ts",
+      "code": [
+        "declare global {",
+        "  interface HTMLElementTagNameMap {",
+        "    'my-dialog': NgElement & WithProperties<{content: string}>;",
+        "    'my-other-element': NgElement & WithProperties<{foo: 'bar'}>;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bây giờ, TypeScript tự động suy luận kiểu chính xác như với các thẻ HTML tích hợp sẵn:"
+    },
+    {
+      "type": "code",
+      "file": "inference-demo.ts",
+      "lang": "ts",
+      "code": [
+        "document.createElement('div'); //--> HTMLDivElement (phần tử tích hợp sẵn)",
+        "document.querySelector('foo'); //--> Element        (phần tử chưa biết)",
+        "document.createElement('my-dialog'); //--> NgElement & WithProperties<{content: string}> (custom element)",
+        "document.querySelector('my-other-element'); //--> NgElement & WithProperties<{foo: 'bar'}>      (custom element)"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "limitations",
+      "text": "Các hạn chế cần lưu ý (Limitations)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cần cẩn trọng khi hủy rồi gắn lại vào DOM các custom elements tạo bởi `@angular/elements` do một số vấn đề liên quan đến callback [disconnect()](https://github.com/angular/angular/issues/38778). Các trường hợp có thể gặp phải bao gồm:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Render component bên trong `ng-if` hoặc `ng-repeat` của dự án lai với `AngularJS`",
+        "Thao tác tháo rời và gắn lại thủ công phần tử vào DOM"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,282 @@
+{
+  "slug": "guide/components/inputs",
+  "title": "Nhận dữ liệu với thuộc tính input (Input properties)",
+  "description": "Component chỉ định dữ liệu mà nó chấp nhận bằng cách khai báo các inputs.",
+  "source": "https://angular.dev/guide/components/inputs",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tài liệu này giả định bạn đã đọc qua phần [Kiến thức cốt lõi](essentials). Hãy đọc phần đó trước nếu bạn mới làm quen với Angular. Nếu bạn đã quen với các framework web khác, thuộc tính input tương tự như `props`."
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi sử dụng một component, bạn thường muốn truyền dữ liệu vào cho nó. Một component xác định dữ liệu mà nó chấp nhận bằng cách khai báo **inputs**:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, input} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // Khai báo một input tên 'value' với giá trị mặc định là 0.",
+        "  value = input(0);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Điều này cho phép bạn ràng buộc giá trị trong template HTML của component cha:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<custom-slider [value]=\"50\" />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu một input có giá trị mặc định, TypeScript sẽ tự động suy luận kiểu dữ liệu từ giá trị mặc định đó:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // TypeScript suy luận input này là kiểu số, trả về InputSignal<number>.",
+        "  value = input(0);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể khai báo kiểu rõ ràng bằng cách truyền generic parameter vào hàm `input<type>()`. Nếu một input không có giá trị mặc định và không được truyền vào, giá trị của nó sẽ là `undefined`:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // Tạo ra InputSignal<number | undefined> vì 'value' có thể chưa được gán.",
+        "  value = input<number>();",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "**Angular ghi nhận các input tĩnh tại thời điểm biên dịch (compile-time).** Các input không thể tự ý thêm vào hoặc xóa bỏ lúc chạy (run-time)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm `input` có ý nghĩa đặc biệt với compiler của Angular. **Bạn chỉ được phép gọi hàm `input` tại vị trí khởi tạo thuộc tính trong class component hoặc directive.** Khi kế thừa component class, **các inputs sẽ được kế thừa bởi class con.** Tên input có phân biệt chữ hoa và chữ thường."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reading-inputs",
+      "text": "Đọc giá trị của input"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm `input` trả về một `InputSignal`. Bạn đọc giá trị bằng cách gọi signal như một hàm:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, input, computed} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // Khai báo input 'value' với giá trị mặc định 0.",
+        "  value = input(0);",
+        "",
+        "  // Tạo một biểu thức computed đọc giá trị từ input",
+        "  label = computed(() => `Giá trị thanh trượt là ${this.value()}`);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Các signal được tạo bởi hàm `input` luôn luôn là read-only (chỉ đọc)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "required-inputs",
+      "text": "Bắt buộc truyền input (Required inputs)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể khai báo một input là bắt buộc bằng cách gọi `input.required` thay cho `input`:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // Khai báo input bắt buộc mang tên value. Trả về `InputSignal<number>`.",
+        "  value = input.required<number>();",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular ép buộc rằng các required inputs *phải* được gán khi component được sử dụng trong template. Nếu bạn gọi component mà quên không truyền required input, Angular sẽ báo lỗi ngay lúc build dự án."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configuring-inputs",
+      "text": "Cấu hình nâng cao cho input"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "input-transforms",
+      "text": "Chuyển đổi dữ liệu input (Input transforms)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể truyền một hàm `transform` để tự động biến đổi giá trị của input mỗi khi Angular gán giá trị mới:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({ selector: 'custom-slider' })",
+        "export class CustomSlider {",
+        "  label = input('', {transform: trimString});",
+        "}",
+        "",
+        "function trimString(value: string | undefined): string {",
+        "  return value?.trim() ?? '';",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ứng dụng phổ biến nhất của input transforms là để chấp nhận phổ kiểu dữ liệu rộng hơn trong template, thường bao gồm cả `null` và `undefined`. Các hàm transform phải luôn là pure functions (hàm thuần khiết không tạo side-effects)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "built-in-transformations",
+      "text": "Các hàm biến đổi tích hợp sẵn"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular tích hợp sẵn hai hàm transform tiện dụng cho hai nhu cầu phổ biến nhất: ép kiểu sang boolean và số (number):"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, input, booleanAttribute, numberAttribute} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  disabled = input(false, {transform: booleanAttribute});",
+        "  value = input(0, {transform: numberAttribute});",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "input-aliases",
+      "text": "Bí danh cho input (Input aliases)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể sử dụng tùy chọn `alias` để thay đổi tên thuộc tính hiển thị khi gán ngoài template:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  value = input(0, {alias: 'sliderValue'});",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "model-inputs",
+      "text": "Model inputs (Ràng buộc hai chiều)"
+    },
+    {
+      "type": "paragraph",
+      "text": "**Model inputs** là một dạng input đặc biệt cho phép component vừa nhận dữ liệu vừa tự cập nhật và đẩy ngược giá trị mới về component cha (two-way binding):"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, model, signal} from '@angular/core';",
+        "",
+        "@Component({ selector: 'custom-slider', template: '' })",
+        "export class CustomSlider {",
+        "  // Định nghĩa một model input tên 'value'",
+        "  value = model(0);",
+        "",
+        "  increment() {",
+        "    // Cập nhật model input với giá trị mới, đồng bộ ngược về component cha",
+        "    this.value.update(oldValue => oldValue + 1);",
+        "  }",
+        "}",
+        "",
+        "@Component({",
+        "  imports: [CustomSlider],",
+        "  template: `<custom-slider [(value)]=\"volume\" />`",
+        "})",
+        "export class MediaControls {",
+        "  volume = signal(0);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "declaring-inputs-with-decorator",
+      "text": "Khai báo input bằng decorator @Input truyền thống"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dù đội ngũ Angular khuyến khích sử dụng hàm `input` signal-based cho dự án mới, decorator `@Input` truyền thống vẫn được hỗ trợ hoàn toàn đầy đủ:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, Input} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  @Input({required: true}) value = 0;",
+        "  @Input({alias: 'sliderLabel'}) label = '';",
+        "}"
+      ]
+    }
+  ]
+}

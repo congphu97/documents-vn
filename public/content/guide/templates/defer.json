@@ -1,0 +1,27 @@
+{
+  "slug": "guide/templates/defer",
+  "title": "Tải trì hoãn với @defer (Deferred Loading)",
+  "description": "Tối ưu tốc độ tải trang bằng cách trì hoãn tải các component nặng cho đến khi thỏa mãn điều kiện nhất định.",
+  "source": "https://angular.dev/guide/templates/defer",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Khối `@defer` cho phép trì hoãn việc tải mã nguồn JavaScript của các component con cho đến khi có trigger tương tác (ví dụ khi người dùng cuộn tới phần tử đó hoặc sau khi trang chính đã rảnh)."
+    },
+    {
+      "type": "code",
+      "file": "heavy-chart.component.html",
+      "lang": "html",
+      "code": [
+        "@defer (on viewport) {",
+        "  <app-heavy-chart />",
+        "} @placeholder {",
+        "  <div>Đang chuẩn bị biểu đồ...</div>",
+        "} @loading (minimum 500ms) {",
+        "  <app-spinner />",
+        "}"
+      ]
+    }
+  ]
+}

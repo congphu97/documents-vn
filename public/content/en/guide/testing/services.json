@@ -1,0 +1,44 @@
+{
+  "slug": "guide/testing/services",
+  "title": "Testing Services",
+  "description": "Documentation guide for Testing Services in Angular.",
+  "source": "https://angular.dev/guide/testing/services",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Official documentation from [angular.dev/guide/testing/services](https://angular.dev/guide/testing/services)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Testing Services is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "overview-section",
+      "text": "Overview and Concepts"
+    },
+    {
+      "type": "paragraph",
+      "text": "To master Testing Services, explore the core mechanisms and design patterns provided by Angular."
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "// Example demonstration for Testing Services",
+        "import { Component } from \"@angular/core\";",
+        "",
+        "@Component({",
+        "  selector: \"app-example\",",
+        "  standalone: true,",
+        "  template: `<h1>Testing Services</h1>`",
+        "})",
+        "export class ExampleComponent {}"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "slug": "ai/overview",
+  "title": "Phát triển ứng dụng Angular cùng Trí tuệ nhân tạo (Build with AI)",
+  "description": "Tận dụng AI, LLM prompting và Angular CLI MCP Server để tăng tốc độ phát triển phần mềm.",
+  "source": "https://angular.dev/ai",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ tối ưu việc kết hợp với các trợ lý AI mã nguồn và Agentic workflows. Với cấu trúc code rõ ràng, tính module cao và hệ thống kiểu TypeScript chặt chẽ, Angular là framework lý tưởng để các mô hình ngôn ngữ lớn (LLM) hỗ trợ sinh code chính xác."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "mcp-server",
+      "text": "Angular CLI MCP Server"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular tích hợp chuẩn Model Context Protocol (MCP), cho phép các AI IDEs và coding agents tương tác trực tiếp với Angular CLI để tạo components, kiểm tra routes và phân tích cấu trúc dự án an toàn."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Sử dụng prompt có kèm ngữ cảnh Standalone Components và Signal-based APIs giúp AI luôn sinh ra mã nguồn hiện đại nhất theo tiêu chuẩn của Angular."
+    }
+  ]
+}

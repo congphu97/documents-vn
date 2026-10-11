@@ -1,0 +1,37 @@
+{
+  "slug": "tools/cli",
+  "title": "Angular CLI & Bộ công cụ",
+  "description": "Angular CLI là công cụ dòng lệnh tiêu chuẩn để khởi tạo, phát triển, kiểm thử và đóng gói ứng dụng Angular.",
+  "source": "https://angular.dev/tools/cli",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular CLI (Command Line Interface) giúp chuẩn hoá quy trình phát triển từ lúc tạo project đến khi tối ưu hóa bản build phát hành production."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "common-commands",
+      "text": "Các câu lệnh CLI thường dùng nhất"
+    },
+    {
+      "type": "code",
+      "file": "terminal",
+      "lang": "bash",
+      "code": [
+        "# Tạo một project mới",
+        "npx @angular/cli new my-awesome-app",
+        "",
+        "# Khởi chạy dev server với Hot Reload",
+        "ng serve --open",
+        "",
+        "# Tạo nhanh component standalone",
+        "ng generate component components/user-card",
+        "",
+        "# Đóng gói tối ưu hóa cho production",
+        "ng build"
+      ]
+    }
+  ]
+}

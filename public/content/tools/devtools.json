@@ -1,0 +1,27 @@
+{
+  "slug": "tools/devtools",
+  "title": "Angular DevTools",
+  "description": "Tiện ích mở rộng trên trình duyệt để kiểm tra cấu trúc component, theo dõi signal changes và phân tích hiệu năng ứng dụng.",
+  "source": "https://angular.dev/tools/devtools",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular DevTools là tiện ích mở rộng dành cho Chrome và Firefox, cung cấp khả năng gỡ lỗi trực quan và phân tích chuyên sâu cho các ứng dụng Angular."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "features",
+      "text": "Các tính năng chính"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Component Tree**: Kiểm tra cây component, các signal inputs/outputs và trạng thái nội bộ.",
+        "**Profiler Tab**: Đo lường thời gian thực thi của từng chu kỳ change detection để phát hiện tắc nghẽn hiệu năng.",
+        "**Signal Graph**: Xem trực quan biểu đồ quan hệ phụ thuộc giữa các signal."
+      ]
+    }
+  ]
+}

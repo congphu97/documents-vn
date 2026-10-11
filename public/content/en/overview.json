@@ -1,0 +1,97 @@
+{
+  "slug": "overview",
+  "title": "What is Angular?",
+  "description": "The web development framework for building modern apps.",
+  "source": "https://angular.dev/overview",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular is a web development framework developed and maintained by Google and a worldwide community of contributors. It provides a cohesive, scalable solution for building high-performance web applications with first-class TypeScript support."
+    },
+    {
+      "type": "cards",
+      "items": [
+        {
+          "title": "Essentials",
+          "body": "A comprehensive tour of the developer experience, introducing core concepts such as Components, Templates, and Signals.",
+          "link": "Explore Essentials",
+          "href": "essentials/components"
+        },
+        {
+          "title": "Tutorials",
+          "body": "Step-by-step interactive coding tutorials directly in your browser, from your very first app to advanced features.",
+          "link": "Start learning",
+          "href": "https://angular.dev/tutorials"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "development-features",
+      "text": "Development Features"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular provides an integrated suite of tools and modern primitives that empower developers to focus on product logic:"
+    },
+    {
+      "type": "cards",
+      "items": [
+        {
+          "title": "Components",
+          "body": "Encapsulate TypeScript logic, HTML templates, and CSS styles into clean, modular building blocks.",
+          "link": "Get started with Components",
+          "href": "essentials/components"
+        },
+        {
+          "title": "Signals Reactivity",
+          "body": "Fine-grained reactivity model that tracks state changes precisely and updates the UI with optimal rendering efficiency.",
+          "link": "Discover Signals",
+          "href": "essentials/signals"
+        },
+        {
+          "title": "Dependency Injection (DI)",
+          "body": "Industry-leading DI framework that makes your application highly modular, extensible, and easy to unit test.",
+          "link": "Explore Dependency Injection",
+          "href": "essentials/dependency-injection"
+        },
+        {
+          "title": "Server-side Rendering (SSR)",
+          "body": "Built-in server rendering and non-destructive hydration to dramatically improve initial page load and SEO.",
+          "link": "Learn about SSR",
+          "href": "essentials/ssr"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "deployment-confidence",
+      "text": "Confident & Sustainable Delivery"
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Angular operates on a predictable 6-month release cadence. The `ng update` CLI command provides automated migrations to keep codebases up to date effortlessly."
+    },
+    {
+      "type": "cards",
+      "items": [
+        {
+          "title": "Validated on Google's Monorepo",
+          "body": "Every Angular code commit is automatically validated against hundreds of thousands of internal Google projects.",
+          "link": "Read Google research paper",
+          "href": "https://cacm.acm.org/research/why-google-stores-billions-of-lines-of-code-in-a-single-repository/"
+        },
+        {
+          "title": "Next-Gen Tooling (Vite + esbuild)",
+          "body": "Instant server startup powered by Vite and blazing-fast production builds with esbuild, plus Angular DevTools profiling.",
+          "link": "Learn about Angular CLI",
+          "href": "tools/cli"
+        }
+      ]
+    }
+  ]
+}

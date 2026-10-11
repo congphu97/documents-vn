@@ -1,0 +1,67 @@
+{
+  "slug": "guide/templates",
+  "title": "Templates trong Angular",
+  "description": "Template kết hợp giữa mã HTML với cú pháp khai báo mạnh mẽ của Angular để gắn kết dữ liệu (data binding) và hiển thị giao diện động.",
+  "source": "https://angular.dev/guide/templates",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular template là tập hợp các thẻ HTML mở rộng bởi cú pháp khai báo đặc biệt của Angular. Chúng cho phép bạn liên kết dữ liệu mô hình vào DOM, lắng nghe sự kiện của người dùng và điều khiển cấu trúc luồng hiển thị (control flow)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "interpolation-property-binding",
+      "text": "Ràng buộc dữ liệu (Text Interpolation & Property Binding)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng dấu ngoặc nhọn kép `{{ }}` để hiển thị giá trị chuỗi, hoặc dấu ngoặc vuông `[property]` để gán giá trị trực tiếp vào thuộc tính của phần tử HTML:"
+    },
+    {
+      "type": "code",
+      "file": "greeting.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Text interpolation -->",
+        "<h1>Xin chào, {{ username() }}!</h1>",
+        "",
+        "<!-- Property binding -->",
+        "<img [src]=\"avatarUrl()\" [alt]=\"username()\" />",
+        "<button [disabled]=\"isSubmitting()\">Xác nhận</button>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "control-flow",
+      "text": "Cú pháp Control Flow hiện đại (@if, @for, @switch)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kể từ Angular 17, hệ thống built-in control flow mới thay thế hoàn toàn `*ngIf` và `*ngFor` với cú pháp gọn gàng, hiệu năng cao và tự động kiểm tra kiểu TypeScript:"
+    },
+    {
+      "type": "code",
+      "file": "user-list.component.html",
+      "lang": "html",
+      "code": [
+        "@if (users().length > 0) {",
+        "  <ul>",
+        "    @for (user of users(); track user.id) {",
+        "      <li>{{ user.name }} - {{ user.role }}</li>",
+        "    }",
+        "  </ul>",
+        "} @else {",
+        "  <p class=\"empty-msg\">Không tìm thấy người dùng nào.</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Mệnh đề `track` trong `@for` là bắt buộc giúp Angular nhận diện chính xác từng item và tái sử dụng DOM tối ưu khi danh sách cập nhật."
+    }
+  ]
+}

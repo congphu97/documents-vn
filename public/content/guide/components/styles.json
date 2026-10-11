@@ -1,0 +1,77 @@
+{
+  "slug": "guide/components/styles",
+  "title": "Định kiểu CSS cho Component (Component styling)",
+  "description": "Component có thể đính kèm các CSS styles áp dụng riêng cho template của component đó.",
+  "source": "https://angular.dev/guide/components/styling",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tài liệu này giả định bạn đã đọc qua phần [Kiến thức cốt lõi](essentials). Hãy đọc phần đó trước nếu bạn mới làm quen với Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Component có thể chứa các mã định kiểu CSS áp dụng cho DOM của nó. Bạn có thể định nghĩa trực tiếp trong `@Component` decorator bằng thuộc tính `styles`, hoặc liên kết tới các file CSS bên ngoài bằng `styleUrl` hoặc `styleUrls`:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'user-profile',",
+        "  styles: `",
+        "    .badge { background: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px; }",
+        "  `,",
+        "  template: `<span class=\"badge\">Thành viên tích cực</span>`",
+        "})",
+        "export class UserProfile {}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "view-encapsulation",
+      "text": "Bao bọc vùng nhìn (View Encapsulation)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, Angular giới hạn phạm vi tác dụng của CSS bằng cơ chế **Emulated View Encapsulation**. Trình biên dịch của Angular sẽ tự động sinh thêm các thuộc tính định danh riêng cho từng phần tử để style của component này không bao giờ bị rò rỉ ra ngoài hoặc xung đột với component khác."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "styling-host-element",
+      "text": "Định kiểu cho phần tử chủ (:host)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng selector giả `:host` để áp dụng kiểu dáng trực tiếp lên host element của component:"
+    },
+    {
+      "type": "code",
+      "file": "custom-card.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'custom-card',",
+        "  styles: `",
+        "    :host {",
+        "      display: block;",
+        "      border: 1px solid #e2e8f0;",
+        "      border-radius: 8px;",
+        "      padding: 16px;",
+        "    }",
+        "    :host(.active) {",
+        "      border-color: #e535ab;",
+        "      box-shadow: 0 4px 12px rgba(229, 53, 171, 0.2);",
+        "    }",
+        "  `,",
+        "  template: `<ng-content />`",
+        "})",
+        "export class CustomCard {}"
+      ]
+    }
+  ]
+}

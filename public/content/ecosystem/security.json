@@ -1,0 +1,18 @@
+{
+  "slug": "ecosystem/security",
+  "title": "Bảo mật trong Angular",
+  "description": "Các biện pháp phòng thủ chủ động chống tấn công XSS và đảm bảo an toàn dữ liệu tích hợp sẵn.",
+  "source": "https://angular.dev/best-practices/security",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular mặc định coi mọi giá trị đầu vào là không an toàn. Khi giá trị được đưa vào DOM qua phép gán thuộc tính, style hoặc nội dung, Angular sẽ tự động làm sạch (sanitize) giá trị đó để ngăn chặn các cuộc tấn công Cross-Site Scripting (XSS)."
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Chỉ sử dụng `DomSanitizer.bypassSecurityTrustHtml` khi bạn hoàn toàn chắc chắn dữ liệu đầu vào đã được kiểm duyệt nghiêm ngặt trên backend."
+    }
+  ]
+}

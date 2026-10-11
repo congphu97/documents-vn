@@ -1,0 +1,44 @@
+{
+  "slug": "guide/di/dependency-injection-hierarchy",
+  "title": "Hierarchy",
+  "description": "Documentation guide for Hierarchy in Angular.",
+  "source": "https://angular.dev/guide/di/dependency-injection-hierarchy",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Official documentation from [angular.dev/guide/di/dependency-injection-hierarchy](https://angular.dev/guide/di/dependency-injection-hierarchy)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Hierarchy is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "overview-section",
+      "text": "Overview and Concepts"
+    },
+    {
+      "type": "paragraph",
+      "text": "To master Hierarchy, explore the core mechanisms and design patterns provided by Angular."
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "// Example demonstration for Hierarchy",
+        "import { Component } from \"@angular/core\";",
+        "",
+        "@Component({",
+        "  selector: \"app-example\",",
+        "  standalone: true,",
+        "  template: `<h1>Hierarchy</h1>`",
+        "})",
+        "export class ExampleComponent {}"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "slug": "guide/components/host-elements",
+  "title": "Host elements",
+  "description": "Every component instance is associated with a host element that matches the component's selector.",
+  "source": "https://angular.dev/guide/components/host-elements",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "This guide assumes you've already read the [Essentials Guide](essentials). Read that first if you're new to Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Every component instance is associated with a **host element**— the DOM element that matches the component's selector. The contents of a component's template are rendered inside this element."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "binding-to-the-host-element",
+      "text": "Binding to the host element"
+    },
+    {
+      "type": "paragraph",
+      "text": "In Angular, you can apply attributes, CSS classes, styles, and event listeners directly to the host element by using the `host` property of the `@Component` decorator:"
+    },
+    {
+      "type": "code",
+      "file": "custom-card.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'custom-card',",
+        "  host: {",
+        "    'role': 'region',",
+        "    '[class.active]': 'isActive()',",
+        "    '[attr.aria-expanded]': 'isExpanded()',",
+        "    '(click)': 'onClick()'",
+        "  },",
+        "  template: `<ng-content />`",
+        "})",
+        "export class CustomCard {",
+        "  isActive = signal(true);",
+        "  isExpanded = signal(false);",
+        "  onClick() { console.log('Host card clicked'); }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "host-directives",
+      "text": "Host directives"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can also apply behaviors of other directives to the host element by specifying the `hostDirectives` property:"
+    },
+    {
+      "type": "code",
+      "file": "custom-button.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'custom-button',",
+        "  hostDirectives: [TooltipDirective],",
+        "  template: `<button><ng-content /></button>`",
+        "})",
+        "export class CustomButton {}"
+      ]
+    }
+  ]
+}

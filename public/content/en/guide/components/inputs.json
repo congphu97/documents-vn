@@ -1,0 +1,282 @@
+{
+  "slug": "guide/components/inputs",
+  "title": "Accepting data with input properties",
+  "description": "A component specifies the data that it accepts by declaring inputs.",
+  "source": "https://angular.dev/guide/components/inputs",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "This guide assumes you've already read the [Essentials Guide](essentials). Read that first if you're new to Angular. If you're familiar with other web frameworks, input properties are similar to `props`."
+    },
+    {
+      "type": "paragraph",
+      "text": "When you use a component, you commonly want to pass some data to it. A component specifies the data that it accepts by declaring **inputs**:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, input} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // Declare an input named 'value' with a default value of zero.",
+        "  value = input(0);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "This lets you bind to the property in a template:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<custom-slider [value]=\"50\" />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "If an input has a default value, TypeScript infers the type from the default value:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // TypeScript infers that this input is a number, returning InputSignal<number>.",
+        "  value = input(0);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "You can explicitly declare a type by specifying a generic parameter to the function. If an input without a default value is not set, its value is `undefined`:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // Produces an InputSignal<number | undefined> because `value` may not be set.",
+        "  value = input<number>();",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "**Angular records inputs statically at compile-time.** Inputs cannot be added or removed at run-time."
+    },
+    {
+      "type": "paragraph",
+      "text": "The `input` function has special meaning to the Angular compiler. **You can exclusively call `input` in component and directive property initializers.** When extending a component class, **inputs are inherited by the child class.** Input names are case-sensitive."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reading-inputs",
+      "text": "Reading inputs"
+    },
+    {
+      "type": "paragraph",
+      "text": "The `input` function returns an `InputSignal`. You can read the value by calling the signal:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, input, computed} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // Declare an input named 'value' with a default value of zero.",
+        "  value = input(0);",
+        "",
+        "  // Create a computed expression that reads the value input",
+        "  label = computed(() => `The slider's value is ${this.value()}`);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Signals created by the `input` function are read-only."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "required-inputs",
+      "text": "Required inputs"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can declare that an input is `required` by calling `input.required` instead of `input`:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  // Declare a required input named value. Returns an `InputSignal<number>`.",
+        "  value = input.required<number>();",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular enforces that required inputs *must* be set when the component is used in a template. If you try to use a component without specifying all of its required inputs, Angular reports an error at build-time."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configuring-inputs",
+      "text": "Configuring inputs"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "input-transforms",
+      "text": "Input transforms"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can specify a `transform` function to change the value of an input when it's set by Angular:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({ selector: 'custom-slider' })",
+        "export class CustomSlider {",
+        "  label = input('', {transform: trimString});",
+        "}",
+        "",
+        "function trimString(value: string | undefined): string {",
+        "  return value?.trim() ?? '';",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "The most common use-case for input transforms is to accept a wider range of value types in templates, often including `null` and `undefined`. Input transform functions should always be pure functions."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "built-in-transformations",
+      "text": "Built-in transformations"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular includes two built-in transform functions for the two most common scenarios: coercing values to boolean and numbers:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, input, booleanAttribute, numberAttribute} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  disabled = input(false, {transform: booleanAttribute});",
+        "  value = input(0, {transform: numberAttribute});",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "input-aliases",
+      "text": "Input aliases"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can specify the `alias` option to change the name of an input in templates:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  value = input(0, {alias: 'sliderValue'});",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "model-inputs",
+      "text": "Model inputs"
+    },
+    {
+      "type": "paragraph",
+      "text": "**Model inputs** are a special type of input that enable a component to propagate new values back to its parent component (two-way binding):"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, model, signal} from '@angular/core';",
+        "",
+        "@Component({ selector: 'custom-slider', template: '' })",
+        "export class CustomSlider {",
+        "  // Define a model input named 'value'",
+        "  value = model(0);",
+        "",
+        "  increment() {",
+        "    // Update the model input with a new value, propagating to any two-way bindings",
+        "    this.value.update(oldValue => oldValue + 1);",
+        "  }",
+        "}",
+        "",
+        "@Component({",
+        "  imports: [CustomSlider],",
+        "  template: `<custom-slider [(value)]=\"volume\" />`",
+        "})",
+        "export class MediaControls {",
+        "  volume = signal(0);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "declaring-inputs-with-decorator",
+      "text": "Declaring inputs with the @Input decorator"
+    },
+    {
+      "type": "paragraph",
+      "text": "While the Angular team recommends using the signal-based `input` function for new projects, the original decorator-based `@Input` API remains fully supported:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {Component, Input} from '@angular/core';",
+        "",
+        "@Component(/* ... */)",
+        "export class CustomSlider {",
+        "  @Input({required: true}) value = 0;",
+        "  @Input({alias: 'sliderLabel'}) label = '';",
+        "}"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "slug": "essentials/components",
+  "title": "Xây dựng với Component",
+  "description": "Component là viên gạch nền tảng của mọi ứng dụng Angular, kết hợp giữa TypeScript logic, HTML template và CSS styling.",
+  "source": "https://angular.dev/essentials/components",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Trong Angular, một component đóng gói cấu trúc giao diện, phong cách hiển thị và hành vi xử lý của một phần tử trên màn hình. Mỗi component là một class TypeScript được gắn decorator `@Component`."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "create-component",
+      "text": "Tạo một Component cơ bản"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dưới đây là một ví dụ tạo standalone component đơn giản để hiển thị ảnh đại diện:"
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  standalone: true,",
+        "  template: `",
+        "    <div class=\"photo-card\">",
+        "      <img src=\"profile.jpg\" alt=\"Ảnh đại diện cá nhân\" />",
+        "    </div>",
+        "  `,",
+        "  styles: [`",
+        "    .photo-card { border-radius: 50%; overflow: hidden; }",
+        "  `]",
+        "})",
+        "export class ProfilePhoto {}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Mỗi component nên tập trung giải quyết một trách nhiệm duy nhất (Single Responsibility Principle). Nếu template quá phức tạp, hãy chia nhỏ thành các component con."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "use-component",
+      "text": "Sử dụng Component trong Component khác"
+    },
+    {
+      "type": "paragraph",
+      "text": "Với Standalone Components, bạn chỉ cần import trực tiếp component con vào mảng `imports` của component cha:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { ProfilePhoto } from './profile-photo.component';",
+        "",
+        "@Component({",
+        "  selector: 'user-profile',",
+        "  standalone: true,",
+        "  imports: [ProfilePhoto],",
+        "  template: `",
+        "    <section class=\"profile-container\">",
+        "      <profile-photo />",
+        "      <h2>Nguyễn Văn A</h2>",
+        "      <p>Kỹ sư phần mềm Angular</p>",
+        "    </section>",
+        "  `",
+        "})",
+        "export class UserProfile {}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "inputs-and-outputs",
+      "text": "Giao tiếp giữa Component bằng Signal Inputs"
+    },
+    {
+      "type": "paragraph",
+      "text": "Từ Angular 17 trở lên, bạn có thể truyền dữ liệu vào component bằng hàm `input()` mới dựa trên Signal:"
+    },
+    {
+      "type": "code",
+      "file": "user-badge.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, input } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'user-badge',",
+        "  standalone: true,",
+        "  template: `<span class=\"badge\">{{ username() }}</span>`",
+        "})",
+        "export class UserBadge {",
+        "  username = input.required<string>();",
+        "}"
+      ]
+    }
+  ]
+}

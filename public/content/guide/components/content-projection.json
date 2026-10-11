@@ -1,0 +1,410 @@
+{
+  "slug": "guide/components/content-projection",
+  "title": "Chiếu nội dung với ng-content (Content projection)",
+  "description": "Tìm hiểu cách sử dụng chiếu nội dung (content projection) với ng-content để tạo các component linh hoạt, có thể tái sử dụng trong Angular.",
+  "source": "https://angular.dev/guide/components/content-projection",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Hướng dẫn này giả định rằng bạn đã đọc [Hướng dẫn kiến thức cốt lõi (Essentials Guide)](essentials). Hãy đọc hướng dẫn đó trước nếu bạn mới làm quen với Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn thường cần tạo các component đóng vai trò làm khung chứa (container) cho các loại nội dung khác nhau. Ví dụ, bạn có thể muốn tạo một component card tùy chỉnh:"
+    },
+    {
+      "type": "code",
+      "file": "custom-card.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'custom-card',",
+        "  template: '<div class=\"card-shadow\"> <!-- nội dung thẻ card ở đây --> </div>',",
+        "})",
+        "export class CustomCard {",
+        "  /* ... */",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "**Bạn có thể sử dụng phần tử `<ng-content>` làm vị trí giữ chỗ (placeholder) để đánh dấu nơi nội dung sẽ xuất hiện**:"
+    },
+    {
+      "type": "code",
+      "file": "custom-card.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'custom-card',",
+        "  template: '<div class=\"card-shadow\"> <ng-content/> </div>',",
+        "})",
+        "export class CustomCard {",
+        "  /* ... */",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "`<ng-content>` hoạt động tương tự như [phần tử `<slot>` gốc của trình duyệt](https://developer.mozilla.org/docs/Web/HTML/Element/slot), nhưng có thêm một số tính năng chuyên biệt của Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn sử dụng một component có `<ng-content>`, bất kỳ phần tử con nào của host element đều được render, hoặc **chiếu vào (projected)**, tại vị trí của `<ng-content>` đó:"
+    },
+    {
+      "type": "code",
+      "file": "custom-card.component.ts",
+      "lang": "ts",
+      "code": [
+        "// Component source",
+        "@Component({",
+        "  selector: 'custom-card',",
+        "  template: `",
+        "    <div class=\"card-shadow\">",
+        "      <ng-content />",
+        "    </div>",
+        "  `,",
+        "})",
+        "export class CustomCard {",
+        "  /* ... */",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "parent.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Sử dụng component -->",
+        "<custom-card>",
+        "  <p>Đây là nội dung được chiếu vào (projected content)</p>",
+        "</custom-card>"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "rendered-dom.html",
+      "lang": "html",
+      "code": [
+        "<!-- DOM được render ra -->",
+        "<custom-card>",
+        "  <div class=\"card-shadow\">",
+        "    <p>Đây là nội dung được chiếu vào (projected content)</p>",
+        "  </div>",
+        "</custom-card>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular gọi bất kỳ phần tử con nào được truyền vào component theo cách này là **content** của component đó. Khái niệm này khác biệt với **view** của component, vốn dùng để chỉ các phần tử được định nghĩa bên trong template của chính component đó."
+    },
+    {
+      "type": "paragraph",
+      "text": "**Phần tử `<ng-content>` không phải là một component cũng không phải phần tử DOM thật sự**. Thay vào đó, nó là một placeholder đặc biệt báo cho Angular biết vị trí cần render nội dung. Trình biên dịch của Angular xử lý tất cả các phần tử `<ng-content>` tại thời điểm build (build-time). Bạn không thể thêm, xóa hoặc chỉnh sửa `<ng-content>` khi runtime. Bạn cũng không thể gán directive, style hay attribute tùy ý vào `<ng-content>`."
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Bạn không nên bao bọc có điều kiện `<ng-content>` bằng `@if`, `@for`, hoặc `@switch`. Angular luôn khởi tạo và tạo các DOM node cho nội dung được render vào placeholder `<ng-content>`, ngay cả khi placeholder `<ng-content>` đó đang bị ẩn. Đối với render có điều kiện nội dung component, hãy xem [Template fragments](api/core/ng-template)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "multiple-content-placeholders",
+      "text": "Nhiều vị trí chiếu nội dung (Multiple content placeholders)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ chiếu nhiều phần tử khác nhau vào các placeholder `<ng-content>` riêng biệt dựa trên CSS selector. Mở rộng ví dụ card ở trên, bạn có thể tạo hai placeholder cho tiêu đề (card title) và thân thẻ (card body) bằng cách sử dụng thuộc tính `select`:"
+    },
+    {
+      "type": "code",
+      "file": "card-components.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'card-title',",
+        "  template: `<ng-content>card-title</ng-content>`,",
+        "})",
+        "export class CardTitle {}",
+        "",
+        "@Component({",
+        "  selector: 'card-body',",
+        "  template: `<ng-content>card-body</ng-content>`,",
+        "})",
+        "export class CardBody {}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "custom-card.component.ts",
+      "lang": "ts",
+      "code": [
+        "<!-- Component template -->",
+        "@Component({",
+        "  selector: 'custom-card',",
+        "  template: `",
+        "  <div class=\"card-shadow\">",
+        "    <ng-content select=\"card-title\" />",
+        "    <div class=\"card-divider\"></div>",
+        "    <ng-content select=\"card-body\" />",
+        "  </div>",
+        "  `,",
+        "})",
+        "export class CustomCard {}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "ts",
+      "code": [
+        "<!-- Sử dụng component -->",
+        "@Component({",
+        "  selector: 'app-root',",
+        "  imports: [CustomCard, CardTitle, CardBody],",
+        "  template: `",
+        "    <custom-card>",
+        "      <card-title>Hello</card-title>",
+        "      <card-body>Welcome to the example</card-body>",
+        "    </custom-card>",
+        "  `,",
+        "})",
+        "export class App {}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "rendered-dom.html",
+      "lang": "html",
+      "code": [
+        "<!-- DOM được render ra -->",
+        "<custom-card>",
+        "  <div class=\"card-shadow\">",
+        "    <card-title>Hello</card-title>",
+        "    <div class=\"card-divider\"></div>",
+        "    <card-body>Welcome to the example</card-body>",
+        "  </div>",
+        "</custom-card>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Placeholder `<ng-content>` hỗ trợ các CSS selector tương tự như [component selectors](guide/components/selectors)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn khai báo một hoặc nhiều placeholder `<ng-content>` có thuộc tính `select` và một placeholder `<ng-content>` không có thuộc tính `select`, placeholder không có `select` sẽ bắt lấy toàn bộ các phần tử không khớp với các thuộc tính `select` khác:"
+    },
+    {
+      "type": "code",
+      "file": "custom-card.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Component template -->",
+        "<div class=\"card-shadow\">",
+        "  <ng-content select=\"card-title\" />",
+        "  <div class=\"card-divider\"></div>",
+        "  <!-- bắt mọi phần tử ngoại trừ \"card-title\" -->",
+        "  <ng-content />",
+        "</div>"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "parent.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Sử dụng component -->",
+        "<custom-card>",
+        "  <card-title>Hello</card-title>",
+        "  <img src=\"...\" />",
+        "  <p>Welcome to the example</p>",
+        "</custom-card>"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "rendered-dom.html",
+      "lang": "html",
+      "code": [
+        "<!-- DOM được render ra -->",
+        "<custom-card>",
+        "  <div class=\"card-shadow\">",
+        "    <card-title>Hello</card-title>",
+        "    <div class=\"card-divider\"></div>",
+        "    <img src=\"...\" />",
+        "    <p>Welcome to the example</p>",
+        "  </div>",
+        "</custom-card>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu một component không có bất kỳ placeholder `<ng-content>` nào không gắn `select`, bất kỳ phần tử nào không khớp với các placeholder của component đó sẽ bị bỏ qua và không được render vào DOM."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "fallback-content",
+      "text": "Nội dung mặc định dự phòng (Fallback content)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular có thể hiển thị *nội dung mặc định dự phòng (fallback content)* cho placeholder `<ng-content>` nếu component cha không truyền bất kỳ nội dung con nào tương ứng. Bạn xác định fallback content bằng cách đặt nội dung con trực tiếp bên trong thẻ `<ng-content>`:"
+    },
+    {
+      "type": "code",
+      "file": "custom-card.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Component template -->",
+        "<div class=\"card-shadow\">",
+        "  <ng-content select=\"card-title\">Default Title</ng-content>",
+        "  <div class=\"card-divider\"></div>",
+        "  <ng-content select=\"card-body\">Default Body</ng-content>",
+        "</div>"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "parent.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Sử dụng component -->",
+        "<custom-card>",
+        "  <card-title>Hello</card-title>",
+        "  <!-- Không truyền card-body -->",
+        "</custom-card>"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "rendered-dom.html",
+      "lang": "html",
+      "code": [
+        "<!-- DOM được render ra -->",
+        "<custom-card>",
+        "  <div class=\"card-shadow\">",
+        "    <card-title>Hello</card-title>",
+        "    <div class=\"card-divider\"></div>",
+        "    Default Body",
+        "  </div>",
+        "</custom-card>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "aliasing-content-for-projection",
+      "text": "Đặt bí danh nội dung khi chiếu (Aliasing content for projection)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ thuộc tính đặc biệt `ngProjectAs`, cho phép bạn chỉ định CSS selector giả định trên bất kỳ phần tử nào. Khi phần tử có `ngProjectAs` được so khớp với placeholder `<ng-content>`, Angular sẽ so khớp với giá trị của `ngProjectAs` thay vì định danh thực tế của phần tử:"
+    },
+    {
+      "type": "code",
+      "file": "custom-card.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Component template -->",
+        "<div class=\"card-shadow\">",
+        "  <ng-content select=\"card-title\" />",
+        "  <div class=\"card-divider\"></div>",
+        "  <ng-content />",
+        "</div>"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "parent.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Sử dụng component -->",
+        "<custom-card>",
+        "  <h3 ngProjectAs=\"card-title\">Hello</h3>",
+        "",
+        "  <p>Welcome to the example</p>",
+        "</custom-card>"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "rendered-dom.html",
+      "lang": "html",
+      "code": [
+        "<!-- DOM được render ra -->",
+        "<custom-card>",
+        "  <div class=\"card-shadow\">",
+        "    <h3>Hello</h3>",
+        "    <div class=\"card-divider\"></div>",
+        "    <p>Welcome to the example</p>",
+        "  </div>",
+        "</custom-card>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "`ngProjectAs` chỉ hỗ trợ giá trị chuỗi tĩnh (static values) và không thể ràng buộc với biểu thức động."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "caveats",
+      "text": "Những lưu ý quan trọng (Caveats)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "projected-content-lives-in-the-parents-view",
+      "text": "Nội dung được chiếu thuộc về view của component cha"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc dù nội dung được chiếu được *render* bên trong component nhận, nó vẫn thuộc quyền sở hữu của component đã khai báo ra nó. Angular theo dõi nó như một phần trong view của component cha, điều này mang lại một vài hệ quả đáng lưu ý."
+    },
+    {
+      "type": "paragraph",
+      "text": "**Change detection:** Nội dung được chiếu được kiểm tra khi *component cha* chạy change detection. Nếu component nhận sử dụng `OnPush`, Angular có thể bỏ qua việc kiểm tra template của chính component nhận — nhưng sẽ không bỏ qua nội dung được chiếu, bởi vì nó thuộc về component cha."
+    },
+    {
+      "type": "code",
+      "file": "parent.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Parent template (mặc định change detection) -->",
+        "<onpush-wrapper>",
+        "  <!-- Vẫn được kiểm tra mỗi chu kỳ của component cha, OnPush không ảnh hưởng ở đây -->",
+        "  <expensive-component />",
+        "</onpush-wrapper>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "**Dependency injection:** Nội dung được chiếu nhận các dependency từ injector của component cha, chứ không phải từ `viewProviders` của component nhận. Xem chi tiết tại [Providers và viewProviders](guide/di/hierarchical-dependency-injection)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "some-library-components-dont-support-projected-children",
+      "text": "Một số component thư viện không hỗ trợ phần tử con được chiếu"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một số component — menu, tab, danh sách — sử dụng `ContentChildren` để truy vấn các phần tử con và gắn các hành vi như điều hướng bàn phím, quản lý focus hoặc các thuộc tính ARIA. Chúng được thiết kế với giả định sở hữu trực tiếp các phần tử con, do đó việc chiếu nội dung bên ngoài vào chúng có thể gây ra lỗi tinh vi."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ, việc bọc các phần tử `<mat-menu-item>` trong một tầng bao bọc phụ rồi chiếu chúng vào `<mat-menu>` có thể làm mất điều hướng bàn phím và hỗ trợ trình đọc màn hình. Truy vấn vẫn tìm thấy các item, nhưng quá trình cài đặt nội bộ để giúp chúng tương tác có thể không hoạt động chính xác khi item đến từ ngữ cảnh view khác."
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu một component thư viện trực tiếp quản lý hành vi của các phần tử con, hãy kiểm tra tài liệu của thư viện đó trước khi dùng content projection — có thể nó không được hỗ trợ."
+    }
+  ]
+}

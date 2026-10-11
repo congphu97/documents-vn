@@ -1,0 +1,44 @@
+{
+  "slug": "guide/testing/components",
+  "title": "Testing Components",
+  "description": "Documentation guide for Testing Components in Angular.",
+  "source": "https://angular.dev/guide/testing/components",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Official documentation from [angular.dev/guide/testing/components](https://angular.dev/guide/testing/components)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Testing Components is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "overview-section",
+      "text": "Overview and Concepts"
+    },
+    {
+      "type": "paragraph",
+      "text": "To master Testing Components, explore the core mechanisms and design patterns provided by Angular."
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "// Example demonstration for Testing Components",
+        "import { Component } from \"@angular/core\";",
+        "",
+        "@Component({",
+        "  selector: \"app-example\",",
+        "  standalone: true,",
+        "  template: `<h1>Testing Components</h1>`",
+        "})",
+        "export class ExampleComponent {}"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "slug": "essentials/routing",
+  "title": "Routing & Điều hướng",
+  "description": "Angular Router cho phép xây dựng ứng dụng Single Page App với tính năng lazy loading, router guards và URL dynamic matching.",
+  "source": "https://angular.dev/guide/routing",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular Router quản lý việc chuyển đổi giữa các khung nhìn khác nhau mà không cần tải lại toàn bộ trang web từ server."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setup-routes",
+      "text": "Cấu hình Tuyến đường (Routes)"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "",
+        "export const routes: Routes = [",
+        "  { path: '', redirectTo: 'home', pathMatch: 'full' },",
+        "  {",
+        "    path: 'home',",
+        "    loadComponent: () => import('./home.component').then(m => m.HomeComponent)",
+        "  },",
+        "  {",
+        "    path: 'admin',",
+        "    loadComponent: () => import('./admin.component').then(m => m.AdminComponent),",
+        "    canActivate: [() => inject(AuthService).isLoggedIn()]",
+        "  }",
+        "];"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Sử dụng `loadComponent` kết hợp dynamic import giúp Angular tự động tách nhỏ bundle mã nguồn (code-splitting) để tải theo nhu cầu."
+    }
+  ]
+}

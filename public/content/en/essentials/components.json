@@ -1,0 +1,110 @@
+{
+  "slug": "essentials/components",
+  "title": "Building with Components",
+  "description": "Components are the fundamental building blocks of Angular applications, combining TypeScript logic, HTML templates, and CSS styling.",
+  "source": "https://angular.dev/essentials/components",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "In Angular, a component encapsulates the structure, styling, and behavior of a piece of UI. Every component is defined as a TypeScript class adorned with the `@Component` decorator."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "create-component",
+      "text": "Creating a Component"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is an example of defining a simple standalone component to display a user avatar photo:"
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  standalone: true,",
+        "  template: `",
+        "    <div class=\"photo-card\">",
+        "      <img src=\"profile.jpg\" alt=\"Profile photo\" />",
+        "    </div>",
+        "  `,",
+        "  styles: [`",
+        "    .photo-card { border-radius: 50%; overflow: hidden; }",
+        "  `]",
+        "})",
+        "export class ProfilePhoto {}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Components should adhere to the Single Responsibility Principle. If a template grows too large, extract child components to keep code clean and maintainable."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "use-component",
+      "text": "Using Components inside other Components"
+    },
+    {
+      "type": "paragraph",
+      "text": "With Standalone Components, simply import the child component in the `imports` array of the parent:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { ProfilePhoto } from './profile-photo.component';",
+        "",
+        "@Component({",
+        "  selector: 'user-profile',",
+        "  standalone: true,",
+        "  imports: [ProfilePhoto],",
+        "  template: `",
+        "    <section class=\"profile-container\">",
+        "      <profile-photo />",
+        "      <h2>Jane Doe</h2>",
+        "      <p>Angular Software Engineer</p>",
+        "    </section>",
+        "  `",
+        "})",
+        "export class UserProfile {}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "inputs-and-outputs",
+      "text": "Passing data with Signal Inputs"
+    },
+    {
+      "type": "paragraph",
+      "text": "Declare reactive input properties using the modern `input()` function:"
+    },
+    {
+      "type": "code",
+      "file": "user-badge.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, input } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'user-badge',",
+        "  standalone: true,",
+        "  template: `<span class=\"badge\">{{ username() }}</span>`",
+        "})",
+        "export class UserBadge {",
+        "  username = input.required<string>();",
+        "}"
+      ]
+    }
+  ]
+}

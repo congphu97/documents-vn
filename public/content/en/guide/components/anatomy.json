@@ -1,0 +1,189 @@
+{
+  "slug": "guide/components",
+  "title": "Anatomy of a component",
+  "description": "Every component defines a TypeScript class, an HTML template, and a CSS selector.",
+  "source": "https://angular.dev/guide/components",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "This guide assumes you've already read the [Essentials Guide](essentials/components). Read that first if you're new to Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Every component must have:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "A **TypeScript class** with behaviors such as handling user input and fetching data from a server",
+        "An **HTML template** that controls what renders into the DOM",
+        "A **CSS selector** that defines how the component is used in HTML"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "You provide Angular-specific information for a component by adding a `@Component` decorator on top of the TypeScript class:"
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  template: `<img src=\"profile-photo.jpg\" alt=\"Your profile photo\"/>`,",
+        "})",
+        "export class ProfilePhoto {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "For full details on writing Angular templates, including data binding, event handling, and control flow, see the [Templates guide](guide/templates)."
+    },
+    {
+      "type": "paragraph",
+      "text": "The object passed to the `@Component` decorator is called the component's **metadata**. This includes the `selector`, `template`, and other properties described throughout this guide."
+    },
+    {
+      "type": "paragraph",
+      "text": "Components can optionally include a list of CSS styles that apply to that component's DOM:"
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  template: `<img src=\"profile-photo.jpg\" alt=\"Your profile photo\"/>`,",
+        "  styles: `",
+        "    img {",
+        "      border-radius: 50%;",
+        "    }",
+        "  `,",
+        "})",
+        "export class ProfilePhoto {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "By default, a component's styles only affect elements defined in that component's template. See [Styling Components](guide/components/styling) for details on Angular's approach to styling."
+    },
+    {
+      "type": "paragraph",
+      "text": "You can alternatively choose to write your template and styles in separate files:"
+    },
+    {
+      "type": "code",
+      "file": "profile-photo.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  templateUrl: 'profile-photo.html',",
+        "  styleUrl: 'profile-photo.css',",
+        "})",
+        "export class ProfilePhoto {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "This can help separate the concerns of **presentation** from **behavior** in your project. You can choose one approach for your entire project, or can decide which to use for each component."
+    },
+    {
+      "type": "paragraph",
+      "text": "Both `templateUrl` and `styleUrl` are relative to the directory in which the component resides."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-components",
+      "text": "Using components"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "imports-in-component-decorator",
+      "text": "Imports in the @Component decorator"
+    },
+    {
+      "type": "paragraph",
+      "text": "To use a component, directive, or pipe, you must add it to the `imports` array in the `@Component` decorator:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "import {ProfilePhoto} from './profile-photo';",
+        "",
+        "@Component({",
+        "  // Import the 'ProfilePhoto' component",
+        "  // in order to use it in this component's template.",
+        "  imports: [ProfilePhoto],",
+        "  /* ... */",
+        "})",
+        "export class UserProfile {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "By default, Angular components are **standalone**, meaning that you can directly add them to the `imports` array of other components. Components created with an earlier version of Angular may instead specify `standalone: false` in their `@Component` decorator. For these components, you instead import the `NgModule` in which the component is defined."
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "In Angular versions before 19.0.0, the `standalone` option defaults to `false`."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "showing-components-in-template",
+      "text": "Showing components in a template"
+    },
+    {
+      "type": "paragraph",
+      "text": "Every component defines a CSS selector. See [Component Selectors](guide/components/selectors) for details about which types of selectors Angular supports and guidance on choosing a selector."
+    },
+    {
+      "type": "paragraph",
+      "text": "You show a component by creating a matching HTML element in the template of other components:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'profile-photo',",
+        "  template: `<img src=\"profile.jpg\" alt=\"Profile photo\" />`,",
+        "})",
+        "export class ProfilePhoto {}",
+        "",
+        "@Component({",
+        "  imports: [ProfilePhoto],",
+        "  template: `<profile-photo />`,",
+        "})",
+        "export class UserProfile {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular creates an instance of the component for every matching HTML element it encounters. The DOM element that matches a component's selector is referred to as that component's **host element**. The contents of a component's template are rendered inside its host element."
+    },
+    {
+      "type": "paragraph",
+      "text": "The DOM rendered by a component, corresponding to that component's template, is called that component's **view**."
+    },
+    {
+      "type": "paragraph",
+      "text": "In composing components in this way, you can think of your Angular application as a **tree of components** (Root: `AccountSettings` -> Children: `UserProfile`, `PaymentInfo` -> Leaves: `ProfilePic`, `UserBio`)."
+    },
+    {
+      "type": "paragraph",
+      "text": "This tree structure is important to understanding several other Angular concepts, including dependency injection and child queries."
+    }
+  ]
+}
