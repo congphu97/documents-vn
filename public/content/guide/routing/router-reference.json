@@ -1,44 +1,170 @@
 {
   "slug": "guide/routing/router-reference",
-  "title": "Router Reference",
-  "description": "Tài liệu hướng dẫn về Router Reference trong Angular.",
+  "title": "Tài liệu tham khảo Router (Router reference)",
+  "description": "Tổng hợp các khái niệm, thuật ngữ cốt lõi, bảng tra cứu toàn bộ Router Events, cấu hình thẻ base href và chiến lược HashLocationStrategy trong Angular Router.",
   "source": "https://angular.dev/guide/routing/router-reference",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/routing/router-reference](https://angular.dev/guide/routing/router-reference)."
-    },
-    {
       "type": "paragraph",
-      "text": "Router Reference là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Phần này tổng hợp các khái niệm cốt lõi, bảng tra cứu sự kiện, thuật ngữ chuyên ngành và cách cấu hình nền tảng trong Angular Router."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "router-events",
+      "text": "Các sự kiện Router (Router events)"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Router Reference, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Trong mỗi lần điều hướng, dịch vụ <code>Router</code> phát ra các sự kiện điều hướng qua thuộc tính <code>Router.events</code>. Bảng dưới đây thể hiện chi tiết từng sự kiện:"
+    },
+    {
+      "type": "table",
+      "headers": ["Sự kiện (Router event)", "Chi tiết (Details)"],
+      "rows": [
+        ["<code>NavigationStart</code>", "Kích hoạt khi quá trình điều hướng bắt đầu."],
+        ["<code>RouteConfigLoadStart</code>", "Kích hoạt trước khi Router tải lười một cấu hình route."],
+        ["<code>RouteConfigLoadEnd</code>", "Kích hoạt sau khi cấu hình route đã được tải lười hoàn tất."],
+        ["<code>RoutesRecognized</code>", "Kích hoạt khi Router phân tích xong URL và nhận diện được các route tương ứng."],
+        ["<code>GuardsCheckStart</code>", "Kích hoạt khi Router bắt đầu giai đoạn kiểm tra Guards."],
+        ["<code>ChildActivationStart</code>", "Kích hoạt khi Router bắt đầu kích hoạt các route con."],
+        ["<code>ActivationStart</code>", "Kích hoạt khi Router bắt đầu kích hoạt một route."],
+        ["<code>GuardsCheckEnd</code>", "Kích hoạt khi Router hoàn tất giai đoạn kiểm tra Guards thành công."],
+        ["<code>ResolveStart</code>", "Kích hoạt khi Router bắt đầu giai đoạn phân giải dữ liệu (Resolve/Resources)."],
+        ["<code>ResolveEnd</code>", "Kích hoạt khi Router hoàn tất giai đoạn phân giải dữ liệu thành công."],
+        ["<code>ChildActivationEnd</code>", "Kích hoạt khi Router hoàn tất kích hoạt các route con."],
+        ["<code>ActivationEnd</code>", "Kích hoạt khi Router hoàn tất kích hoạt một route."],
+        ["<code>NavigationEnd</code>", "Kích hoạt khi quá trình điều hướng kết thúc thành công."],
+        ["<code>NavigationCancel</code>", "Kích hoạt khi điều hướng bị hủy (do Route Guard trả về false hoặc chuyển hướng qua UrlTree/RedirectCommand)."],
+        ["<code>NavigationError</code>", "Kích hoạt khi điều hướng thất bại do gặp lỗi không mong muốn."],
+        ["<code>Scroll</code>", "Đại diện cho sự kiện cuộn trang (scrolling)."]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn kích hoạt tính năng <code>withDebugTracing()</code> trong <code>provideRouter</code>, Angular sẽ tự động ghi nhật ký toàn bộ chuỗi sự kiện này ra Console của trình duyệt."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "router-terminology",
+      "text": "Thuật ngữ Router (Router terminology)"
+    },
+    {
+      "type": "table",
+      "headers": ["Thành phần (Router part)", "Chi tiết (Details)"],
+      "rows": [
+        ["<code>Router</code>", "Dịch vụ hiển thị component ứng với URL đang hoạt động và quản lý việc chuyển trang."],
+        ["<code>provideRouter</code>", "Hàm cung cấp các service provider cần thiết cho hệ thống định tuyến (chuẩn standalone)."],
+        ["<code>RouterModule</code>", "NgModule cung cấp các provider và chỉ thị định tuyến (phương pháp module truyền thống)."],
+        ["<code>Routes</code>", "Mảng chứa các định nghĩa Route, mỗi phần tử ánh xạ một đường dẫn URL tới một Component."],
+        ["<code>Route</code>", "Đối tượng cấu hình xác định cách router điều hướng tới component, bao gồm path, component, children, guards, resolvers, resources."],
+        ["<code>RouterOutlet</code>", "Chỉ thị (<code>&lt;router-outlet&gt;</code>) đánh dấu vị trí mà router sẽ render component."],
+        ["<code>RouterLink</code>", "Chỉ thị liên kết phần tử HTML với route để chuyển trang mà không reload."],
+        ["<code>RouterLinkActive</code>", "Chỉ thị tự động thêm/xóa CSS class và thuộc tính <code>aria-current</code> khi liên kết đang hoạt động."],
+        ["<code>ActivatedRoute</code>", "Dịch vụ được cung cấp cho từng routed component chứa thông tin chi tiết về route (params, data, resources, queryParams, fragment)."],
+        ["<code>RouterState</code>", "Trạng thái hiện tại của router gồm cây phân cấp các route đang kích hoạt và các tiện ích duyệt cây."],
+        ["<strong>Link parameters array</strong>", "Mảng tham số (ví dụ <code>['/hero', hero.id]</code>) được router diễn giải thành chỉ thị điều hướng."],
+        ["<strong>Routing component</strong>", "Một Angular component chứa thẻ <code>&lt;router-outlet&gt;</code> hiển thị view dựa theo điều hướng."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "base-href",
+      "text": "Thẻ <base href>"
+    },
+    {
+      "type": "paragraph",
+      "text": "Router sử dụng API <code>history.pushState</code> của trình duyệt để điều hướng. Kỹ thuật này cho phép tạo ra các URL đẹp, chuẩn HTML5 (ví dụ <code>localhost:4200/crisis-center</code>) mà người dùng và máy chủ không thể phân biệt được với các trang tĩnh truyền thống."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn phải thêm phần tử <code>&lt;base href&gt;</code> vào tệp <code>index.html</code> để định tuyến pushState hoạt động chính xác. Trình duyệt sử dụng giá trị này làm tiền tố khi giải quyết các URL tương đối cho CSS, script và hình ảnh:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "index.html",
+      "lang": "html",
+      "code": [
+        "<!doctype html>",
+        "<html lang=\"vi\">",
+        "<head>",
+        "  <meta charset=\"utf-8\">",
+        "  <title>Angular App</title>",
+        "  <!-- Đặt thẻ base ngay sau thẻ mở head -->",
+        "  <base href=\"/\">",
+        "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
+        "</head>",
+        "<body>",
+        "  <app-root></app-root>",
+        "</body>",
+        "</html>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "html5-urls-and-the-base-href",
+      "text": "Cấu trúc URL HTML5 và <base href>"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cấu trúc tiêu chuẩn của một URI bao gồm các thành phần sau:"
+    },
+    {
+      "type": "code",
+      "file": "uri-syntax.txt",
+      "lang": "text",
+      "code": [
+        "foo://example.com:8042/over/there?name=ferret#nose",
+        "\\_/   \\______________\\/\\_________/ \\_________/ \\__/",
+        " |           |              |            |        |",
+        "scheme   authority         path        query   fragment"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu không có quyền truy cập trực tiếp vào <code>index.html</code> để đặt thẻ <code>&lt;base&gt;</code>, bạn có thể thực hiện hai bước sau để vẫn sử dụng URL HTML5:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Cung cấp token <code>APP_BASE_HREF</code> với giá trị thích hợp trong providers.",
+        "Sử dụng URL tuyệt đối từ gốc cho tất cả các tài nguyên web (CSS, hình ảnh, scripts).",
+        "Đảm bảo đường dẫn trong base href luôn kết thúc bằng dấu gạch chéo <code>/</code> (vì trình duyệt sẽ bỏ qua các ký tự nằm sau dấu gạch chéo ngoài cùng bên phải)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "hashlocationstrategy",
+      "text": "Chiến lược HashLocationStrategy"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu triển khai trên các máy chủ web tĩnh không hỗ trợ cấu hình URL rewrite về <code>index.html</code>, bạn có thể chuyển sang sử dụng URL chứa dấu thăng (<code>#</code>) bằng cách thêm <code>withHashLocation()</code> vào cấu hình <code>provideRouter</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Router Reference",
-        "import { Component } from \"@angular/core\";",
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideRouter, withHashLocation } from '@angular/router';",
+        "import { appRoutes } from './app.routes';",
         "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Router Reference</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideRouter(appRoutes, withHashLocation()),",
+        "  ],",
+        "};"
       ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Với cấu hình này, URL trong trình duyệt sẽ có định dạng: <code>localhost:4200/#/crisis-center</code>."
     }
   ]
 }

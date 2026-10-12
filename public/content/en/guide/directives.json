@@ -1,50 +1,58 @@
 {
   "slug": "guide/directives",
-  "title": "Directives trong Angular",
-  "description": "Directives là các lớp giúp bạn gắn thêm hành vi và điều chỉnh phần tử trong DOM của ứng dụng.",
+  "title": "Directives Overview",
+  "description": "Directives are classes that add additional behavior to elements in your Angular applications.",
   "source": "https://angular.dev/guide/directives",
   "status": "reviewed",
   "blocks": [
     {
       "type": "paragraph",
-      "text": "Directives trong Angular là những class chứa metadata decorator `@Directive()`. Có hai dạng directive phổ biến: Attribute Directives (thay đổi giao diện hoặc hành vi của một phần tử) và Structural Directives (thay đổi cấu trúc DOM bằng cách thêm/bớt phần tử)."
+      "text": "Directives are classes that add additional behavior to elements in your Angular applications. Use Angular's built-in directives to manage forms, lists, styles, and what users see."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "attribute-directives",
-      "text": "Tạo một Attribute Directive"
+      "id": "types-of-directives",
+      "text": "Types of directives"
     },
     {
       "type": "paragraph",
-      "text": "Ví dụ directive tự động đổi màu nền khi người dùng di chuột (hover) qua phần tử:"
+      "text": "The different types of Angular directives are as follows:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Components:</strong> Directives with a template. This type of directive is the most common directive type.",
+        "<strong>Attribute directives:</strong> Directives that change the appearance or behavior of an element, component, or another directive.",
+        "<strong>Structural directives:</strong> Directives that change the DOM layout by adding and removing DOM elements."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "building-an-attribute-directive",
+      "text": "Building an attribute directive"
+    },
+    {
+      "type": "paragraph",
+      "text": "An attribute directive minimally requires a class decorated with <code>@Directive()</code> and a selector:"
     },
     {
       "type": "code",
       "file": "highlight.directive.ts",
       "lang": "ts",
       "code": [
-        "import { Directive, ElementRef, HostListener, inject } from '@angular/core';",
+        "import { Directive, ElementRef, inject } from '@angular/core';",
         "",
         "@Directive({",
         "  selector: '[appHighlight]',",
-        "  standalone: true",
+        "  standalone: true,",
         "})",
         "export class HighlightDirective {",
         "  private el = inject(ElementRef);",
         "",
-        "  @HostListener('mouseenter')",
-        "  onMouseEnter() {",
-        "    this.highlight('#e535ab');",
-        "  }",
-        "",
-        "  @HostListener('mouseleave')",
-        "  onMouseLeave() {",
-        "    this.highlight('');",
-        "  }",
-        "",
-        "  private highlight(color: string) {",
-        "    this.el.nativeElement.style.backgroundColor = color;",
+        "  constructor() {",
+        "    this.el.nativeElement.style.backgroundColor = 'yellow';",
         "  }",
         "}"
       ]
@@ -57,20 +65,20 @@
     },
     {
       "type": "paragraph",
-      "text": "Angular hỗ trợ Directive Composition API cho phép áp dụng hành vi của các directive trực tiếp vào host element của một component mà không cần kế thừa class:"
+      "text": "Angular's Directive Composition API lets you apply directives to component host elements directly, enabling powerful composition without code inheritance:"
     },
     {
       "type": "code",
-      "file": "custom-button.component.ts",
+      "file": "menu.component.ts",
       "lang": "ts",
       "code": [
         "@Component({",
-        "  selector: 'app-custom-button',",
+        "  selector: 'custom-menu',",
         "  standalone: true,",
-        "  hostDirectives: [HighlightDirective],",
-        "  template: `<button><ng-content /></button>`",
+        "  hostDirectives: [HasBorder, ResponsiveLayout],",
+        "  template: `<ng-content />`",
         "})",
-        "export class CustomButtonComponent {}"
+        "export class CustomMenuComponent {}"
       ]
     }
   ]

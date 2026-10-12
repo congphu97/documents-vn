@@ -1,0 +1,221 @@
+{
+  "slug": "guide/di/hierarchical-dependency-injection",
+  "title": "Hệ thống phân cấp Injector (Hierarchical injectors)",
+  "description": "Hướng dẫn chuyên sâu về hệ thống Injector phân cấp trong Angular, quy tắc tìm kiếm dependency, các modifier và các mô hình nâng cao.",
+  "source": "https://angular.dev/guide/di/hierarchical-dependency-injection",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Hướng dẫn này cung cấp cái nhìn chuyên sâu và toàn diện về hệ thống Dependency Injection phân cấp trong Angular, bao gồm các quy tắc phân giải dependency (resolution rules), các modifier điều chỉnh tìm kiếm, và các kịch bản ứng dụng thực tế."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "types-of-injector-hierarchies",
+      "text": "Các loại cây Injector phân cấp (Types of injector hierarchies)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular có hai cây phân cấp injector chạy song song:"
+    },
+    {
+      "type": "table",
+      "headers": ["Cây Injector", "Chi tiết"],
+      "rows": [
+        ["EnvironmentInjector", "Cấu hình thông qua decorator @Service() hoặc mảng providers trong ApplicationConfig (hoặc ModuleInjector đối với ứng dụng NgModule)."],
+        ["ElementInjector", "Được tạo ngầm định tại mỗi phần tử DOM. ElementInjector mặc định rỗng trừ khi bạn cấu hình thuộc tính providers hoặc viewProviders trên @Component() hay @Directive()."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "environmentinjector",
+      "text": "EnvironmentInjector và Tree-shaking"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng decorator `@Service()` (hoặc `@Injectable({ providedIn: 'root' })`) luôn được ưu tiên hơn so với việc khai báo trong mảng `ApplicationConfig.providers`. Với `@Service()`, các công cụ build có thể thực hiện Tree-shaking, tự động loại bỏ các service mà ứng dụng không dùng đến, giúp giảm kích thước bundle."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "platform-injector",
+      "text": "Platform Injector và NullInjector"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phía trên root `EnvironmentInjector` còn có hai injector đặc biệt:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Platform Injector: Chứa các dependency dùng chung cho cả nền tảng (ví dụ: DomSanitizer, cấu hình URL trình duyệt khi chạy nhiều ứng dụng Angular trên cùng một trang).",
+        "NullInjector: Nằm ở đỉnh cao nhất của cây phân cấp. Mọi yêu cầu tìm kiếm không thành công đều dừng lại ở đây và ném ra lỗi NullInjectorError, trừ khi bạn sử dụng tùy chọn optional: true (trả về null)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resolution-rules",
+      "text": "Quy tắc phân giải Dependency (Resolution rules)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi một component hoặc directive yêu cầu một token, Angular thực hiện phân giải qua 2 giai đoạn:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Giai đoạn 1: Tìm kiếm ngược lên theo chuỗi các cha con trong cây ElementInjector.",
+        "Giai đoạn 2: Nếu không tìm thấy trong bất kỳ ElementInjector nào, Angular quay trở lại phần tử khởi nguồn yêu cầu và tìm kiếm lên cây EnvironmentInjector (Route -> Root -> Platform -> NullInjector)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resolution-modifiers",
+      "text": "Các Modifier điều chỉnh tìm kiếm (Resolution modifiers)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hành vi tìm kiếm mặc định của Angular có thể được tùy biến thông qua 4 modifier: `optional`, `self`, `skipSelf` và `host`. Bạn có thể truyền chúng vào đối tượng cấu hình của hàm `inject()` hoặc dùng decorator constructor:"
+    },
+    {
+      "type": "table",
+      "headers": ["Modifier", "Hành vi điều chỉnh"],
+      "rows": [
+        ["optional", "Nếu không tìm thấy service lúc runtime, Angular trả về null thay vì ném ra lỗi NullInjectorError."],
+        ["self", "Chỉ tìm kiếm duy nhất trong ElementInjector của chính component/directive hiện tại, không tìm lên các phần tử cha."],
+        ["skipSelf", "Bỏ qua injector của phần tử hiện tại, bắt đầu tìm kiếm từ ElementInjector của phần tử cha."],
+        ["host", "Chỉ định phần tử host của view hiện tại là điểm dừng cuối cùng của cuộc tìm kiếm, không đi xa hơn ra ngoài view."]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "modifiers.example.ts",
+      "lang": "typescript",
+      "code": [
+        "// 1. optional: Trả về null nếu không tìm thấy",
+        "const optionalService = inject(OptionalService, { optional: true });",
+        "",
+        "// 2. self: Chỉ tìm tại phần tử này",
+        "const leaf = inject(LeafService, { self: true, optional: true });",
+        "",
+        "// 3. skipSelf: Bỏ qua phần tử hiện tại, tìm từ phần tử cha",
+        "const parentPerson = inject(Person, { skipSelf: true, optional: true });",
+        "",
+        "// 4. host: Dừng tìm kiếm khi chạm đến biên của host view",
+        "const flower = inject(FlowerService, { host: true, optional: true });"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "providers-vs-viewproviders",
+      "text": "So sánh providers và viewProviders trong @Component()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Component có thể cung cấp service qua 2 mảng: `providers` và `viewProviders`. Điểm khác biệt mấu chốt:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "providers: Khả dụng cho cả view nội bộ của component VÀ các nội dung được chiếu vào qua <ng-content> (projected content).",
+        "viewProviders: CHỈ khả dụng cho view nội bộ của component. Các component được chiếu vào qua <ng-content> KHÔNG THỂ nhìn thấy các service trong viewProviders."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Lý do là vì Angular DI giải quyết injection theo nơi component được khai báo trong template, chứ không phải nơi nó được render ra DOM. Projected content nằm trong template của component cha, nên không thể chạm tới `viewProviders` của component con bao bọc nó."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "giving-projected-content-access-to-a-view-injector",
+      "text": "Cấp quyền truy cập view injector cho projected content với NgTemplateOutlet"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn thực sự muốn nội dung chiếu vào có thể nhìn thấy service trong viewProviders, hãy nhận nội dung dưới dạng `<ng-template>` và render nó bằng `[ngTemplateOutletInjector]`:"
+    },
+    {
+      "type": "code",
+      "file": "child-custom-outlet.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  selector: 'app-child',",
+        "  viewProviders: [AnimalService],",
+        "  imports: [NgTemplateOutlet],",
+        "  template: `",
+        "    <ng-container",
+        "      [ngTemplateOutlet]=\"content()\"",
+        "      [ngTemplateOutletInjector]=\"injector\"",
+        "    />",
+        "  `,",
+        "})",
+        "export class Child {",
+        "  readonly content = contentChild.required(TemplateRef);",
+        "  readonly injector = inject(Injector);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "example-elementinjector-use-cases",
+      "text": "Các trường hợp ứng dụng thực tế của ElementInjector"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "scenario-service-isolation",
+      "text": "Kịch bản 1: Cô lập Service theo phạm vi miền (Service Isolation)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn có một service chuyên dụng như `VillainsService` chỉ dành riêng cho danh sách phản diện `VillainsList`, hãy cung cấp nó trong mảng `providers` của `VillainsList`. Điều này ngăn không cho các component ngoài phạm vi truy cập nhầm vào nó và cô lập hoàn toàn phạm vi dữ liệu."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "scenario-multiple-edit-sessions",
+      "text": "Kịch bản 2: Nhiều phiên chỉnh sửa độc lập (Multiple edit sessions)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong các ứng dụng cho phép người dùng mở nhiều tab hoặc nhiều form chỉnh sửa cùng lúc (ví dụ chỉnh sửa nhiều hồ sơ thuế HeroTaxReturn đồng thời):"
+    },
+    {
+      "type": "code",
+      "file": "hero-tax-return.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  selector: 'app-hero-tax-return',",
+        "  providers: [HeroTaxReturnService], // Mỗi editor nhận riêng một instance service độc lập",
+        "  templateUrl: './hero-tax-return.html',",
+        "})",
+        "export class HeroTaxReturnEditor {",
+        "  private taxService = inject(HeroTaxReturnService);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Việc cấu hình ở cấp component đảm bảo mỗi form có một instance `HeroTaxReturnService` riêng biệt, không ghi đè dữ liệu lẫn nhau và tự động giải phóng bộ nhớ khi tab đóng lại."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "scenario-specialized-providers",
+      "text": "Kịch bản 3: Triển khai chuyên biệt hóa theo tầng sâu (Specialized providers)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể cung cấp các triển khai tổng quát ở root injector (ví dụ CarService chung), nhưng ở các nhánh component con chuyên sâu hơn, bạn có thể override lại bằng các triển khai cụ thể hơn (ví dụ CarService2, CarService3) phù hợp với ngữ cảnh của nhánh đó."
+    }
+  ]
+}

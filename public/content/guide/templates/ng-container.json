@@ -1,0 +1,169 @@
+{
+  "slug": "guide/templates/ng-container",
+  "title": "Grouping elements with ng-container",
+  "description": "<ng-container> là phần tử đặc biệt trong Angular giúp gom nhóm các phần tử hoặc đánh dấu vị trí trong template mà không render thêm bất kỳ thẻ DOM thật nào.",
+  "source": "https://angular.dev/guide/templates/ng-container",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<ng-container> là một phần tử ảo đặc biệt trong Angular dùng để nhóm nhiều phần tử lại với nhau hoặc đánh dấu một vị trí trong template mà không sinh ra bất kỳ thẻ DOM thật nào trên trang web."
+    },
+    {
+      "type": "code",
+      "file": "template vs rendered DOM",
+      "lang": "html",
+      "code": [
+        "<!-- Trong Component template -->",
+        "<section>",
+        "  <ng-container>",
+        "    <h3>Tiểu sử người dùng</h3>",
+        "    <p>Thông tin giới thiệu về người dùng</p>",
+        "  </ng-container>",
+        "</section>",
+        "",
+        "<!-- DOM thực tế được trình duyệt render (ng-container hoàn toàn biến mất) -->",
+        "<section>",
+        "  <h3>Tiểu sử người dùng</h3>",
+        "  <p>Thông tin giới thiệu về người dùng</p>",
+        "</section>"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Angular bỏ qua mọi attribute bindings và event listeners gắn trực tiếp trên <ng-container>, bao gồm cả các attribute từ directive. Tuy nhiên, bạn vẫn có thể áp dụng directive lên <ng-container> để cấu hình hoặc tiêm phụ thuộc (Dependency Injection)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-ng-container-to-display-dynamic-contents",
+      "text": "Sử dụng <ng-container> để hiển thị nội dung động"
+    },
+    {
+      "type": "paragraph",
+      "text": "<ng-container> đóng vai trò như một placeholder lý tưởng để render nội dung động từ Component hoặc Template fragment."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "rendering-components",
+      "text": "1. Render Component động với NgComponentOutlet"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể dùng directive NgComponentOutlet để render động một component class ngay tại vị trí của <ng-container>:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component, input, computed } from '@angular/core';",
+        "import { NgComponentOutlet } from '@angular/common';",
+        "import { AdminProfile, BasicUserProfile } from './profiles';",
+        "",
+        "@Component({",
+        "  imports: [NgComponentOutlet],",
+        "  template: `",
+        "    <h2>Hồ sơ của bạn</h2>",
+        "    <ng-container [ngComponentOutlet]=\"profileComponent()\" />",
+        "  `,",
+        "})",
+        "export class UserProfile {",
+        "  isAdmin = input(false);",
+        "",
+        "  // Chọn component tương ứng dựa trên trạng thái",
+        "  profileComponent = computed(() => (this.isAdmin() ? AdminProfile : BasicUserProfile));",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "rendering-template-fragments",
+      "text": "2. Render Template Fragment động với NgTemplateOutlet"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tương tự, bạn có thể dùng NgTemplateOutlet kết hợp với signal query viewChild để chọn template fragment hiển thị:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component, input, computed, viewChild, TemplateRef } from '@angular/core';",
+        "import { NgTemplateOutlet } from '@angular/common';",
+        "",
+        "@Component({",
+        "  imports: [NgTemplateOutlet],",
+        "  template: `",
+        "    <h2>Hồ sơ của bạn</h2>",
+        "    <ng-container [ngTemplateOutlet]=\"profileTemplate()\" />",
+        "",
+        "    <ng-template #admin>Hồ sơ Quản trị viên</ng-template>",
+        "    <ng-template #basic>Hồ sơ Người dùng cơ bản</ng-template>",
+        "  `,",
+        "})",
+        "export class UserProfile {",
+        "  isAdmin = input(false);",
+        "  adminTemplate = viewChild('admin', { read: TemplateRef });",
+        "  basicTemplate = viewChild('basic', { read: TemplateRef });",
+        "",
+        "  profileTemplate = computed(() => (this.isAdmin() ? this.adminTemplate() : this.basicTemplate()));",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-ng-container-with-structural-directives",
+      "text": "Kết hợp với Structural Directives"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trước khi Angular có Control Flow (@if, @for), <ng-container> là giải pháp phổ biến nhất để gắn các directive cấu trúc như *ngIf hoặc *ngFor nhằm nhóm nhiều phần tử mà không phải tạo thêm thẻ <div> bọc ngoài làm sai lệch cấu trúc CSS Flexbox/Grid hay bảng table:"
+    },
+    {
+      "type": "code",
+      "file": "example.html",
+      "lang": "html",
+      "code": [
+        "<ng-container *ngIf=\"permissions === 'admin'\">",
+        "  <h1>Bảng điều khiển Quản trị</h1>",
+        "  <admin-infographic />",
+        "</ng-container>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-ng-container-for-injection",
+      "text": "Sử dụng <ng-container> cho Dependency Injection theo phạm vi template"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn gắn một Directive lên <ng-container>, các phần tử con bên trong có thể inject directive đó hoặc bất cứ thứ gì directive cung cấp. Điều này cho phép bạn cung cấp dữ liệu cục bộ một cách rất linh hoạt:"
+    },
+    {
+      "type": "code",
+      "file": "theme.directive.ts & template.html",
+      "lang": "typescript",
+      "code": [
+        "@Directive({",
+        "  selector: '[theme]',",
+        "})",
+        "export class Theme {",
+        "  mode = input<'light' | 'dark'>('light');",
+        "}",
+        "",
+        "<!-- Cả ProfilePic và UserBio đều có thể inject Theme directive này -->",
+        "<ng-container theme=\"dark\">",
+        "  <profile-pic />",
+        "  <user-bio />",
+        "</ng-container>"
+      ]
+    }
+  ]
+}

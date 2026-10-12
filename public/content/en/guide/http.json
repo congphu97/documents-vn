@@ -1,43 +1,32 @@
 {
   "slug": "guide/http",
-  "title": "Overview",
-  "description": "Documentation guide for Overview in Angular.",
-  "source": "https://angular.dev/guide/http",
+  "title": "HttpClient Overview",
+  "description": "Understanding communication with backend services using HTTP in Angular with HttpClient.",
+  "source": "https://angular.dev/guide/http/overview",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Official documentation from [angular.dev/guide/http](https://angular.dev/guide/http)."
-    },
-    {
       "type": "paragraph",
-      "text": "Overview is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+      "text": "Most front-end applications need to communicate with a server over the HTTP protocol to download or upload data and access other back-end services. Angular provides a client HTTP API for Angular applications, the <code>HttpClient</code> service class in <code>@angular/common/http</code>."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Overview and Concepts"
+      "id": "http-client-service-features",
+      "text": "HTTP client service features"
     },
     {
       "type": "paragraph",
-      "text": "To master Overview, explore the core mechanisms and design patterns provided by Angular."
+      "text": "The HTTP client service offers the following major features:"
     },
     {
-      "type": "code",
-      "file": "example.ts",
-      "lang": "ts",
-      "code": [
-        "// Example demonstration for Overview",
-        "import { Component } from \"@angular/core\";",
-        "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Overview</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+      "type": "list",
+      "items": [
+        "The ability to request typed response values.",
+        "Streamlined error handling with RxJS operators.",
+        "Testability features through the <code>@angular/common/http/testing</code> package.",
+        "Request and response interceptors for global logging, caching, headers, and authentication.",
+        "Support for Angular Signals with <code>httpResource</code>."
       ]
     }
   ]

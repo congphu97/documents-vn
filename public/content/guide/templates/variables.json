@@ -1,43 +1,189 @@
 {
   "slug": "guide/templates/variables",
-  "title": "Variables",
-  "description": "Tài liệu hướng dẫn về Variables trong Angular.",
+  "title": "Variables in templates",
+  "description": "Angular hỗ trợ 2 loại khai báo biến trong template: Biến cục bộ với cú pháp @let và Biến tham chiếu template (#reference).",
   "source": "https://angular.dev/guide/templates/variables",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/templates/variables](https://angular.dev/guide/templates/variables)."
-    },
-    {
       "type": "paragraph",
-      "text": "Variables là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Angular cung cấp hai loại khai báo biến chính bên trong template: biến cục bộ thông qua cú pháp mới @let và biến tham chiếu template (template reference variables với ký hiệu #)."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "local-template-variables-with-let",
+      "text": "Biến cục bộ trong template với @let"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Variables, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Cú pháp @let cho phép bạn định nghĩa một biến cục bộ và tái sử dụng nó xuyên suốt template, tương tự như câu lệnh let trong JavaScript. Angular sẽ tự động cập nhật giá trị của biến theo biểu thức liên kết:"
     },
     {
       "type": "code",
-      "file": "example.ts",
-      "lang": "ts",
+      "file": "example.component.html",
+      "lang": "html",
       "code": [
-        "// Ví dụ minh họa cho Variables",
-        "import { Component } from \"@angular/core\";",
+        "@let name = user.name;",
+        "@let greeting = 'Xin chào, ' + name;",
+        "@let data = data$ | async;",
+        "@let pi = 3.14159;",
+        "@let coordinates = { x: 50, y: 100 };"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi khối @let chỉ khai báo chính xác một biến. Bạn không thể khai báo nhiều biến bằng dấu phẩy trong cùng một khối."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "referencing-the-value-of-let",
+      "text": "Tái sử dụng biến @let"
+    },
+    {
+      "type": "paragraph",
+      "text": "Biến @let đặc biệt tiện lợi khi kết hợp với async pipe để tránh việc phải subscribe lặp lại nhiều lần:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@let user = user$ | async;",
         "",
+        "@if (user) {",
+        "  <h1>Xin chào, {{ user.name }}</h1>",
+        "  <user-avatar [photo]=\"user.photo\" />",
+        "  <ul>",
+        "    @for (snack of user.favoriteSnacks; track snack.id) {",
+        "      <li>{{ snack.name }}</li>",
+        "    }",
+        "  </ul>",
+        "  <button (click)=\"update(user)\">Cập nhật hồ sơ</button>",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Khác với JavaScript, biến @let trong Angular là read-only (không thể gán lại bằng giá trị khác sau khi khai báo). Bạn không thể viết: <button (click)=\"value = value + 1\">."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "variable-scope",
+      "text": "Phạm vi biến (Scope) của @let"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các khai báo @let có phạm vi giới hạn trong view hiện tại và các view con của nó. @let không có cơ chế hoisting (kéo lên đầu), nên các view cha hoặc anh em không thể truy cập:"
+    },
+    {
+      "type": "code",
+      "file": "scoping-example.html",
+      "lang": "html",
+      "code": [
+        "@let topLevel = value;",
+        "<div>",
+        "  @let insideDiv = value;",
+        "</div>",
+        "",
+        "{{ topLevel }} <!-- Hợp lệ -->",
+        "{{ insideDiv }} <!-- Hợp lệ (cùng template view) -->",
+        "",
+        "@if (condition) {",
+        "  @let nested = value;",
+        "  {{ topLevel + nested }} <!-- Hợp lệ -->",
+        "}",
+        "<!-- {{ nested }} -> Báo lỗi: không truy cập được ra ngoài khối @if -->"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "template-reference-variables",
+      "text": "Biến tham chiếu Template (#variable)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Biến tham chiếu template bắt đầu bằng dấu thăng (#) giúp tham chiếu trực tiếp đến một phần tử DOM, một component instance, một directive instance hoặc một TemplateRef:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Thẻ HTML thông thường (#taskInput): Tham chiếu đến HTMLElement instance tương ứng (HTMLInputElement).",
+        "Thẻ Component (#startDate): Tham chiếu đến Component instance của Angular.",
+        "Thẻ <ng-template> (#myFragment): Tham chiếu đến TemplateRef instance.",
+        "Gán vào directive (#firstZone=\"dropZone\"): Tham chiếu đến directive instance dựa vào thuộc tính exportAs."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "reference-examples.html",
+      "lang": "html",
+      "code": [
+        "<!-- Tham chiếu đối tượng HTMLInputElement -->",
+        "<input #taskInput placeholder=\"Nhập tên công việc\" />",
+        "<button (click)=\"addTask(taskInput.value)\">Thêm</button>",
+        "",
+        "<!-- Tham chiếu Component instance -->",
+        "<my-datepicker #startDate />",
+        "",
+        "<!-- Tham chiếu Directive instance có exportAs -->",
+        "<section dropZone #firstZone=\"dropZone\">...</section>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-template-reference-variables-with-queries",
+      "text": "Sử dụng với Component Query (@ViewChild hoặc viewChild)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể dùng biến # để làm định danh (locator) khi truy vấn phần tử từ trong class component:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
         "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Variables</h1>`",
+        "  template: `<input #description value=\"Mô tả ban đầu\">`,",
         "})",
-        "export class ExampleComponent {}"
+        "export class AppComponent {",
+        "  // Truy vấn bằng viewChild signal query",
+        "  input = viewChild<ElementRef>('description');",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "template-variable-scope",
+      "text": "Phạm vi của biến tham chiếu #"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các khối control flow như @if, @for tạo ra một template scope con lồng nhau. Scope con bên trong có thể đọc biến # được khai báo ở scope cha bên ngoài, nhưng scope cha không thể đọc biến # được khai báo bên trong scope con:"
+    },
+    {
+      "type": "code",
+      "file": "scope-check.html",
+      "lang": "html",
+      "code": [
+        "<!-- HỢP LỆ: Khối @if con đọc biến ref1 của cha -->",
+        "<input #ref1 type=\"text\" [(ngModel)]=\"firstExample\" />",
+        "@if (true) {",
+        "  <span>Giá trị: {{ ref1.value }}</span>",
+        "}",
+        "",
+        "<!-- KHÔNG HỢP LỆ: ref2 nằm trong @if, cha không thể đọc -->",
+        "@if (true) {",
+        "  <input #ref2 type=\"text\" [(ngModel)]=\"secondExample\" />",
+        "}",
+        "<!-- <span>Giá trị: {{ ref2?.value }}</span> -> Không hoạt động -->"
       ]
     }
   ]

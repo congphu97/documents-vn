@@ -1,43 +1,244 @@
 {
   "slug": "guide/di",
-  "title": "Overview",
-  "description": "Tài liệu hướng dẫn về Overview trong Angular.",
+  "title": "Dependency injection trong Angular (Dependency injection in Angular)",
+  "description": "Dependency Injection (DI) là mô hình thiết kế giúp tổ chức và chia sẻ mã nguồn bằng cách cung cấp các dependency cho một class thay vì khởi tạo trực tiếp bên trong nó.",
   "source": "https://angular.dev/guide/di",
   "status": "reviewed",
   "blocks": [
     {
+      "type": "paragraph",
+      "text": "Dependency Injection (DI) là một mẫu thiết kế (design pattern) được sử dụng để tổ chức và chia sẻ mã nguồn xuyên suốt ứng dụng bằng cách cung cấp các dependency (phụ thuộc) cho một class thay vì tự khởi tạo chúng trực tiếp bên trong class đó."
+    },
+    {
       "type": "callout",
       "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/di](https://angular.dev/guide/di)."
+      "text": "Hãy xem qua phần Hướng dẫn cơ bản (Essentials) về Dependency Injection trước khi đi sâu vào tài liệu toàn diện này."
     },
     {
       "type": "paragraph",
-      "text": "Overview là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Khi ứng dụng ngày càng phát triển, lập trình viên thường cần tái sử dụng và chia sẻ các chức năng giữa các phần khác nhau trong codebase. Dependency Injection (DI) giúp bạn đạt được điều này bằng cách cho phép bạn cung cấp các dependency cho class từ bên ngoài, giúp các phần của ứng dụng trở nên tách bạch, dễ tái sử dụng và dễ quản lý hơn rất nhiều."
+    },
+    {
+      "type": "paragraph",
+      "text": "Dependency Injection là một mẫu thiết kế phổ biến vì giải quyết được những thách thức lớn:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Cải thiện khả năng bảo trì mã nguồn (Improved code maintainability): Thúc đẩy việc phân tách rõ ràng trách nhiệm (separation of concerns), giúp code dễ dàng tái cấu trúc (refactor) và giảm thiểu trùng lặp.",
+        "Khả năng mở rộng (Scalability): Bạn có thể tái sử dụng các chức năng dạng module trên khắp ứng dụng, giúp hệ thống mở rộng linh hoạt.",
+        "Kiểm thử dễ dàng hơn (Better testing): Cho phép unit test dễ dàng thay thế các dependency bằng mock/test double thay vì dùng đối tượng thật khi cần."
+      ]
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "how-does-dependency-injection-work-in-angular",
+      "text": "Cơ chế hoạt động của Dependency Injection trong Angular"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Overview, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Một dependency là bất kỳ đối tượng, giá trị, hàm hoặc service nào mà một class cần để hoạt động nhưng không tự nó tạo ra. Thay vào đó, bạn cung cấp dependency đó từ bên ngoài, tạo nên mối quan hệ rõ ràng, minh bạch giữa các thành phần."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn tương tác với hệ thống DI theo hai cách chính:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bạn cung cấp (provide), hoặc làm cho các giá trị trở nên sẵn sàng để sử dụng.",
+        "Bạn inject, hoặc yêu cầu (ask for) các giá trị đó dưới dạng dependency."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ngữ cảnh này, \"giá trị\" có thể là bất kỳ giá trị JavaScript nào, bao gồm object, hàm hoặc các instance của class. Các kiểu dependency thường được inject bao gồm:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Giá trị cấu hình (Configuration values): Các hằng số theo môi trường, API URL, feature flags, v.v.",
+        "Factories: Các hàm tạo ra đối tượng hoặc giá trị dựa trên các điều kiện lúc runtime.",
+        "Services: Các class cung cấp chức năng dùng chung, business logic hoặc quản lý state."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Các component và directive của Angular tự động tham gia vào hệ thống DI, nghĩa là bạn có thể vừa inject dependency vào chúng, vừa có thể đăng ký biến chúng thành dependency cho các thành phần khác."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "what-are-services",
+      "text": "Services là gì? (What are services?)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một Angular service là một class TypeScript được đánh dấu decorator `@Service` (hoặc `@Injectable`), cho phép bạn inject một instance của class đó như một dependency. Services là phương thức phổ biến nhất để chia sẻ dữ liệu và logic xuyên suốt ứng dụng."
+    },
+    {
+      "type": "paragraph",
+      "text": "Các loại service phổ biến bao gồm:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Data clients: Trừu tượng hóa việc gửi request lên server để lấy hoặc cập nhật dữ liệu.",
+        "State management: Quản lý trạng thái chia sẻ giữa nhiều component hoặc các trang khác nhau.",
+        "Xác thực và phân quyền (Auth): Quản lý đăng nhập, lưu trữ token và kiểm tra quyền truy cập.",
+        "Ghi log và xử lý lỗi: Cung cấp API chung để ghi log hoặc thông báo lỗi đến người dùng.",
+        "Điều phối và xử lý sự kiện: Xử lý hoặc dispatch các sự kiện/thông báo theo mô hình Observer pattern.",
+        "Hàm tiện ích (Utilities): Cung cấp các hàm tái sử dụng như định dạng dữ liệu, validate hoặc tính toán."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ sau khai báo một service có tên là `AnalyticsLogger`:"
     },
     {
       "type": "code",
-      "file": "example.ts",
-      "lang": "ts",
+      "file": "analytics-logger.service.ts",
+      "lang": "typescript",
       "code": [
-        "// Ví dụ minh họa cho Overview",
-        "import { Component } from \"@angular/core\";",
+        "import { Service } from '@angular/core';",
+        "",
+        "@Service()",
+        "export class AnalyticsLogger {",
+        "  trackEvent(category: string, value: string) {",
+        "    console.log('Analytics event logged:', {",
+        "      category,",
+        "      value,",
+        "      timestamp: new Date().toISOString(),",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Decorator @Service giúp service này khả dụng trên toàn bộ ứng dụng dưới dạng Singleton. Đây là cách tiếp cận được khuyến nghị cho hầu hết các service."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Decorator @Service là cú pháp ngắn gọn, trực quan tương đương với @Injectable({ providedIn: 'root' })."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "injecting-dependencies-with-inject",
+      "text": "Inject dependencies bằng hàm inject()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể inject các dependency một cách linh hoạt bằng hàm `inject()` của Angular. Dưới đây là ví dụ về một thanh điều hướng navbar inject `AnalyticsLogger` cùng service `Router`:"
+    },
+    {
+      "type": "code",
+      "file": "navbar.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { Router } from '@angular/router';",
+        "import { AnalyticsLogger } from './analytics-logger.service';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Overview</h1>`",
+        "  selector: 'app-navbar',",
+        "  template: `<a href=\"#\" (click)=\"navigateToDetail($event)\">Trang chi tiết</a>`,",
         "})",
-        "export class ExampleComponent {}"
+        "export class Navbar {",
+        "  private router = inject(Router);",
+        "  private analytics = inject(AnalyticsLogger);",
+        "",
+        "  navigateToDetail(event: Event) {",
+        "    event.preventDefault();",
+        "    this.analytics.trackEvent('navigation', '/details');",
+        "    this.router.navigate(['/details']);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "where-can-inject-be-used",
+      "text": "Hàm inject() có thể được sử dụng ở đâu? (Where can inject() be used?)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể inject các dependency trong quá trình khởi tạo một component, directive hoặc service. Lời gọi hàm `inject()` có thể đặt trực tiếp ở phần khởi tạo thuộc tính (field initializer) hoặc trong phần thân constructor:"
+    },
+    {
+      "type": "code",
+      "file": "injection-places.example.ts",
+      "lang": "typescript",
+      "code": [
+        "// 1. Trong class component hoặc directive",
+        "@Component({/* ... */})",
+        "export class MyComponent {",
+        "  // ✅ Khởi tạo trực tiếp trên class field",
+        "  private service = inject(MyService);",
+        "",
+        "  // ✅ Trong constructor body",
+        "  private anotherService: MyService;",
+        "  constructor() {",
+        "    this.anotherService = inject(MyService);",
+        "  }",
+        "}",
+        "",
+        "// 2. Trong directive",
+        "@Directive({...})",
+        "export class MyDirective {",
+        "  // ✅ Khởi tạo trực tiếp thuộc tính",
+        "  private element = inject(ElementRef);",
+        "}",
+        "",
+        "// 3. Trong một service khác",
+        "@Service()",
+        "export class MyDataService {",
+        "  // ✅ Inject HttpClient vào service",
+        "  private http = inject(HttpClient);",
+        "}",
+        "",
+        "// 4. Trong Route Guard dạng functional",
+        "export const authGuard = () => {",
+        "  // ✅ Inject trong router guard",
+        "  const auth = inject(AuthService);",
+        "  return auth.isAuthenticated();",
+        "};"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular sử dụng thuật ngữ \"Injection Context\" để mô tả bất kỳ vị trí nào trong mã nguồn cho phép bạn gọi hàm `inject()` một cách hợp lệ."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau khi đã nắm vững các nguyên tắc cơ bản của DI, bạn đã sẵn sàng để tìm hiểu cách tạo và cấu hình các service của riêng mình:"
+    },
+    {
+      "type": "links",
+      "items": [
+        {
+          "text": "Creating and using services — Hướng dẫn tạo và sử dụng service với Angular CLI",
+          "href": "/docs/guide/di/creating-and-using-services"
+        },
+        {
+          "text": "Lazy loading services — Tối ưu bundle với injectAsync()",
+          "href": "/docs/guide/di/lazy-loading-services"
+        },
+        {
+          "text": "Defining dependency providers — Cấu hình các loại provider",
+          "href": "/docs/guide/di/defining-dependency-providers"
+        }
       ]
     }
   ]

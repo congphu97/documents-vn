@@ -1,0 +1,330 @@
+{
+  "slug": "guide/routing/testing",
+  "title": "Kiểm thử định tuyến và điều hướng (Testing routing and navigation)",
+  "description": "Hướng dẫn các chiến lược kiểm thử định tuyến trong Angular sử dụng RouterTestingHarness, Vitest, kiểm thử route parameters, route guards, router outlets, nested routes và query parameters.",
+  "source": "https://angular.dev/guide/routing/testing",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Kiểm thử định tuyến và điều hướng là điều thiết yếu để đảm bảo ứng dụng của bạn hoạt động chính xác khi người dùng di chuyển giữa các trang khác nhau. Hướng dẫn này bao gồm các chiến lược và kỹ thuật kiểm thử chức năng routing trong Angular bằng các công cụ hiện đại."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "prerequisites",
+      "text": "Điều kiện tiên quyết (Prerequisites)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hướng dẫn này giả định rằng bạn đã quen thuộc với các thư viện và công cụ kiểm thử sau:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Vitest:</strong> Framework kiểm thử JavaScript cung cấp cú pháp (<code>describe</code>, <code>it</code>, <code>expect</code>).",
+        "<strong>Angular Testing Utilities:</strong> Các công cụ kiểm thử tích hợp sẵn của Angular (<code>TestBed</code>, <code>ComponentFixture</code>).",
+        "<strong>RouterTestingHarness:</strong> Test harness chuyên dụng từ <code>@angular/router/testing</code> để kiểm thử các routed components với khả năng điều hướng tích hợp sẵn và kiểm tra DOM trực tiếp."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "testing-scenarios",
+      "text": "Các kịch bản kiểm thử (Testing scenarios)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "route-parameters",
+      "text": "Tham số đường dẫn (Route parameters)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các component thường dựa vào các tham số trong URL để lấy dữ liệu (như ID người dùng cho trang hồ sơ cá nhân). Ví dụ dưới đây minh họa cách kiểm thử component <code>UserProfile</code> đọc ID từ route:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.spec.ts",
+      "lang": "ts",
+      "code": [
+        "import { TestBed } from '@angular/core/testing';",
+        "import { provideRouter } from '@angular/router';",
+        "import { RouterTestingHarness } from '@angular/router/testing';",
+        "import { UserProfile } from './user-profile';",
+        "",
+        "describe('UserProfile', () => {",
+        "  it('nên hiển thị ID người dùng từ tham số route', async () => {",
+        "    TestBed.configureTestingModule({",
+        "      imports: [UserProfile],",
+        "      providers: [",
+        "        provideRouter([{ path: 'user/:id', component: UserProfile }]),",
+        "      ],",
+        "    });",
+        "",
+        "    const harness = await RouterTestingHarness.create();",
+        "    await harness.navigateByUrl('/user/123', UserProfile);",
+        "",
+        "    expect(harness.routeNativeElement?.textContent).toContain('User Profile: 123');",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "user-profile.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { ActivatedRoute } from '@angular/router';",
+        "",
+        "@Component({",
+        "  template: '<h1>User Profile: {{ userId }}</h1>',",
+        "})",
+        "export class UserProfile {",
+        "  private route = inject(ActivatedRoute);",
+        "  userId: string | null = this.route.snapshot.paramMap.get('id');",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "route-guards",
+      "text": "Route guards"
+    },
+    {
+      "type": "paragraph",
+      "text": "Route guards kiểm soát quyền truy cập dựa trên các điều kiện như xác thực người dùng. Khi kiểm thử guards, trọng tâm là giả lập (mock) các phụ thuộc và xác minh kết quả điều hướng (cho phép vào trang hoặc chuyển hướng đến trang đăng nhập):"
+    },
+    {
+      "type": "code",
+      "file": "auth.guard.spec.ts",
+      "lang": "ts",
+      "code": [
+        "import { describe, expect, it, vi, type Mocked } from 'vitest';",
+        "import { RouterTestingHarness } from '@angular/router/testing';",
+        "import { provideRouter } from '@angular/router';",
+        "import { authGuard } from './auth.guard';",
+        "import { AuthStore } from './auth-store';",
+        "import { Component } from '@angular/core';",
+        "import { TestBed } from '@angular/core/testing';",
+        "",
+        "@Component({ template: '<h1>Protected Page</h1>' })",
+        "class Protected {}",
+        "",
+        "@Component({ template: '<h1>Login Page</h1>' })",
+        "class Login {}",
+        "",
+        "describe('authGuard', () => {",
+        "  let authStore: Mocked<AuthStore>;",
+        "  let harness: RouterTestingHarness;",
+        "",
+        "  async function setup(isAuthenticated: boolean) {",
+        "    authStore = {",
+        "      isAuthenticated: vi.fn().mockReturnValue(isAuthenticated),",
+        "    } as Mocked<AuthStore>;",
+        "",
+        "    TestBed.configureTestingModule({",
+        "      providers: [",
+        "        { provide: AuthStore, useValue: authStore },",
+        "        provideRouter([",
+        "          { path: 'protected', component: Protected, canActivate: [authGuard] },",
+        "          { path: 'login', component: Login },",
+        "        ]),",
+        "      ],",
+        "    });",
+        "",
+        "    harness = await RouterTestingHarness.create();",
+        "  }",
+        "",
+        "  it('cho phép điều hướng khi người dùng đã xác thực', async () => {",
+        "    await setup(true);",
+        "    await harness.navigateByUrl('/protected', Protected);",
+        "    expect(harness.routeNativeElement?.textContent).toContain('Protected Page');",
+        "  });",
+        "",
+        "  it('chuyển hướng về trang đăng nhập khi người dùng chưa xác thực', async () => {",
+        "    await setup(false);",
+        "    await harness.navigateByUrl('/protected', Login);",
+        "    expect(harness.routeNativeElement?.textContent).toContain('Login Page');",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "auth.guard.ts",
+      "lang": "ts",
+      "code": [
+        "import { inject } from '@angular/core';",
+        "import { CanActivateFn, Router } from '@angular/router';",
+        "import { AuthStore } from './auth-store';",
+        "",
+        "export const authGuard: CanActivateFn = () => {",
+        "  const authStore = inject(AuthStore);",
+        "  const router = inject(Router);",
+        "  return authStore.isAuthenticated() ? true : router.parseUrl('/login');",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "router-outlets",
+      "text": "Router outlets"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kiểm thử Router Outlet là dạng kiểm thử tích hợp (integration test) nhằm xác nhận sự phối hợp giữa Router, chỉ thị outlet và các component được hiển thị:"
+    },
+    {
+      "type": "code",
+      "file": "app.spec.ts",
+      "lang": "ts",
+      "code": [
+        "import { TestBed } from '@angular/core/testing';",
+        "import { RouterTestingHarness } from '@angular/router/testing';",
+        "import { provideRouter } from '@angular/router';",
+        "import { Component } from '@angular/core';",
+        "import { App } from './app';",
+        "",
+        "@Component({ template: '<h1>Home Page</h1>' })",
+        "class MockHome {}",
+        "",
+        "@Component({ template: '<h1>About Page</h1>' })",
+        "class MockAbout {}",
+        "",
+        "describe('App Router Outlet', () => {",
+        "  let harness: RouterTestingHarness;",
+        "",
+        "  beforeEach(async () => {",
+        "    TestBed.configureTestingModule({",
+        "      imports: [App],",
+        "      providers: [",
+        "        provideRouter([",
+        "          { path: '', component: MockHome },",
+        "          { path: 'about', component: MockAbout },",
+        "        ]),",
+        "      ],",
+        "    });",
+        "    harness = await RouterTestingHarness.create();",
+        "  });",
+        "",
+        "  it('hiển thị home component cho đường dẫn mặc định', async () => {",
+        "    await harness.navigateByUrl('');",
+        "    expect(harness.routeNativeElement?.textContent).toContain('Home Page');",
+        "  });",
+        "",
+        "  it('hiển thị about component cho đường dẫn /about', async () => {",
+        "    await harness.navigateByUrl('/about');",
+        "    expect(harness.routeNativeElement?.textContent).toContain('About Page');",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "nested-routes",
+      "text": "Tuyến đường lồng nhau (Nested routes)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kiểm thử các route lồng nhau giúp đảm bảo cả component cha và component con đều được render chính xác và đều có thể truy cập dữ liệu route tương ứng:"
+    },
+    {
+      "type": "code",
+      "file": "nested-routes.spec.ts",
+      "lang": "ts",
+      "code": [
+        "import { TestBed } from '@angular/core/testing';",
+        "import { RouterTestingHarness } from '@angular/router/testing';",
+        "import { provideRouter } from '@angular/router';",
+        "import { Parent, Child } from './nested-components';",
+        "",
+        "describe('Nested Routes', () => {",
+        "  let harness: RouterTestingHarness;",
+        "",
+        "  beforeEach(async () => {",
+        "    TestBed.configureTestingModule({",
+        "      imports: [Parent, Child],",
+        "      providers: [",
+        "        provideRouter([",
+        "          {",
+        "            path: 'parent',",
+        "            component: Parent,",
+        "            children: [{ path: 'child', component: Child }],",
+        "          },",
+        "        ]),",
+        "      ],",
+        "    });",
+        "    harness = await RouterTestingHarness.create();",
+        "  });",
+        "",
+        "  it('render đồng thời cả component cha và con cho URL lồng nhau', async () => {",
+        "    await harness.navigateByUrl('/parent/child');",
+        "    expect(harness.routeNativeElement?.textContent).toContain('Parent Component');",
+        "    expect(harness.routeNativeElement?.textContent).toContain('Child Component');",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "query-parameters-and-fragments",
+      "text": "Query parameters và fragments"
+    },
+    {
+      "type": "paragraph",
+      "text": "Query parameters (như <code>?q=angular</code>) và fragments (như <code>#section1</code>) cung cấp dữ liệu phụ trợ mà không làm đổi cấu trúc route. Bạn cần kiểm thử để đảm bảo component phản ứng chính xác khi các tham số này thay đổi:"
+    },
+    {
+      "type": "code",
+      "file": "search.spec.ts",
+      "lang": "ts",
+      "code": [
+        "import { TestBed } from '@angular/core/testing';",
+        "import { provideRouter } from '@angular/router';",
+        "import { RouterTestingHarness } from '@angular/router/testing';",
+        "import { Search } from './search';",
+        "",
+        "describe('Search', () => {",
+        "  let component: Search;",
+        "  let harness: RouterTestingHarness;",
+        "",
+        "  beforeEach(async () => {",
+        "    TestBed.configureTestingModule({",
+        "      imports: [Search],",
+        "      providers: [provideRouter([{ path: 'search', component: Search }])],",
+        "    });",
+        "    harness = await RouterTestingHarness.create();",
+        "  });",
+        "",
+        "  it('đọc chính xác từ khóa tìm kiếm từ query parameters', async () => {",
+        "    component = await harness.navigateByUrl('/search?q=angular', Search);",
+        "    expect(component.searchTerm()).toBe('angular');",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "best-practices-for-router-testing",
+      "text": "Thực hành tốt nhất khi kiểm thử Router (Best practices)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Sử dụng RouterTestingHarness:</strong> Cung cấp API trực tiếp, loại bỏ việc phải tạo test host component thủ công, hỗ trợ kiểm tra kiểu và điều hướng bất đồng bộ sạch sẽ.",
+        "<strong>Ưu tiên triển khai thực tế (Real implementations):</strong> Hạn chế lạm dụng mock giả lập. Chỉ mock các dịch vụ mạng bên ngoài hoặc backend API để tránh làm bài test bị giòn (brittle).",
+        "<strong>Kiểm tra trạng thái điều hướng:</strong> Xác minh cả hành động điều hướng và kết quả render trên DOM thực tế.",
+        "<strong>Xử lý tác vụ bất đồng bộ đúng cách:</strong> Mọi thao tác điều hướng đều là bất đồng bộ, luôn dùng <code>async/await</code> khi gọi <code>harness.navigateByUrl()</code>.",
+        "<strong>Kiểm thử các kịch bản lỗi:</strong> Kiểm tra các route không hợp lệ (404), điều hướng bị guard từ chối hoặc lỗi ném ra từ resolver.",
+        "<strong>Không bao giờ mock Angular Router:</strong> Thay vào đó hãy cung cấp cấu hình <code>provideRouter()</code> thật. Việc mock trực tiếp lớp Router sẽ che giấu các lỗi tương thích khi nâng cấp framework."
+      ]
+    }
+  ]
+}

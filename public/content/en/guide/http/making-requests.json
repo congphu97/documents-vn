@@ -1,43 +1,136 @@
 {
   "slug": "guide/http/making-requests",
-  "title": "Making Requests",
-  "description": "Documentation guide for Making Requests in Angular.",
+  "title": "Making HTTP requests",
+  "description": "Learn how to make HTTP requests in Angular: fetching JSON, setting headers and params, mutating data with POST/PUT/DELETE, and error handling.",
   "source": "https://angular.dev/guide/http/making-requests",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Official documentation from [angular.dev/guide/http/making-requests](https://angular.dev/guide/http/making-requests)."
-    },
-    {
       "type": "paragraph",
-      "text": "Making Requests is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+      "text": "<code>HttpClient</code> has methods corresponding to different HTTP verbs used to fetch data and apply mutations on the server. Each method returns an RxJS Observable which emits results when the server responds."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Overview and Concepts"
+      "id": "fetching-json-data",
+      "text": "Fetching JSON data"
     },
     {
       "type": "paragraph",
-      "text": "To master Making Requests, explore the core mechanisms and design patterns provided by Angular."
+      "text": "Use the <code>http.get()</code> method to fetch data from an endpoint and specify the response type as a TypeScript generic:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "config.service.ts",
       "lang": "ts",
       "code": [
-        "// Example demonstration for Making Requests",
-        "import { Component } from \"@angular/core\";",
+        "import { Injectable, inject } from '@angular/core';",
+        "import { HttpClient } from '@angular/common/http';",
+        "import { Observable } from 'rxjs';",
         "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Making Requests</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+        "export interface Config {",
+        "  heroesUrl: string;",
+        "  textfile: string;",
+        "}",
+        "",
+        "@Injectable({ providedIn: 'root' })",
+        "export class ConfigService {",
+        "  private http = inject(HttpClient);",
+        "",
+        "  getConfig(): Observable<Config> {",
+        "    return this.http.get<Config>('/api/config');",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "mutating-data",
+      "text": "Mutating data (POST, PUT, DELETE)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Send data to the server using <code>http.post()</code>, update resources with <code>http.put()</code>, and remove them with <code>http.delete()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "hero-mutations.ts",
+      "lang": "ts",
+      "code": [
+        "// Create a new hero (POST)",
+        "addHero(hero: Hero): Observable<Hero> {",
+        "  return this.http.post<Hero>('/api/heroes', hero);",
+        "}",
+        "",
+        "// Update an existing hero (PUT)",
+        "updateHero(hero: Hero): Observable<Hero> {",
+        "  return this.http.put<Hero>(`/api/heroes/${hero.id}`, hero);",
+        "}",
+        "",
+        "// Delete a hero (DELETE)",
+        "deleteHero(id: number): Observable<unknown> {",
+        "  return this.http.delete(`/api/heroes/${id}`);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "request-options",
+      "text": "Configuring request options (Headers & URL Params)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Pass custom HTTP headers or query parameters using <code>HttpHeaders</code> and <code>HttpParams</code>:"
+    },
+    {
+      "type": "code",
+      "file": "headers-params.ts",
+      "lang": "ts",
+      "code": [
+        "import { HttpHeaders, HttpParams } from '@angular/common/http';",
+        "",
+        "const headers = new HttpHeaders({",
+        "  'Authorization': 'Bearer my-token',",
+        "  'Content-Type': 'application/json',",
+        "});",
+        "",
+        "const params = new HttpParams()",
+        "  .set('page', '1')",
+        "  .set('limit', '10');",
+        "",
+        "this.http.get<User[]>('/api/users', { headers, params });"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "handling-errors",
+      "text": "Handling errors"
+    },
+    {
+      "type": "paragraph",
+      "text": "When an HTTP request fails, <code>HttpClient</code> emits an <code>HttpErrorResponse</code>. Handle errors gracefully using the RxJS <code>catchError</code> operator:"
+    },
+    {
+      "type": "code",
+      "file": "error-handling.ts",
+      "lang": "ts",
+      "code": [
+        "import { catchError, throwError } from 'rxjs';",
+        "import { HttpErrorResponse } from '@angular/common/http';",
+        "",
+        "this.http.get<Hero[]>('/api/heroes').pipe(",
+        "  catchError((error: HttpErrorResponse) => {",
+        "    if (error.status === 0) {",
+        "      console.error('A client-side or network error occurred:', error.error);",
+        "    } else {",
+        "      console.error(`Backend returned code ${error.status}, body was:`, error.error);",
+        "    }",
+        "    return throwError(() => new Error('Something went wrong. Please try again.'));",
+        "  })",
+        ");"
       ]
     }
   ]

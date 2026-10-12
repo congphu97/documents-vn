@@ -1,0 +1,448 @@
+{
+  "slug": "guide/forms/signals/validation",
+  "title": "Kiểm thực dữ liệu trong Signal Forms (Validation)",
+  "description": "Hướng dẫn kiểm thực dữ liệu trong Signal Forms theo cơ chế Schema: các validator tích hợp (required, email, min/max, pattern, applyEach), tạo validator tùy chỉnh với validate/validateTree, kiểm thực chéo cross-field, validateHttp bất đồng bộ và tích hợp Zod/Valibot qua Standard Schema.",
+  "source": "https://angular.dev/guide/forms/signals/validation",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Biểu mẫu luôn cần cơ chế <strong>kiểm thực (validation)</strong> để đảm bảo người dùng cung cấp dữ liệu chính xác và đầy đủ trước khi gửi lên máy chủ. Signal Forms cung cấp phương pháp kiểm thực dựa trên lược đồ (schema-based validation): các quy tắc kiểm thực được gắn vào các trường thông qua một hàm schema, tự động kích hoạt mỗi khi giá trị thay đổi và hiển thị các lỗi thông qua các signal trạng thái trường (field state signals)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "validation-basics",
+      "text": "Kiến thức cơ bản về Kiểm thực (Validation basics)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "the-schema-function",
+      "text": "Hàm Schema (The schema function)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cơ chế kiểm thực trong Signal Forms được định nghĩa thông qua một hàm schema truyền vào dưới dạng tham số thứ hai của hàm <code>form()</code>. Hàm schema này nhận vào một đối tượng <code>SchemaPathTree</code> đại diện cho các đường dẫn đến từng trường dữ liệu:"
+    },
+    {
+      "type": "code",
+      "file": "schema-example.ts",
+      "lang": "ts",
+      "code": [
+        "loginForm = form(this.loginModel, (schemaPath) => {",
+        "  required(schemaPath.email, { message: 'Email là bắt buộc' });",
+        "  email(schemaPath.email, { message: 'Vui lòng nhập địa chỉ email hợp lệ' });",
+        "  required(schemaPath.password, { message: 'Mật khẩu là bắt buộc' });",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm schema chỉ thực thi một lần duy nhất khi khởi tạo form. Các quy tắc được liên kết với từng trường và sẽ tự động chạy lại bất cứ khi nào giá trị của trường đó thay đổi."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "how-validation-works",
+      "text": "Cách thức hoạt động (How validation works)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Khai báo quy tắc trong schema:</strong> Gắn các hàm validator vào từng đường dẫn trường trong hàm schema callback.",
+        "<strong>Thực thi tự động:</strong> Validator tự động chạy mỗi khi giá trị trường nhập liệu thay đổi.",
+        "<strong>Lan truyền lỗi:</strong> Lỗi kiểm thực được phản ánh ngay lập tức qua các signal <code>valid()</code>, <code>invalid()</code>, <code>errors()</code>.",
+        "<strong>Cập nhật phản ứng trên UI:</strong> Giao diện hiển thị phản hồi tức thì mà không cần bạn phải viết các hàm lắng nghe sự kiện thủ công."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "validation-timing",
+      "text": "Thứ tự thực thi kiểm thực (Validation timing)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Thứ tự chạy các quy tắc kiểm thực diễn ra như sau:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>1. Kiểm thực đồng bộ (Synchronous validation):</strong> Tất cả các validator đồng bộ chạy ngay lập tức khi giá trị thay đổi.",
+        "<strong>2. Kiểm thực bất đồng bộ (Asynchronous validation):</strong> Chỉ khi <em>toàn bộ</em> các validator đồng bộ đều vượt qua (pass), các validator bất đồng bộ (như <code>validateHttp()</code>) mới bắt đầu được gọi.",
+        "<strong>3. Cập nhật field state:</strong> Các signal <code>valid()</code>, <code>invalid()</code>, <code>errors()</code>, và <code>pending()</code> được cập nhật tương ứng."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Tất cả các validator đồng bộ đều chạy trọn vẹn và không bị ngắt quãng giữa chừng khi gặp lỗi đầu tiên. Một trường có thể ghi nhận đồng thời nhiều lỗi kiểm thực."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "native-html-validation",
+      "text": "Kiểm thực HTML nguyên bản (Native HTML validation)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal Forms <strong>không sử dụng</strong> hệ thống Constraint Validation có sẵn của trình duyệt để chạy các quy tắc. Toàn bộ logic validation được thực thi trong Angular để hỗ trợ mọi component (kể cả custom controls). Directive <code>[formRoot]</code> sẽ tự động gán thuộc tính <code>novalidate</code> lên thẻ <code>&lt;form&gt;</code> để trình duyệt không chặn submit bằng tooltip mặc định."
+    },
+    {
+      "type": "paragraph",
+      "text": "Tuy nhiên, đối với các phần tử HTML nguyên bản, các validator như <code>required()</code>, <code>min()</code>, <code>max()</code>, <code>minLength()</code>, <code>maxLength()</code> sẽ phản chiếu thuộc tính HTML tương ứng (<code>required</code>, <code>min</code>, ...) nhằm mục đích nâng cao khả năng tiếp cận (Accessibility - a11y) và điều khiển trải nghiệm gõ phím của người dùng."
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "Không nên phụ thuộc vào các CSS pseudo-class như <code>:valid</code> hay <code>:invalid</code> của trình duyệt. Thay vào đó, hãy gắn class CSS dựa trên các signal của Signal Forms như <code>form.field().invalid() && form.field().touched()</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "built-in-validation-rules",
+      "text": "Các quy tắc kiểm thực tích hợp sẵn (Built-in validation rules)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "required",
+      "text": "required()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đảm bảo trường phải có giá trị. Các giá trị sau đây được coi là \"rỗng\" (không hợp lệ): <code>null</code>, <code>undefined</code>, chuỗi rỗng <code>''</code>, <code>false</code> (như checkbox chưa tick), và <code>NaN</code>. Lưu ý rằng số <code>0</code> và mảng rỗng <code>[]</code> <strong>không</strong> bị coi là rỗng đối với <code>required()</code>."
+    },
+    {
+      "type": "code",
+      "file": "required-example.ts",
+      "lang": "ts",
+      "code": [
+        "required(schemaPath.username, { message: 'Tên người dùng là bắt buộc' });",
+        "",
+        "// Kiểm thực có điều kiện với tùy chọn 'when':",
+        "required(schemaPath.promoCode, {",
+        "  message: 'Mã khuyến mãi là bắt buộc khi chọn giảm giá',",
+        "  when: ({ valueOf }) => valueOf(schemaPath.applyDiscount),",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "email",
+      "text": "email()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kiểm tra định dạng email hợp lệ theo biểu thức chính quy tiêu chuẩn:"
+    },
+    {
+      "type": "code",
+      "file": "email-example.ts",
+      "lang": "ts",
+      "code": [
+        "email(schemaPath.email, { message: 'Vui lòng nhập địa chỉ email hợp lệ' });"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "min-and-max",
+      "text": "min() và max()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Áp dụng cho các giá trị số (number). Giới hạn có thể là một số tĩnh hoặc một hàm/signal động:"
+    },
+    {
+      "type": "code",
+      "file": "min-max-example.ts",
+      "lang": "ts",
+      "code": [
+        "min(schemaPath.age, 18, { message: 'Bạn phải từ 18 tuổi trở lên' });",
+        "max(schemaPath.age, 120, { message: 'Độ tuổi không hợp lệ' });",
+        "",
+        "// Ràng buộc động theo một signal:",
+        "min(schemaPath.participants, () => this.minRequired(), {",
+        "  message: 'Chưa đủ số lượng người tham gia tối thiểu',",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "minlength-and-maxlength",
+      "text": "minLength() và maxLength()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Áp dụng cho cả chuỗi ký tự (số lượng ký tự) và mảng (số lượng phần tử):"
+    },
+    {
+      "type": "code",
+      "file": "length-example.ts",
+      "lang": "ts",
+      "code": [
+        "minLength(schemaPath.password, 8, { message: 'Mật khẩu phải có ít nhất 8 ký tự' });",
+        "maxLength(schemaPath.bio, 500, { message: 'Tiểu sử không được vượt quá 500 ký tự' });"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "pattern",
+      "text": "pattern()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kiểm tra giá trị khớp với Biểu thức chính quy (RegExp):"
+    },
+    {
+      "type": "code",
+      "file": "pattern-example.ts",
+      "lang": "ts",
+      "code": [
+        "pattern(schemaPath.phone, /^\\d{3}-\\d{3}-\\d{4}$/, {",
+        "  message: 'Số điện thoại phải có định dạng: 555-123-4567',",
+        "});",
+        "pattern(schemaPath.postalCode, /^\\d{5}$/, {",
+        "  message: 'Mã bưu điện phải gồm đúng 5 chữ số',",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "validation-of-array-items",
+      "text": "Kiểm thực từng phần tử trong mảng với applyEach()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với mảng chứa danh sách các object lồng nhau (như danh sách sản phẩm đặt hàng), sử dụng <code>applyEach()</code> để áp dụng schema lên từng phần tử:"
+    },
+    {
+      "type": "code",
+      "file": "apply-each-example.ts",
+      "lang": "ts",
+      "code": [
+        "type Item = { name: string; quantity: number };",
+        "",
+        "function ItemSchema(item: SchemaPathTree<Item>) {",
+        "  required(item.name, { message: 'Tên món hàng là bắt buộc' });",
+        "  min(item.quantity, 1, { message: 'Số lượng tối thiểu là 1' });",
+        "}",
+        "",
+        "orderForm = form(this.orderModel, (schemaPath) => {",
+        "  required(schemaPath.title);",
+        "  applyEach(schemaPath.items, ItemSchema);",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "custom-validation-rules",
+      "text": "Quy tắc kiểm thực tùy chỉnh (Custom validation rules)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-validate",
+      "text": "Sử dụng hàm validate()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>validate()</code> cho phép bạn viết validator tùy ý cho một trường cụ thể. Hàm validator nhận đối tượng <code>FieldContext</code> và trả về một đối tượng lỗi <code>{ kind, message }</code> nếu không hợp lệ, hoặc trả về <code>null</code>/<code>undefined</code> nếu hợp lệ:"
+    },
+    {
+      "type": "code",
+      "file": "custom-validate.ts",
+      "lang": "ts",
+      "code": [
+        "validate(schemaPath.website, ({ value }) => {",
+        "  if (!value().startsWith('https://')) {",
+        "    return {",
+        "      kind: 'https',",
+        "      message: 'Địa chỉ website phải bắt đầu bằng https://',",
+        "    };",
+        "  }",
+        "  return null;",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-validatetree",
+      "text": "Sử dụng hàm validateTree()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>validateTree()</code> áp dụng kiểm thực cho cả một cây/nhóm trường con, có thể gán lỗi trực tiếp lên một trường cụ thể trong nhánh:"
+    },
+    {
+      "type": "code",
+      "file": "validate-tree.ts",
+      "lang": "ts",
+      "code": [
+        "validateTree(path, (ctx) => {",
+        "  if (ctx.valueOf(path.firstName).length < 5) {",
+        "    return {",
+        "      kind: 'minLength5',",
+        "      message: 'Tên phải có ít nhất 5 ký tự',",
+        "      fieldTree: ctx.fieldTree.lastName,",
+        "    };",
+        "  }",
+        "  return null;",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "reusable-validation-rules",
+      "text": "Tạo các quy tắc có thể tái sử dụng (Reusable validation rules)"
+    },
+    {
+      "type": "code",
+      "file": "custom-rules.ts",
+      "lang": "ts",
+      "code": [
+        "export function url(path: SchemaPath<string>, options?: { message?: string }) {",
+        "  validate(path, ({ value }) => {",
+        "    try {",
+        "      new URL(value());",
+        "      return null;",
+        "    } catch {",
+        "      return {",
+        "        kind: 'url',",
+        "        message: options?.message || 'Vui lòng nhập một URL hợp lệ',",
+        "      };",
+        "    }",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "cross-field-validation",
+      "text": "Kiểm thực chéo giữa các trường (Cross-field validation)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trường hợp kinh điển là xác nhận mật khẩu (password confirmation), sử dụng <code>valueOf()</code> để đọc giá trị trường khác:"
+    },
+    {
+      "type": "code",
+      "file": "cross-field.ts",
+      "lang": "ts",
+      "code": [
+        "passwordForm = form(this.passwordModel, (schemaPath) => {",
+        "  required(schemaPath.password);",
+        "  required(schemaPath.confirmPassword);",
+        "  ",
+        "  validate(schemaPath.confirmPassword, ({ value, valueOf }) => {",
+        "    const confirmPassword = value();",
+        "    const password = valueOf(schemaPath.password);",
+        "    ",
+        "    if (confirmPassword !== password) {",
+        "      return {",
+        "        kind: 'passwordMismatch',",
+        "        message: 'Mật khẩu xác nhận không khớp',",
+        "      };",
+        "    }",
+        "    return null;",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "async-validation",
+      "text": "Kiểm thực bất đồng bộ với validateHttp()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>validateHttp()</code> thực hiện gọi API để kiểm tra tính khả dụng (ví dụ: kiểm tra username/email đã tồn tại hay chưa):"
+    },
+    {
+      "type": "code",
+      "file": "validate-http.ts",
+      "lang": "ts",
+      "code": [
+        "usernameForm = form(this.usernameModel, (schemaPath) => {",
+        "  required(schemaPath.username, { message: 'Tên người dùng là bắt buộc' });",
+        "  ",
+        "  validateHttp(schemaPath.username, {",
+        "    request: ({ value }) => `/api/check-username?username=${value()}`,",
+        "    onSuccess: (response: any) => {",
+        "      if (response.taken) {",
+        "        return {",
+        "          kind: 'usernameTaken',",
+        "          message: 'Tên người dùng này đã được sử dụng',",
+        "        };",
+        "      }",
+        "      return null;",
+        "    },",
+        "    onError: () => ({",
+        "      kind: 'networkError',",
+        "      message: 'Không thể kết nối đến máy chủ để xác thực tên người dùng',",
+        "    }),",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong thời gian request đang thực thi, signal <code>pending()</code> của trường sẽ là <code>true</code> và <code>valid()</code> sẽ là <code>false</code>. Bạn có thể sử dụng signal này để hiển thị biểu tượng loading (spinner)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "integration-with-schema-validation-libraries",
+      "text": "Tích hợp thư viện Schema bên ngoài (Zod, Valibot qua Standard Schema)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal Forms hỗ trợ giao thức chuẩn <strong>Standard Schema</strong>, cho phép tích hợp trực tiếp các thư viện nổi tiếng như Zod hoặc Valibot bằng hàm <code>validateStandardSchema()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "zod-integration.ts",
+      "lang": "ts",
+      "code": [
+        "import { form, validateStandardSchema } from '@angular/forms/signals';",
+        "import * as z from 'zod';",
+        "",
+        "// Định nghĩa schema với Zod:",
+        "const userSchema = z.object({",
+        "  email: z.string().email('Email không đúng định dạng'),",
+        "  password: z.string().min(8, 'Mật khẩu tối thiểu 8 ký tự'),",
+        "});",
+        "",
+        "// Tích hợp liền mạch vào Signal Forms:",
+        "const userForm = form(signal({ email: '', password: '' }), (schemaPath) => {",
+        "  validateStandardSchema(schemaPath, userSchema);",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/field-state-management\">Quản lý trạng thái trường (Field state management)</a>",
+        "<a href=\"/docs/guide/forms/signals/models\">Mô hình biểu mẫu (Form models)</a>",
+        "<a href=\"/docs/guide/forms/signals/model-design\">Thiết kế Form Model (Designing your form model)</a>"
+      ]
+    }
+  ]
+}

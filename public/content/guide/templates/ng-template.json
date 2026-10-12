@@ -1,0 +1,218 @@
+{
+  "slug": "guide/templates/ng-template",
+  "title": "Create template fragments with ng-template",
+  "description": "Lấy cảm hứng từ thẻ <template> của HTML, thẻ <ng-template> trong Angular cho phép khai báo template fragment có thể render linh hoạt thông qua mã hoặc NgTemplateOutlet.",
+  "source": "https://angular.dev/guide/templates/ng-template",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Lấy cảm hứng từ thẻ <template> nguyên bản của HTML, phần tử <ng-template> cho phép bạn khai báo một template fragment – một đoạn nội dung không tự động hiển thị ngay mà có thể được render động hoặc điều khiển bằng mã lập trình."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-a-template-fragment",
+      "text": "Tạo một Template Fragment"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể tạo template fragment trong bất kỳ component nào bằng <ng-template>:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<p>Đây là phần tử bình thường</p>",
+        "<ng-template>",
+        "  <p>Đây là một template fragment (chưa được render ra màn hình)</p>",
+        "</ng-template>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nội dung bên trong <ng-template> sẽ không tự động render lên trang. Các biểu thức bên trong nó được liên kết với context của component nơi fragment đó được khai báo."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "getting-a-reference-to-a-template-fragment",
+      "text": "Lấy tham chiếu đến Template Fragment (TemplateRef)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể lấy tham chiếu TemplateRef thông qua một trong 3 cách:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sử dụng biến tham chiếu template (#myFragment).",
+        "Truy vấn bằng query API trong component: viewChild<TemplateRef>('myFragment').",
+        "Inject TemplateRef trong một directive đặt trực tiếp trên thẻ <ng-template>."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "example.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component, viewChild, TemplateRef } from '@angular/core';",
+        "",
+        "@Component({",
+        "  template: `",
+        "    <ng-template #fragmentOne>",
+        "      <p>Fragment 1</p>",
+        "    </ng-template>",
+        "    <ng-template #fragmentTwo>",
+        "      <p>Fragment 2</p>",
+        "    </ng-template>",
+        "  `,",
+        "})",
+        "export class ComponentWithFragment {",
+        "  // Truy vấn trực tiếp TemplateRef bằng viewChild Signal Query",
+        "  fragmentOne = viewChild<TemplateRef<unknown>>('fragmentOne');",
+        "  fragmentTwo = viewChild<TemplateRef<unknown>>('fragmentTwo');",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "rendering-a-template-fragment",
+      "text": "Render một Template Fragment"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau khi có đối tượng TemplateRef, bạn có thể render nó bằng 2 cách: dùng directive NgTemplateOutlet trong template hoặc dùng ViewContainerRef trong mã TypeScript."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-ngtemplateoutlet",
+      "text": "1. Sử dụng NgTemplateOutlet"
+    },
+    {
+      "type": "paragraph",
+      "text": "Import NgTemplateOutlet từ @angular/common và gán TemplateRef vào ngTemplateOutlet:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<ng-template #myFragment>",
+        "  <p>Nội dung được render từ fragment</p>",
+        "</ng-template>",
+        "",
+        "<ng-container *ngTemplateOutlet=\"myFragment\"></ng-container>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-viewcontainerref",
+      "text": "2. Sử dụng ViewContainerRef bằng mã lệnh"
+    },
+    {
+      "type": "paragraph",
+      "text": "Inject ViewContainerRef và gọi hàm createEmbeddedView(templateRef) để chèn fragment vào DOM:"
+    },
+    {
+      "type": "code",
+      "file": "my-outlet.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  selector: 'my-outlet',",
+        "  template: `<button (click)=\"showFragment()\">Hiển thị</button>`,",
+        "})",
+        "export class MyOutlet {",
+        "  private viewContainer = inject(ViewContainerRef);",
+        "  fragment = input<TemplateRef<unknown>>();",
+        "",
+        "  showFragment() {",
+        "    const ref = this.fragment();",
+        "    if (ref) {",
+        "      this.viewContainer.createEmbeddedView(ref);",
+        "    }",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "passing-parameters-when-rendering-a-template-fragment",
+      "text": "Truyền tham số (Context) cho Template Fragment"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể định nghĩa tham số đầu vào cho fragment bằng tiền tố let-, sau đó truyền đối tượng context khi render:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Khai báo tham số nhận giá trị từ key 'topping' trong context -->",
+        "<ng-template #myFragment let-pizzaTopping=\"topping\">",
+        "  <p>Bạn đã chọn: {{ pizzaTopping }}</p>",
+        "</ng-template>",
+        "",
+        "<!-- Truyền context qua ngTemplateOutletContext -->",
+        "<ng-container",
+        "  [ngTemplateOutlet]=\"myFragment\"",
+        "  [ngTemplateOutletContext]=\"{ topping: 'hành tây' }\"",
+        "/>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "providing-injectors-to-template-fragments",
+      "text": "Cung cấp Custom Injector hoặc kế thừa Outlet Injector"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, context injector của fragment lấy từ nơi nó được khai báo. Bạn có thể ghi đè injector thông qua thuộc tính ngTemplateOutletInjector hoặc truyền chuỗi 'outlet' để kế thừa injector tại vị trí đang render (rất hữu ích cho cấu trúc đệ quy đa cấp):"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Kế thừa injector tại điểm outlet -->",
+        "<ng-container *ngTemplateOutlet=\"node; context: { $implicit: child.children }; injector: 'outlet'\" />"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "structural-directives",
+      "text": "Mối quan hệ với Structural Directives"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cú pháp dấu sao (*) của Structural Directives thực chất là cú pháp viết tắt của <ng-template>. Khi bạn viết:"
+    },
+    {
+      "type": "code",
+      "file": "comparison.html",
+      "lang": "html",
+      "code": [
+        "<!-- Viết tắt: -->",
+        "<section *myDirective>",
+        "  <p>Nội dung</p>",
+        "</section>",
+        "",
+        "<!-- Tương đương với: -->",
+        "<ng-template myDirective>",
+        "  <section>",
+        "    <p>Nội dung</p>",
+        "  </section>",
+        "</ng-template>"
+      ]
+    }
+  ]
+}

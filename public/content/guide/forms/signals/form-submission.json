@@ -1,0 +1,258 @@
+{
+  "slug": "guide/forms/signals/form-submission",
+  "title": "Gửi Biểu mẫu (Form submission)",
+  "description": "Hướng dẫn quản lý vòng đời gửi biểu mẫu trong Signal Forms: sử dụng chỉ thị FormRoot, hàm submit(), hiển thị trạng thái submitting(), xử lý lỗi server trả về, phản hồi khi không hợp lệ với onInvalid, và kiểm soát gửi đồng thời.",
+  "source": "https://angular.dev/guide/forms/signals/form-submission",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Khi người dùng gửi một biểu mẫu (submit), ứng dụng của bạn thường phải xử lý đồng thời nhiều mối bận tâm: hiển thị các lỗi kiểm thực, ngăn chặn gửi trùng lặp (duplicate submission), gửi dữ liệu lên máy chủ và xử lý phản hồi. Việc tự xử lý thủ công các tác vụ này vừa rườm rà vừa dễ phát sinh lỗi. <strong>Signal Forms</strong> cung cấp hàm <code>submit()</code> và chỉ thị <code>[formRoot]</code> giúp bạn quản lý trọn vẹn vòng đời gửi biểu mẫu một cách tinh gọn và đồng bộ."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "what-does-submit-do",
+      "text": "Hàm submit() thực hiện những gì? (What does submit() do?)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi hàm <code>submit()</code> được kích hoạt, nó sẽ lần lượt thực hiện theo quy trình chuẩn sau:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>1. Đánh dấu các trường tương tác là touched:</strong> Các trường chỉ hiển thị lỗi sau khi được chạm vào giờ đây sẽ hiển thị thông báo lỗi kiểm thực. Các trường bị ẩn (hidden), bị vô hiệu hóa (disabled) hoặc chỉ đọc (readonly) sẽ được bỏ qua.",
+        "<strong>2. Kiểm tra tính hợp lệ (Check validation):</strong> Nếu có bất kỳ quy tắc kiểm thực nào bị vi phạm, quá trình gửi sẽ dừng lại ngay lập tức và hàm <code>action</code> sẽ không được chạy.",
+        "<strong>3. Thực thi hành động (Run action):</strong> Hàm <code>action</code> được gọi với giá trị hiện tại của form. Trong lúc hàm này đang thực thi, signal <code>submitting()</code> sẽ chuyển thành <code>true</code>.",
+        "<strong>4. Xử lý kết quả (Handle result):</strong> Nếu hàm <code>action</code> trả về lỗi (lỗi từ server), các lỗi này sẽ được phân phối đến đúng các trường tương ứng. Nếu action không trả về gì (hoặc trả về <code>null</code>/<code>undefined</code>), lần gửi đó được tính là thành công."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>submit()</code> trả về một <code>Promise&lt;boolean&gt;</code>: giải quyết thành <code>true</code> khi hành động hoàn tất mà không có lỗi, và trả về <code>false</code> khi kiểm thực thất bại hoặc khi action trả về lỗi."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setting-up-form-submission-with-formroot",
+      "text": "Thiết lập gửi biểu mẫu với FormRoot"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cách phổ biến nhất để quản lý gửi form là gắn chỉ thị <code>[formRoot]</code> lên thẻ <code>&lt;form&gt;</code>. Chỉ thị này tự động đảm nhận 3 công việc:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Thiết lập novalidate:</strong> Tự động vô hiệu hóa kiểm thực mặc định của trình duyệt để Signal Forms toàn quyền kiểm soát.",
+        "<strong>Ngăn chặn hành vi mặc định (preventDefault):</strong> Ngăn trình duyệt tải lại hoặc điều hướng trang khi submit.",
+        "<strong>Tự động gọi submit():</strong> Kích hoạt toàn bộ luồng gửi dữ liệu khi người dùng nhấn nút submit hoặc nhấn Enter."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "contact-submission.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal } from '@angular/core';",
+        "import { form, FormField, FormRoot, required } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  selector: 'app-contact',",
+        "  imports: [FormField, FormRoot],",
+        "  template: `",
+        "    <form [formRoot]=\"contactForm\">",
+        "      <label>",
+        "        Họ và tên",
+        "        <input [formField]=\"contactForm.name\" />",
+        "      </label>",
+        "      <label>",
+        "        Email",
+        "        <input type=\"email\" [formField]=\"contactForm.email\" />",
+        "      </label>",
+        "      <button type=\"submit\" [disabled]=\"contactForm().submitting()\">",
+        "        @if (contactForm().submitting()) {",
+        "          Đang gửi...",
+        "        } @else {",
+        "          Gửi thông tin",
+        "        }",
+        "      </button>",
+        "    </form>",
+        "  `,",
+        "})",
+        "export class Contact {",
+        "  contactModel = signal({ name: '', email: '' });",
+        "",
+        "  contactForm = form(",
+        "    this.contactModel,",
+        "    (schemaPath) => {",
+        "      required(schemaPath.name, { message: 'Vui lòng nhập tên' });",
+        "      required(schemaPath.email, { message: 'Vui lòng nhập email' });",
+        "    },",
+        "    {",
+        "      submission: {",
+        "        action: async (field) => {",
+        "          const result = await saveContact(field().value());",
+        "          if (result.ok) return; // Thành công",
+        "          return { kind: 'serverError', message: 'Không thể gửi dữ liệu lên máy chủ' };",
+        "        },",
+        "      },",
+        "    },",
+        "  );",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "showing-submission-state-with-submitting",
+      "text": "Hiển thị trạng thái đang gửi với submitting()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal <code>submitting()</code> trả về <code>true</code> trong suốt thời gian hàm <code>action</code> đang thực thi. Bạn có thể dùng signal này để hiển thị biểu tượng tải dữ liệu (loading spinner) và vô hiệu hóa nút gửi nhằm tránh việc người dùng nhấp chuột nhiều lần gây trùng lặp request."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "managing-submission-errors",
+      "text": "Quản lý lỗi từ máy chủ (Managing submission errors)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi máy chủ từ chối dữ liệu (ví dụ: email đã tồn tại, lỗi giao dịch), bạn có thể trả về các đối tượng lỗi từ hàm <code>action</code> để phân phối chúng vào các trường cụ thể:"
+    },
+    {
+      "type": "code",
+      "file": "server-errors.ts",
+      "lang": "ts",
+      "code": [
+        "// 1. Trả về lỗi chung trên form:",
+        "return { kind: 'serverError', message: 'Lỗi hệ thống' };",
+        "",
+        "// 2. Gán lỗi vào đích danh một trường con bằng fieldTree:",
+        "return {",
+        "  kind: 'taken',",
+        "  message: 'Email này đã được sử dụng',",
+        "  fieldTree: field.email,",
+        "};",
+        "",
+        "// 3. Trả về nhiều lỗi đồng thời cho các trường khác nhau:",
+        "return result.errors.map((err) => ({",
+        "  kind: 'serverError',",
+        "  message: err.message,",
+        "  fieldTree: field[err.fieldName],",
+        "}));"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "auto-clearing-submission-errors",
+      "text": "Tự động xóa lỗi khi người dùng chỉnh sửa"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các lỗi trả về từ máy chủ (submission errors) sẽ <strong>tự động biến mất ngay khi người dùng chỉnh sửa giá trị</strong> của trường tương ứng. Đây là sự khác biệt quan trọng so với lỗi kiểm thực (validation errors - vốn liên tục được tính toán lại theo phản ứng). Lỗi từ máy chủ chỉ là kết quả trả về một lần; khi đã được xóa do người dùng sửa nội dung, chúng sẽ không xuất hiện lại trừ khi người dùng submit lại."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "handling-invalid-submissions-with-oninvalid",
+      "text": "Xử lý khi submit không hợp lệ với onInvalid"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi người dùng ấn gửi nhưng form không hợp lệ, hàm <code>action</code> sẽ không chạy. Bạn có thể sử dụng callback <code>onInvalid</code> để tự động cuộn trang hoặc chuyển con trỏ (focus) vào ô bị lỗi đầu tiên:"
+    },
+    {
+      "type": "code",
+      "file": "on-invalid.ts",
+      "lang": "ts",
+      "code": [
+        "submission: {",
+        "  action: async (field) => {",
+        "    await saveContact(field().value());",
+        "  },",
+        "  onInvalid: (field) => {",
+        "    // Tự động focus vào trường lỗi đầu tiên",
+        "    const firstError = field().errorSummary()[0];",
+        "    firstError?.fieldTree().focusBoundControl();",
+        "  },",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "controlling-validation-gating-with-ignorevalidators",
+      "text": "Kiểm soát điều kiện kiểm thực với ignoreValidators"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, <code>submit()</code> sẽ bỏ qua các validator bất đồng bộ đang chạy dở (pending) miễn là chưa có validator nào bị lỗi. Tùy chọn <code>ignoreValidators</code> cho phép bạn kiểm soát chặt chẽ hành vi này:"
+    },
+    {
+      "type": "table",
+      "headers": ["Giá trị", "Hành vi"],
+      "rows": [
+        ["<code>'pending'</code> (mặc định)", "Cho phép submit nếu không có validator nào thất bại, kể cả khi một số async validator đang chạy dở."],
+        ["<code>'none'</code>", "Chỉ cho phép submit khi TẤT CẢ các validator đều hoàn tất và vượt qua — các validator đang pending sẽ chặn submit."],
+        ["<code>'all'</code>", "Luôn cho phép submit bất chấp trạng thái kiểm thực (phù hợp với tính năng lưu bản nháp - draft save)."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "manual-submission-with-submit",
+      "text": "Gọi hàm submit() thủ công"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với các luồng wizard nhiều bước hoặc nút bấm nằm ngoài thẻ form, bạn có thể gọi hàm <code>submit()</code> trực tiếp bằng mã nguồn:"
+    },
+    {
+      "type": "code",
+      "file": "manual-submit.ts",
+      "lang": "ts",
+      "code": [
+        "async onSave() {",
+        "  const success = await submit(this.contactForm, async (field) => {",
+        "    const result = await saveContact(field().value());",
+        "    if (result.ok) return;",
+        "    return { kind: 'serverError', message: 'Lưu thất bại' };",
+        "  });",
+        "",
+        "  if (success) {",
+        "    await this.router.navigate(['/confirmation']);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "concurrent-submissions",
+      "text": "Xử lý gửi đồng thời (Concurrent submissions)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi một quá trình submit đang diễn ra, mọi lệnh gọi <code>submit()</code> tiếp theo cho cùng một form (hoặc bất kỳ trường con nào) sẽ ngay lập tức trả về <code>false</code> mà không thực thi hàm action. Cơ chế bảo vệ này ngăn chặn triệt để việc trùng lặp request khi người dùng bấm đúp chuột liên tục vào nút gửi."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/validation\">Kiểm thực dữ liệu trong Signal Forms (Validation)</a>",
+        "<a href=\"/docs/guide/forms/signals/field-state-management\">Quản lý trạng thái trường (Field State Management)</a>",
+        "<a href=\"/docs/guide/forms/signals/form-logic\">Thêm logic vào Biểu mẫu (Adding form logic)</a>"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,228 @@
+{
+  "slug": "guide/forms/signals/testing",
+  "title": "Kiểm thử Signal Forms (Testing Signal Forms)",
+  "description": "Hướng dẫn kiểm thử toàn diện cho Signal Forms trong Angular: kiểm thử logic cô lập (isolated logic tests) với Injector/TestBed, kiểm thử tương tác DOM gắn với Component (component-bound tests) và bảng so sánh lựa chọn chiến lược kiểm thử.",
+  "source": "https://angular.dev/guide/forms/signals/testing",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Biểu mẫu đóng vai trò tối quan trọng trong các ứng dụng web, và việc kiểm thử tự động (testing) mang lại sự tự tin khi mã nguồn thay đổi theo thời gian. Điểm ưu việt của <strong>Signal Forms</strong> là hầu hết logic (kiểm thực, vô hiệu hóa, phụ thuộc chéo) đều nằm tập trung trong <strong>Schema</strong> thay vì nằm rải rác trên template HTML. Điều này đồng nghĩa với việc bạn có thể kiểm thử phần lớn hành vi của form một cách nhanh chóng mà <strong>không cần phải render component hay tương tác DOM</strong>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Hướng dẫn này trình bày hai phương pháp kiểm thử: kiểm thử logic độc lập (isolated tests) và kiểm thử gắn liền với giao diện component (component-bound tests)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "testing-form-logic-in-isolation",
+      "text": "Kiểm thử Logic biểu mẫu cô lập (Isolated tests)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn chỉ cần xác minh quy tắc kiểm thực, trạng thái <code>disabled</code>, <code>required</code>, hoặc danh sách lỗi <code>errors()</code>, hãy kiểm thử form trực tiếp mà không cần khởi tạo component. Các bài test cô lập chạy cực nhanh và tập trung chính xác vào hành vi của form."
+    },
+    {
+      "type": "paragraph",
+      "text": "<strong>Yêu cầu cốt lõi: Ngữ cảnh Injection (Injector).</strong> Signal Forms đòi hỏi một injection context trong khi khởi tạo form. Nếu bạn gọi hàm <code>form()</code> mà không có injector, Angular sẽ báo lỗi ngay lập tức. Có hai cách để cung cấp injector trong bài test:"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "passing-injector-explicitly",
+      "text": "Cách 1: Truyền tùy chọn { injector } tường minh (Khuyên dùng)"
+    },
+    {
+      "type": "code",
+      "file": "profile-form.spec.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injector, signal } from '@angular/core';",
+        "import { TestBed } from '@angular/core/testing';",
+        "import { form, required } from '@angular/forms/signals';",
+        "import { describe, expect, it } from 'vitest';",
+        "",
+        "describe('profile form', () => {",
+        "  it('đánh dấu trường required là invalid cho đến khi có giá trị', () => {",
+        "    const model = signal({ name: '' });",
+        "    const profileForm = form(",
+        "      model,",
+        "      (path) => {",
+        "        required(path.name);",
+        "      },",
+        "      { injector: TestBed.inject(Injector) }, // Cung cấp Injector từ TestBed",
+        "    );",
+        "",
+        "    // Ban đầu chưa có giá trị -> invalid và có lỗi required",
+        "    expect(profileForm.name().valid()).toBe(false);",
+        "    expect(profileForm.name().errors()).toEqual([expect.objectContaining({ kind: 'required' })]);",
+        "",
+        "    // Cập nhật giá trị vào model -> chuyển thành valid",
+        "    profileForm.name().value.set('Ada');",
+        "    expect(profileForm.name().valid()).toBe(true);",
+        "    expect(profileForm.name().errors()).toEqual([]);",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-run-in-injection-context",
+      "text": "Cách 2: Sử dụng TestBed.runInInjectionContext()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hữu ích khi mã nguồn được kiểm thử tự gọi hàm <code>form()</code> bên trong và bạn không thể can thiệp truyền tham số tùy chọn <code>{ injector }</code>:"
+    },
+    {
+      "type": "code",
+      "file": "profile-context.spec.ts",
+      "lang": "ts",
+      "code": [
+        "TestBed.runInInjectionContext(() => {",
+        "  const profileForm = form(model, (path) => {",
+        "    required(path.name);",
+        "  });",
+        "  expect(profileForm.name().valid()).toBe(false);",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "testing-a-form-with-multiple-rules",
+      "text": "Kiểm thử biểu mẫu với nhiều quy tắc kết hợp"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kiểm thử phản ứng giữa các trường (cross-field logic): cập nhật giá trị ở một trường (ví dụ <code>age</code>) và kiểm tra sự thay đổi trạng thái lỗi ở trường khác (ví dụ <code>name</code>):"
+    },
+    {
+      "type": "code",
+      "file": "cross-field-test.spec.ts",
+      "lang": "ts",
+      "code": [
+        "it('cập nhật trạng thái kiểm thực khi các trường liên quan thay đổi', () => {",
+        "  const model = signal({ name: '', age: 5 });",
+        "  const profileForm = form(",
+        "    model,",
+        "    (path) => {",
+        "      required(path.name);",
+        "      required(path.name, {",
+        "        error: (ctx) => ({ kind: `required-${ctx.valueOf(path.age)}` }),",
+        "        when: ({ valueOf }) => valueOf(path.age) > 10,",
+        "      });",
+        "    },",
+        "    { injector: TestBed.inject(Injector) },",
+        "  );",
+        "",
+        "  // Khi age = 5: chỉ có 1 lỗi required",
+        "  expect(profileForm.name().errors()).toEqual([expect.objectContaining({ kind: 'required' })]);",
+        "",
+        "  // Thay đổi age = 15: kích hoạt thêm quy tắc có điều kiện",
+        "  profileForm.age().value.set(15);",
+        "  expect(profileForm.name().errors()).toEqual([",
+        "    expect.objectContaining({ kind: 'required' }),",
+        "    expect.objectContaining({ kind: 'required-15' }),",
+        "  ]);",
+        "",
+        "  // Nhập tên 'Ada': toàn bộ lỗi biến mất và form valid",
+        "  profileForm.name().value.set('Ada');",
+        "  expect(profileForm.name().valid()).toBe(true);",
+        "  expect(profileForm.name().errors()).toEqual([]);",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "testing-forms-bound-to-components",
+      "text": "Kiểm thử Biểu mẫu gắn với Component (DOM interaction)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn cần kiểm tra hành vi gắn liền với template HTML, mô phỏng gõ phím của người dùng bằng <code>dispatchEvent</code>, hoặc kiểm tra custom form control có tự render đúng hay không, bạn cần phương pháp kiểm thử tích hợp component:"
+    },
+    {
+      "type": "code",
+      "file": "profile-form.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'app-profile-form',",
+        "  imports: [FormField],",
+        "  template: `<input [formField]=\"profileForm.name\" />`,",
+        "})",
+        "export class ProfileForm {",
+        "  readonly model = signal({ name: 'Ada' });",
+        "  readonly profileForm = form(this.model, (path) => {",
+        "    required(path.name);",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "profile-component.spec.ts",
+      "lang": "ts",
+      "code": [
+        "describe('ProfileForm Component', () => {",
+        "  it('đồng bộ giá trị giữa thẻ input HTML và Signal Forms model', async () => {",
+        "    const fixture = TestBed.createComponent(ProfileForm);",
+        "    await fixture.whenStable();",
+        "",
+        "    const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;",
+        "",
+        "    // Model -> View: Ô input hiển thị đúng giá trị khởi tạo ban đầu",
+        "    expect(input.value).toBe('Ada');",
+        "",
+        "    // View -> Model: Giả lập người dùng xóa trắng ô nhập liệu",
+        "    input.value = '';",
+        "    input.dispatchEvent(new Event('input'));",
+        "    await fixture.whenStable(); // Chờ render và effects hoàn tất",
+        "",
+        "    // Xác minh model và trạng thái trường trong component đã tự động cập nhật:",
+        "    expect(fixture.componentInstance.profileForm.name().value()).toBe('');",
+        "    expect(fixture.componentInstance.profileForm.name().valid()).toBe(false);",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-to-use-each-approach",
+      "text": "So sánh: Khi nào nên dùng phương pháp nào?"
+    },
+    {
+      "type": "table",
+      "headers": ["Yêu cầu cần kiểm tra", "Phương pháp phù hợp"],
+      "rows": [
+        ["Quy tắc kiểm thực, <code>valid()</code>, <code>invalid()</code>, <code>errors()</code>", "<strong>Kiểm thử cô lập (Isolated)</strong>"],
+        ["Trạng thái <code>disabled()</code>, <code>required()</code>, <code>readonly()</code>", "<strong>Kiểm thử cô lập (Isolated)</strong>"],
+        ["Logic phụ thuộc chéo giữa nhiều trường (cross-field)", "<strong>Kiểm thử cô lập (Isolated)</strong>"],
+        ["Lược đồ có điều kiện (<code>applyWhen</code>, <code>applyWhenValue</code>)", "<strong>Kiểm thử cô lập (Isolated)</strong>"],
+        ["Giá trị hiển thị trên thẻ input DOM", "<strong>Gắn với Component (Component-bound)</strong>"],
+        ["Mô phỏng thao tác gõ phím hoặc blur của người dùng", "<strong>Gắn với Component (Component-bound)</strong>"],
+        ["Custom form controls có template riêng", "<strong>Gắn với Component (Component-bound)</strong>"],
+        ["Quản lý tiêu điểm (focus) hoặc thuộc tính tiếp cận (aria attributes)", "<strong>Gắn với Component (Component-bound)</strong>"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/validation\">Kiểm thực dữ liệu trong Signal Forms (Validation)</a>",
+        "<a href=\"/docs/guide/forms/signals/field-state-management\">Quản lý trạng thái trường (Field state management)</a>",
+        "<a href=\"/docs/guide/forms/signals/form-submission\">Gửi biểu mẫu (Form submission)</a>"
+      ]
+    }
+  ]
+}

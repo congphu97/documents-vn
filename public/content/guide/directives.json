@@ -1,76 +1,139 @@
 {
   "slug": "guide/directives",
-  "title": "Directives trong Angular",
-  "description": "Directives là các lớp giúp bạn gắn thêm hành vi và điều chỉnh phần tử trong DOM của ứng dụng.",
+  "title": "Directives",
+  "description": "Directives gắn thêm hành vi cho các phần tử và component trong ứng dụng Angular của bạn.",
   "source": "https://angular.dev/guide/directives",
   "status": "reviewed",
   "blocks": [
     {
       "type": "paragraph",
-      "text": "Directives trong Angular là những class chứa metadata decorator `@Directive()`. Có hai dạng directive phổ biến: Attribute Directives (thay đổi giao diện hoặc hành vi của một phần tử) và Structural Directives (thay đổi cấu trúc DOM bằng cách thêm/bớt phần tử)."
+      "text": "Directives gắn thêm hành vi cho các phần tử (element) và component trong ứng dụng Angular của bạn. Một directive có thể thay đổi cách một phần tử hiển thị, cách thức hoạt động hoặc vị trí phù hợp của nó trong DOM. Angular cung cấp sẵn nhiều built-in directive, đồng thời bạn cũng hoàn toàn có thể tự viết directive cho riêng mình."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "attribute-directives",
-      "text": "Tạo một Attribute Directive"
+      "id": "when-to-use-a-directive",
+      "text": "Khi nào nên sử dụng Directive (When to use a directive)"
     },
     {
       "type": "paragraph",
-      "text": "Ví dụ directive tự động đổi màu nền khi người dùng di chuột (hover) qua phần tử:"
+      "text": "Directives phát huy hiệu quả cao nhất khi chúng đóng gói hành vi có thể tái sử dụng mà bạn muốn áp dụng cho một phần tử hoặc component sẵn có."
+    },
+    {
+      "type": "paragraph",
+      "text": "Các trường hợp sử dụng phổ biến bao gồm:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Áp dụng cùng một giao diện hoặc hành vi trên nhiều phần tử, chẳng hạn như autofocus hoặc tooltip.",
+        "Đọc hoặc ghi dữ liệu vào DOM, attributes hoặc class của phần tử host (host element).",
+        "Bổ sung thêm hành vi cho một component bên thứ ba mà bạn không sở hữu mã nguồn mà không cần thay đổi source code gốc của nó."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Nếu bạn cần render markup riêng hoặc quản lý một phần giao diện người dùng có template riêng, hãy dùng Component — một dạng directive chuyên biệt sở hữu template riêng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "a-quick-example",
+      "text": "Ví dụ nhanh (A quick example)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Giả sử bạn muốn các phần tử tự động highlight khi người dùng di chuột qua (hover), đổi màu nền sang màu vàng. Thay vì lặp lại cùng một logic xử lý sự kiện trên từng phần tử, bạn có thể đóng gói hành vi đó vào một directive và áp dụng bất cứ nơi nào cần thiết."
+    },
+    {
+      "type": "paragraph",
+      "text": "Directive `appHighlight` dưới đây thiết lập màu nền của host element khi chuột rê vào và xóa màu nền khi chuột rời đi:"
     },
     {
       "type": "code",
       "file": "highlight.directive.ts",
-      "lang": "ts",
+      "lang": "typescript",
       "code": [
-        "import { Directive, ElementRef, HostListener, inject } from '@angular/core';",
+        "import { Directive, signal } from '@angular/core';",
         "",
         "@Directive({",
         "  selector: '[appHighlight]',",
-        "  standalone: true",
+        "  host: {",
+        "    '(mouseenter)': 'isHovered.set(true)',",
+        "    '(mouseleave)': 'isHovered.set(false)',",
+        "    '[style.background-color]': 'isHovered() ? \"yellow\" : null',",
+        "  },",
         "})",
         "export class HighlightDirective {",
-        "  private el = inject(ElementRef);",
-        "",
-        "  @HostListener('mouseenter')",
-        "  onMouseEnter() {",
-        "    this.highlight('#e535ab');",
-        "  }",
-        "",
-        "  @HostListener('mouseleave')",
-        "  onMouseLeave() {",
-        "    this.highlight('');",
-        "  }",
-        "",
-        "  private highlight(color: string) {",
-        "    this.el.nativeElement.style.backgroundColor = color;",
-        "  }",
+        "  protected isHovered = signal(false);",
         "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Metadata `host` lắng nghe các sự kiện chuột để cập nhật signal `isHovered`, đồng thời liên kết thuộc tính style `background-color` của host element với giá trị của signal."
+    },
+    {
+      "type": "paragraph",
+      "text": "Áp dụng directive bằng cách thêm selector của nó dưới dạng thuộc tính trên phần tử:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<p appHighlight>Highlight me!</p>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi phần tử mang thuộc tính `appHighlight` đều có cùng hành vi hover, với logic chỉ cần định nghĩa tại một nơi duy nhất."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "types-of-directives",
+      "text": "Các loại Directives (Types of directives)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular có ba loại directive chính:"
+    },
+    {
+      "type": "table",
+      "headers": ["Loại Directive", "Chi tiết"],
+      "rows": [
+        ["Components", "Định nghĩa giao diện người dùng (UI) có thể tái sử dụng kèm template riêng."],
+        ["Attribute directives", "Thay đổi diện mạo hoặc hành vi của một phần tử, component hoặc directive khác."],
+        ["Structural directives", "Thay đổi cấu trúc layout DOM bằng cách thêm và bớt các phần tử DOM."]
       ]
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "directive-composition-api",
-      "text": "Directive Composition API"
+      "id": "whats-next",
+      "text": "Bước tiếp theo (What's next)"
     },
     {
       "type": "paragraph",
-      "text": "Angular hỗ trợ Directive Composition API cho phép áp dụng hành vi của các directive trực tiếp vào host element của một component mà không cần kế thừa class:"
+      "text": "Tìm hiểu sâu hơn về từng loại directive trong các tài liệu hướng dẫn sau:"
     },
     {
-      "type": "code",
-      "file": "custom-button.component.ts",
-      "lang": "ts",
-      "code": [
-        "@Component({",
-        "  selector: 'app-custom-button',",
-        "  standalone: true,",
-        "  hostDirectives: [HighlightDirective],",
-        "  template: `<button><ng-content /></button>`",
-        "})",
-        "export class CustomButtonComponent {}"
+      "type": "links",
+      "items": [
+        {
+          "text": "Attribute directives — Tùy biến giao diện và hành vi phần tử",
+          "href": "/docs/guide/directives/attribute-directives"
+        },
+        {
+          "text": "Structural directives — Thay đổi bố cục cấu trúc DOM",
+          "href": "/docs/guide/directives/structural-directives"
+        },
+        {
+          "text": "Directive composition API — Kết hợp hành vi directive cho component",
+          "href": "/docs/guide/directives/directive-composition-api"
+        }
       ]
     }
   ]

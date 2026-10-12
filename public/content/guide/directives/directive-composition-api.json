@@ -1,0 +1,402 @@
+{
+  "slug": "guide/directives/directive-composition-api",
+  "title": "Directive composition API",
+  "description": "Directive composition API cho phép bạn áp dụng các directive lên phần tử host của component trực tiếp từ bên trong TypeScript class.",
+  "source": "https://angular.dev/guide/directives/directive-composition-api",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Directives trong Angular cung cấp phương pháp tuyệt vời để đóng gói các hành vi có thể tái sử dụng. Directives có thể áp dụng các attribute, CSS class và event listener lên một phần tử."
+    },
+    {
+      "type": "paragraph",
+      "text": "Directive composition API cho phép bạn áp dụng các directive lên phần tử host (host element) của component trực tiếp từ bên trong TypeScript class của component đó."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "adding-directives-to-a-component",
+      "text": "Thêm directives vào một component (Adding directives to a component)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn áp dụng directives vào component bằng cách thêm thuộc tính `hostDirectives` vào decorator của component. Những directive như vậy được gọi là host directives."
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ dưới đây, directive `MenuBehavior` được áp dụng cho host element của `AdminMenu`. Điều này hoạt động tương tự như việc bạn khai báo trực tiếp `MenuBehavior` trên thẻ `<admin-menu>` trong template:"
+    },
+    {
+      "type": "code",
+      "file": "admin-menu.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { MenuBehavior } from './menu-behavior.directive';",
+        "",
+        "@Component({",
+        "  selector: 'admin-menu',",
+        "  templateUrl: './admin-menu.html',",
+        "  hostDirectives: [MenuBehavior],",
+        "})",
+        "export class AdminMenu {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi framework render component, Angular cũng sẽ tạo một thực thể (instance) cho từng host directive. Các host bindings của directive sẽ áp dụng trực tiếp lên host element của component. Mặc định, các input và output của host directive sẽ không được công khai ra ngoài API công khai của component."
+    },
+    {
+      "type": "paragraph",
+      "text": "Host directives đi kèm với các ràng buộc sau:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Angular áp dụng host directives tĩnh ở thời điểm biên dịch (compile time). Bạn không thể thêm directive động lúc runtime.",
+        "Các directive được sử dụng trong hostDirectives bắt buộc phải là standalone (không được khai báo standalone: false).",
+        "Angular bỏ qua selector của các directive được khai báo trong thuộc tính hostDirectives."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "including-inputs-and-outputs",
+      "text": "Bao gồm inputs và outputs (Including inputs and outputs)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn áp dụng `hostDirectives` vào component, inputs và outputs từ host directive không mặc định được đưa vào API của component. Bạn có thể chủ động công khai chúng bằng cách mở rộng mục khai báo đối tượng trong mảng `hostDirectives`:"
+    },
+    {
+      "type": "code",
+      "file": "admin-menu.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  selector: 'admin-menu',",
+        "  templateUrl: './admin-menu.html',",
+        "  hostDirectives: [",
+        "    {",
+        "      directive: MenuBehavior,",
+        "      inputs: ['menuId'],",
+        "      outputs: ['menuClosed'],",
+        "    },",
+        "  ],",
+        "})",
+        "export class AdminMenu {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bằng cách chỉ định rõ ràng inputs và outputs, người sử dụng component có thể bind chúng trực tiếp từ template HTML:"
+    },
+    {
+      "type": "code",
+      "file": "example.html",
+      "lang": "html",
+      "code": [
+        "<admin-menu menuId=\"top-menu\" (menuClosed)=\"logMenuClosed()\"></admin-menu>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hơn nữa, bạn có thể đặt bí danh (alias) cho inputs và outputs từ host directive để tùy chỉnh API của component theo ý muốn:"
+    },
+    {
+      "type": "code",
+      "file": "admin-menu.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  selector: 'admin-menu',",
+        "  templateUrl: './admin-menu.html',",
+        "  hostDirectives: [",
+        "    {",
+        "      directive: MenuBehavior,",
+        "      inputs: ['menuId: id'],",
+        "      outputs: ['menuClosed: closed'],",
+        "    },",
+        "  ],",
+        "})",
+        "export class AdminMenu {}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "example.html",
+      "lang": "html",
+      "code": [
+        "<admin-menu id=\"top-menu\" (closed)=\"logMenuClosed()\"></admin-menu>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "adding-directives-to-another-directive",
+      "text": "Thêm directives vào một directive khác (Adding directives to another directive)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Ngoài component, bạn cũng có thể thêm `hostDirectives` vào một directive khác. Điều này cho phép kết hợp bắc cầu (transitive aggregation) nhiều hành vi lại với nhau."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ sau định nghĩa hai directive `Menu` và `Tooltip`, sau đó kết hợp hành vi của chúng trong `MenuWithTooltip`. Cuối cùng, áp dụng `MenuWithTooltip` vào `SpecializedMenuWithTooltip`:"
+    },
+    {
+      "type": "code",
+      "file": "composed-directives.ts",
+      "lang": "typescript",
+      "code": [
+        "@Directive({/* ... */})",
+        "export class Menu {}",
+        "",
+        "@Directive({/* ... */})",
+        "export class Tooltip {}",
+        "",
+        "// MenuWithTooltip có thể kết hợp hành vi từ nhiều directive khác",
+        "@Directive({",
+        "  hostDirectives: [Tooltip, Menu],",
+        "})",
+        "export class MenuWithTooltip {}",
+        "",
+        "// SpecializedMenuWithTooltip áp dụng các hành vi đã kết hợp sẵn từ MenuWithTooltip",
+        "@Directive({",
+        "  hostDirectives: [MenuWithTooltip],",
+        "})",
+        "export class SpecializedMenuWithTooltip {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi `SpecializedMenuWithTooltip` được sử dụng trong template, Angular sẽ khởi tạo thực thể cho cả `Menu`, `Tooltip` và `MenuWithTooltip`. Mọi host bindings của các directive này đều áp dụng lên host element của `SpecializedMenuWithTooltip`."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "host-directive-semantics",
+      "text": "Ngữ nghĩa của Host Directive (Host directive semantics)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "directive-execution-order",
+      "text": "Thứ tự thực thi directive (Directive execution order)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Host directives trải qua vòng đời (lifecycle) tương tự như các component và directive thông thường. Tuy nhiên, host directives luôn thực thi constructor, lifecycle hooks và bindings trước component hoặc directive mà chúng được áp dụng vào."
+    },
+    {
+      "type": "paragraph",
+      "text": "Thứ tự thực thi cụ thể trong ví dụ `AdminMenu` chứa `MenuBehavior`:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "MenuBehavior được khởi tạo (instantiated)",
+        "AdminMenu được khởi tạo (instantiated)",
+        "MenuBehavior nhận inputs (ngOnInit)",
+        "AdminMenu nhận inputs (ngOnInit)",
+        "MenuBehavior áp dụng host bindings",
+        "AdminMenu áp dụng host bindings"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Thứ tự này đồng nghĩa với việc component có `hostDirectives` có thể override bất kỳ host binding nào do host directive chỉ định trước đó."
+    },
+    {
+      "type": "paragraph",
+      "text": "Thứ tự thực thi cũng áp dụng tương tự cho chuỗi lồng nhau của các host directives (nested chains):"
+    },
+    {
+      "type": "code",
+      "file": "chained-directives.ts",
+      "lang": "typescript",
+      "code": [
+        "@Directive({...})",
+        "export class Tooltip {}",
+        "",
+        "@Directive({",
+        "  hostDirectives: [Tooltip],",
+        "})",
+        "export class CustomTooltip {}",
+        "",
+        "@Directive({",
+        "  hostDirectives: [CustomTooltip],",
+        "})",
+        "export class EvenMoreCustomTooltip {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Thứ tự khởi tạo và thực thi trong ví dụ trên là: Tooltip -> CustomTooltip -> EvenMoreCustomTooltip."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "dependency-injection",
+      "text": "Dependency Injection với Host Directives"
+    },
+    {
+      "type": "paragraph",
+      "text": "Component hoặc directive khai báo `hostDirectives` có thể inject các thực thể của những host directive đó và ngược lại."
+    },
+    {
+      "type": "paragraph",
+      "text": "Cả component và host directive đều có thể định nghĩa các provider. Nếu component và host directive cùng cung cấp một injection token giống nhau, provider do class chứa `hostDirectives` (component cha) định nghĩa sẽ luôn được ưu tiên hơn (takes precedence)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "host-directive-de-duplication",
+      "text": "Khử trùng lặp Host Directive (Host directive de-duplication)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi cùng một directive xuất hiện nhiều lần trong cây resolved host directive, Angular sẽ tự động khử trùng lặp (de-duplicate) thay vì báo lỗi. Có hai quy tắc rõ ràng để quyết định thực thể nào tồn tại:"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "template-match-takes-precedence",
+      "text": "Khớp template được ưu tiên hơn (Template match takes precedence)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu một directive khớp với một phần tử thông qua template selector và đồng thời cũng xuất hiện dưới dạng host directive, Angular sẽ chỉ giữ lại directive khớp qua template và loại bỏ các đối sánh host directive. Lý do là vì host directive chỉ đại diện cho một phần API (`Partial<YourDirective>`), trong khi directive trên template đại diện cho toàn bộ public API đầy đủ."
+    },
+    {
+      "type": "code",
+      "file": "button.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Directive({ selector: '[hoverable]' })",
+        "export class Hoverable {}",
+        "",
+        "@Component({",
+        "  selector: 'app-button',",
+        "  hostDirectives: [Hoverable],",
+        "})",
+        "export class Button {}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "template-usage.html",
+      "lang": "html",
+      "code": [
+        "<!-- Hoverable được khớp qua selector VÀ qua host directive của Button. -->",
+        "<!-- Angular giữ lại selector match với toàn bộ public API. -->",
+        "<app-button hoverable></app-button>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "multiple-host-directive-matches-are-merged",
+      "text": "Nhiều host directive trùng nhau sẽ được hợp nhất (Merged)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu cùng một directive xuất hiện nhiều lần dưới dạng host directive (ví dụ khi hai directive cùng phụ thuộc chung vào một host directive), Angular sẽ gộp tất cả thành một instance duy nhất. Việc này giải quyết triệt để bài toán Diamond Problem kinh điển trong đa kế thừa:"
+    },
+    {
+      "type": "code",
+      "file": "triggers.ts",
+      "lang": "typescript",
+      "code": [
+        "// Hành vi chung mà cả hai trigger đều cần",
+        "@Directive({",
+        "  host: {",
+        "    '[attr.data-trigger-id]': 'triggerId()',",
+        "  },",
+        "})",
+        "export class TriggerRef {",
+        "  readonly triggerId = input(`trigger-${crypto.randomUUID()}`);",
+        "}",
+        "",
+        "// Hai trigger riêng biệt cùng khai báo TriggerRef là host directive",
+        "@Directive({",
+        "  selector: '[popoverTrigger]',",
+        "  hostDirectives: [TriggerRef],",
+        "})",
+        "export class PopoverTrigger {",
+        "  readonly triggerRef = inject(TriggerRef);",
+        "}",
+        "",
+        "@Directive({",
+        "  selector: '[dropdownTrigger]',",
+        "  hostDirectives: [TriggerRef],",
+        "})",
+        "export class DropdownTrigger {",
+        "  readonly triggerRef = inject(TriggerRef);",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "button-usage.html",
+      "lang": "html",
+      "code": [
+        "<!-- Angular giữ đúng 1 instance TriggerRef duy nhất, chia sẻ chung cho cả hai trigger -->",
+        "<button popoverTrigger dropdownTrigger>Actions</button>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "conflicting-aliases",
+      "text": "Xung đột bí danh (Conflicting aliases)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi Angular hợp nhất các host directive trùng nhau, nó cũng gộp các ánh xạ input và output của chúng. Nếu hai thực thể cùng expose một input hoặc output dưới các bí danh khác nhau, Angular sẽ báo lỗi lúc biên dịch (Mã lỗi NG8024):"
+    },
+    {
+      "type": "code",
+      "file": "conflict-example.ts",
+      "lang": "typescript",
+      "code": [
+        "@Directive({",
+        "  selector: '[popoverTrigger]',",
+        "  hostDirectives: [{ directive: TriggerRef, inputs: ['triggerId: popoverTriggerId'] }],",
+        "})",
+        "export class PopoverTrigger {}",
+        "",
+        "@Directive({",
+        "  selector: '[dropdownTrigger]',",
+        "  hostDirectives: [{ directive: TriggerRef, inputs: ['triggerId: dropdownTriggerId'] }], // Khác bí danh!",
+        "})",
+        "export class DropdownTrigger {}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Để khắc phục lỗi xung đột bí danh, hãy đảm bảo cả hai luồng đều expose input/output chung dưới cùng một alias giống nhau, hoặc không expose thuộc tính đó."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "whats-next",
+      "text": "Bước tiếp theo (What's next)"
+    },
+    {
+      "type": "links",
+      "items": [
+        {
+          "text": "Structural directives — Thay đổi bố cục cấu trúc DOM",
+          "href": "/docs/guide/directives/structural-directives"
+        },
+        {
+          "text": "Component host elements — Tìm hiểu sâu về phần tử host trong Angular",
+          "href": "/docs/guide/components/host-elements"
+        }
+      ]
+    }
+  ]
+}

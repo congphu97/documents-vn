@@ -1,0 +1,49 @@
+{
+  "slug": "guide/di/lazy-loading-services",
+  "title": "Lazy loading services",
+  "description": "Learn how to defer loading service code until it is needed to minimize initial application bundle size.",
+  "source": "https://angular.dev/guide/di/lazy-loading-services",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "By default, services provided in <code>root</code> are bundled into the main application bundle if they are directly imported. You can lazy load heavy services dynamically using dynamic <code>import()</code> expressions combined with <code>runInInjectionContext</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "dynamic-service-loading",
+      "text": "Loading services on demand"
+    },
+    {
+      "type": "paragraph",
+      "text": "Use dynamic imports to load heavy services only when a specific user action occurs:"
+    },
+    {
+      "type": "code",
+      "file": "lazy-service.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, EnvironmentInjector, inject, runInInjectionContext } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'app-report',",
+        "  standalone: true,",
+        "  template: `<button (click)=\"exportPdf()\">Export PDF</button>`",
+        "})",
+        "export class ReportComponent {",
+        "  private injector = inject(EnvironmentInjector);",
+        "",
+        "  async exportPdf() {",
+        "    // Heavy PDF library and service are only downloaded on click!",
+        "    const { PdfExportService } = await import('./pdf-export.service');",
+        "    runInInjectionContext(this.injector, () => {",
+        "      const pdfService = inject(PdfExportService);",
+        "      pdfService.generate();",
+        "    });",
+        "  }",
+        "}"
+      ]
+    }
+  ]
+}

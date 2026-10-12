@@ -1,43 +1,322 @@
 {
   "slug": "guide/directives/attribute-directives",
-  "title": "Attribute Directives",
-  "description": "Tài liệu hướng dẫn về Attribute Directives trong Angular.",
+  "title": "Attribute directives",
+  "description": "Attribute directives thay đổi giao diện hoặc hành vi của các phần tử DOM và component Angular.",
   "source": "https://angular.dev/guide/directives/attribute-directives",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/directives/attribute-directives](https://angular.dev/guide/directives/attribute-directives)."
-    },
-    {
       "type": "paragraph",
-      "text": "Attribute Directives là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Attribute directives thay đổi giao diện (appearance) hoặc hành vi (behavior) của các phần tử DOM và component trong Angular."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "use-template-bindings-for-one-off-behavior",
+      "text": "Sử dụng template binding cho các hành vi đơn lẻ (Use template bindings for one-off behavior)"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Attribute Directives, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Cú pháp template của Angular đã hỗ trợ sẵn việc thay đổi class, style, property và sự kiện của từng phần tử riêng lẻ:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Class và style binding giúp thêm và xóa CSS class cũng như inline style.",
+        "Property và attribute binding giúp thiết lập thuộc tính DOM và attribute HTML.",
+        "Event listener giúp phản hồi các tương tác từ người dùng."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Attribute directives hữu ích khi bạn muốn đóng gói loại hành vi này thành một đơn vị có thể tái sử dụng (reusable unit) và áp dụng lên bất kỳ phần tử hoặc component nào."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "building-an-attribute-directive",
+      "text": "Xây dựng một Attribute Directive (Building an attribute directive)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một custom attribute directive là một TypeScript class được đánh dấu với decorator `@Directive()`. Selector của decorator xác định attribute áp dụng directive. Cặp dấu ngoặc vuông `[...]` biến selector này thành attribute selector, giúp directive khớp với những phần tử chứa attribute đó. Theo quy ước chuẩn, bạn nên đặt prefix (ví dụ: `app`) để tránh xung đột tên gọi:"
     },
     {
       "type": "code",
-      "file": "example.ts",
-      "lang": "ts",
+      "file": "highlight.directive.ts",
+      "lang": "typescript",
       "code": [
-        "// Ví dụ minh họa cho Attribute Directives",
-        "import { Component } from \"@angular/core\";",
+        "import { Directive } from '@angular/core';",
         "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Attribute Directives</h1>`",
+        "@Directive({",
+        "  selector: '[appHighlight]',",
         "})",
-        "export class ExampleComponent {}"
+        "export class HighlightDirective {}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Lệnh Angular CLI `ng generate directive` (viết tắt: `ng g d`) sẽ tự động khởi tạo khung directive cùng với file test tương ứng."
+    },
+    {
+      "type": "paragraph",
+      "text": "Một directive có thể thay đổi phần tử host của nó theo kiểu khai báo (thông qua host bindings) hoặc kiểu mệnh lệnh (thông qua tham chiếu tới phần tử host). Ví dụ dưới đây inject `ElementRef` và truy cập phần tử thông qua thuộc tính `nativeElement` để đặt màu nền thành màu vàng:"
+    },
+    {
+      "type": "code",
+      "file": "highlight.directive.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Directive, ElementRef, inject } from '@angular/core';",
+        "",
+        "@Directive({",
+        "  selector: '[appHighlight]',",
+        "})",
+        "export class HighlightDirective {",
+        "  private el = inject(ElementRef);",
+        "",
+        "  constructor() {",
+        "    this.el.nativeElement.style.backgroundColor = 'yellow';",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Directives không hỗ trợ cú pháp namespace XML (tránh dùng cú pháp dạng <p app:Highlight>...</p> vì không hợp lệ)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "applying-an-attribute-directive",
+      "text": "Áp dụng Attribute Directive vào Template (Applying an attribute directive)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để áp dụng directive, thêm selector của nó như một attribute trên phần tử HTML:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<p appHighlight>Highlight me!</p>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular sẽ khởi tạo một thực thể của `HighlightDirective` cho thẻ `<p>` đó, inject tham chiếu tới phần tử và thiết lập màu nền thành màu vàng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "handling-user-events",
+      "text": "Xử lý sự kiện người dùng (Handling user events)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để phản hồi tương tác của người dùng, liên kết các sự kiện của host element với phương thức xử lý thông qua thuộc tính `host` trong decorator `@Directive()`. Directive sau đây sẽ làm nổi bật phần tử khi con trỏ chuột di vào và xóa màu khi chuột rời đi:"
+    },
+    {
+      "type": "code",
+      "file": "highlight.directive.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Directive, ElementRef, inject } from '@angular/core';",
+        "",
+        "@Directive({",
+        "  selector: '[appHighlight]',",
+        "  host: {",
+        "    '(mouseenter)': 'onMouseEnter()',",
+        "    '(mouseleave)': 'onMouseLeave()',",
+        "  },",
+        "})",
+        "export class HighlightDirective {",
+        "  private el = inject(ElementRef);",
+        "",
+        "  onMouseEnter() {",
+        "    this.highlight('yellow');",
+        "  }",
+        "",
+        "  onMouseLeave() {",
+        "    this.highlight('');",
+        "  }",
+        "",
+        "  private highlight(color: string) {",
+        "    this.el.nativeElement.style.backgroundColor = color;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Thuộc tính `host` ánh xạ các sự kiện `mouseenter` và `mouseleave` tới hai phương thức `onMouseEnter()` và `onMouseLeave()`, sau đó ủy quyền cho hàm trợ giúp `highlight()` để cập nhật màu nền trên phần tử host."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "accepting-input-values",
+      "text": "Nhận giá trị đầu vào (Accepting input values)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tương tự component, directives có thể nhận giá trị input thông qua hàm `input()`. Đặt tên input trùng với tên selector để vừa áp dụng directive vừa truyền giá trị cho nó chỉ với một cú pháp binding duy nhất:"
+    },
+    {
+      "type": "code",
+      "file": "highlight.directive.ts",
+      "lang": "typescript",
+      "code": [
+        "appHighlight = input('');"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Đọc giá trị input bằng cách gọi nó như một signal và đặt giá trị mặc định dự phòng nếu chưa có màu nào được truyền vào:"
+    },
+    {
+      "type": "code",
+      "file": "highlight.directive.ts",
+      "lang": "typescript",
+      "code": [
+        "onMouseEnter() {",
+        "  this.highlight(this.appHighlight() || 'red');",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong template, liên kết giá trị với selector. Vì tên input trùng với selector nên `[appHighlight]` vừa kích hoạt directive vừa gán giá trị cho nó:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<p [appHighlight]=\"color\">Highlight me!</p>"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "export class AppComponent {",
+        "  color = '';",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Một directive có thể khai báo nhiều input. Ví dụ sau bổ sung thêm input `defaultColor`, tự động ưu tiên thứ tự: `appHighlight`, sau đó đến `defaultColor`, và cuối cùng mặc định là `red`:"
+    },
+    {
+      "type": "code",
+      "file": "highlight.directive.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Directive, ElementRef, inject, input } from '@angular/core';",
+        "",
+        "@Directive({",
+        "  selector: '[appHighlight]',",
+        "  host: {",
+        "    '(mouseenter)': 'onMouseEnter()',",
+        "    '(mouseleave)': 'onMouseLeave()',",
+        "  },",
+        "})",
+        "export class HighlightDirective {",
+        "  private el = inject(ElementRef);",
+        "  defaultColor = input('');",
+        "  appHighlight = input('');",
+        "",
+        "  onMouseEnter() {",
+        "    this.highlight(this.appHighlight() || this.defaultColor() || 'red');",
+        "  }",
+        "",
+        "  onMouseLeave() {",
+        "    this.highlight('');",
+        "  }",
+        "",
+        "  private highlight(color: string) {",
+        "    this.el.nativeElement.style.backgroundColor = color;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Liên kết cả hai input trên cùng một phần tử. Do `defaultColor` nhận chuỗi tĩnh (static string) thay vì biểu thức động nên không cần dùng dấu ngoặc vuông `[...]`:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<p [appHighlight]=\"color\" defaultColor=\"violet\">Highlight me too!</p>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "deactivating-angular-processing-with-ngnonbindable",
+      "text": "Vô hiệu hóa xử lý Angular với NgNonBindable (Deactivating Angular processing with NgNonBindable)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để ngăn chặn việc tính toán biểu thức (expression evaluation) trong trình duyệt, hãy thêm `ngNonBindable` vào phần tử host. `ngNonBindable` sẽ vô hiệu hóa interpolation, directives và binding trong template."
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ sau, biểu thức `{{ 1 + 1 }}` sẽ hiển thị nguyên văn dạng chuỗi ký tự y hệt trong code editor chứ không được tính toán thành số 2:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<p>Sử dụng ngNonBindable để dừng tính toán biểu thức.</p>",
+        "<p ngNonBindable>Biểu thức này sẽ không bị evaluate: {{ 1 + 1 }}</p>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Áp dụng `ngNonBindable` lên một phần tử sẽ vô hiệu hóa binding cho tất cả các phần tử con của nó. Tuy nhiên, `ngNonBindable` vẫn cho phép các directive hoạt động ngay trên chính phần tử áp dụng nó. Trong ví dụ sau, directive `appHighlight` vẫn chạy bình thường nhưng Angular sẽ không tính toán biểu thức `{{ 1 + 1 }}`:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<h3>ngNonBindable kết hợp với directive</h3>",
+        "<div ngNonBindable [appHighlight]=\"'yellow'\">",
+        "  Biểu thức này không evaluate: {{ 1 + 1 }}, nhưng vẫn được highlight màu vàng.",
+        "</div>"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Nếu bạn đặt ngNonBindable trên phần tử cha, Angular sẽ tắt toàn bộ tính năng interpolation và binding (kể cả property binding lẫn event binding) cho toàn bộ các phần tử con bên trong."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "whats-next",
+      "text": "Bước tiếp theo (What's next)"
+    },
+    {
+      "type": "links",
+      "items": [
+        {
+          "text": "Structural directives — Thay đổi cấu trúc layout DOM",
+          "href": "/docs/guide/directives/structural-directives"
+        },
+        {
+          "text": "Directive composition API — Kết hợp hành vi directive cho component",
+          "href": "/docs/guide/directives/directive-composition-api"
+        }
       ]
     }
   ]

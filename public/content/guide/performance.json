@@ -1,0 +1,41 @@
+{
+  "slug": "guide/performance",
+  "title": "Server-side & hybrid rendering (Tổng quan)",
+  "description": "Tìm hiểu các chiến lược kết xuất khác nhau để tối ưu hóa hiệu năng ứng dụng Angular: Server-side rendering (SSR), Hybrid rendering, Hydration và Incremental Hydration.",
+  "source": "https://angular.dev/guide/performance/overview",
+  "status": "ready",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Tìm hiểu về các phương pháp khác nhau giúp bạn tối ưu hóa hiệu năng ứng dụng Angular với các chiến lược kết xuất (rendering strategies) đa dạng."
+    },
+    {
+      "type": "paragraph",
+      "text": "Một trong những ưu tiên hàng đầu của mọi lập trình viên là đảm bảo ứng dụng của mình đạt hiệu năng cao nhất có thể. Tài liệu hướng dẫn này được thiết kế nhằm giúp bạn áp dụng các phương pháp hay nhất (best practices) để xây dựng các ứng dụng có hiệu suất vượt trội bằng cách tận dụng các chiến lược kết xuất linh hoạt."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "guides-types",
+      "text": "Các tài liệu hướng dẫn trong nhóm"
+    },
+    {
+      "type": "table",
+      "headers": ["Loại tài liệu", "Mô tả"],
+      "rows": [
+        [
+          "<a href=\"/docs/guide/ssr\">Server and hybrid rendering</a>",
+          "Tìm hiểu cách tận dụng việc kết xuất trang trên máy chủ (server-side rendering) để cải thiện thời gian tải trang ban đầu và tối ưu SEO."
+        ],
+        [
+          "<a href=\"/docs/guide/hydration\">Hydration</a>",
+          "Quy trình cải thiện hiệu năng bằng cách khôi phục trạng thái ứng dụng sau khi render trên server và tái sử dụng cấu trúc DOM sẵn có."
+        ],
+        [
+          "<a href=\"/docs/guide/incremental-hydration\">Incremental Hydration</a>",
+          "Hình thức nâng cao của hydration cho phép giữ các phần của ứng dụng ở trạng thái dehydrated và chỉ kích hoạt hydrate khi cần thiết thông qua các trigger."
+        ]
+      ]
+    }
+  ]
+}

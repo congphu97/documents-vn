@@ -1,0 +1,434 @@
+{
+  "slug": "guide/incremental-hydration",
+  "title": "Incremental Hydration trong Angular",
+  "description": "Hướng dẫn chi tiết về Incremental Hydration (Hydration tăng dần / từng phần) trong Angular kết hợp cùng khối @defer: kích hoạt với trigger (idle, viewport, interaction, hover, immediate, timer, when, never) và tối ưu hóa hiệu năng vượt trội.",
+  "source": "https://angular.dev/guide/incremental-hydration",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<strong>Incremental hydration</strong> (Hydration tăng dần / từng phần) là một dạng nâng cao của cơ chế <strong>Hydration</strong> trong Angular. Tính năng này cho phép giữ một số phần của ứng dụng ở trạng thái chưa hydrate (<em>dehydrated</em>) khi tải trang ban đầu, và chỉ kích hoạt quá trình hydrate cho các phần đó theo từng giai đoạn khi người dùng thực sự cần đến."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Incremental hydration được xây dựng dựa trên sự kết hợp hoàn hảo giữa ba trụ cột: <strong>Full-application Hydration</strong>, <strong>Deferrable Views (@defer)</strong>, và cơ chế bắt/phát lại sự kiện <strong>Event Replay</strong>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "why-use-incremental-hydration",
+      "text": "Tại sao nên sử dụng Incremental Hydration?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Incremental hydration mang lại sự nâng cấp vượt bậc về mặt hiệu năng so với kỹ thuật Full-application Hydration truyền thống:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Giảm kích thước bundle tải lần đầu (Initial Bundle Size):</strong> Mã JavaScript xử lý logic và component của các khối chưa hydrate không cần nạp và thực thi ngay lập tức, giúp trình duyệt phân tích và render cực nhanh.",
+        "<strong>Cải thiện các chỉ số Core Web Vitals:</strong> Giảm đáng kể <strong>First Input Delay (FID)</strong> / <strong>Interaction to Next Paint (INP)</strong> và triệt tiêu <strong>Cumulative Layout Shift (CLS)</strong>.",
+        "<strong>Hỗ trợ dùng <code>@defer</code> cho nội dung đầu trang (Above the Fold):</strong> Trước đây, nếu đặt khối <code>@defer</code> ở phần đầu màn hình, trình duyệt sẽ hiển thị nội dung <code>@placeholder</code> trước rồi mới tráo đổi sang nội dung chính khi tải xong, gây hiện tượng giật bố cục (layout shift). Với Incremental Hydration, server render sẵn giao diện chính (main template), client hiển thị ngay mà không bị layout shift, sau đó chỉ hydrate ngầm khi đạt điều kiện."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-do-you-enable-incremental-hydration-in-angular",
+      "text": "Cách kích hoạt Incremental Hydration trong Angular"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể sử dụng Incremental Hydration cho các ứng dụng đã kích hoạt Server-Side Rendering (SSR) kèm Hydration. Kể từ các phiên bản Angular hiện đại, <strong>Incremental Hydration được BẬT MẶC ĐỊNH</strong> khi bạn đăng ký <code>provideClientHydration()</code> trong providers khởi động ứng dụng."
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { bootstrapApplication } from '@angular/platform-browser';",
+        "import { provideClientHydration } from '@angular/platform-browser';",
+        "import { AppComponent } from './app/app.component';",
+        "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideClientHydration()",
+        "  ]",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Incremental Hydration phụ thuộc vào và tự động kích hoạt tính năng <strong>Event Replay</strong>. Nếu bạn đã từng cấu hình <code>withEventReplay()</code> trong danh sách tham số của <code>provideClientHydration()</code>, bạn có thể xóa bỏ nó một cách an toàn."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "opt-out-incremental-hydration",
+      "text": "Tắt Incremental Hydration (Opt-out)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn muốn chỉ sử dụng Full Hydration cơ bản mà không chia nhỏ tăng dần, hãy cấu hình tính năng <code>withNoIncrementalHydration()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { bootstrapApplication } from '@angular/platform-browser';",
+        "import { provideClientHydration, withNoIncrementalHydration } from '@angular/platform-browser';",
+        "import { AppComponent } from './app/app.component';",
+        "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideClientHydration(",
+        "      withNoIncrementalHydration()",
+        "    )",
+        "  ]",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-does-incremental-hydration-work",
+      "text": "Incremental Hydration hoạt động như thế nào?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bằng cách thêm các trigger tiền tố <code>hydrate</code> vào khối <code>@defer</code>, bạn thiết lập các <strong>ranh giới hydrate tăng dần (incremental hydration boundaries)</strong>:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Ở phía Server (SSR):</strong> Khi gặp trigger <code>hydrate</code>, Angular nhận biết cần tải toàn bộ dependencies của khối <code>@defer</code> đó và kết xuất (render) <em>template chính</em> thay vì hiển thị khối <code>@placeholder</code>.",
+        "<strong>Ở phía Client (Tải trang lần đầu):</strong> Mã nguồn dependencies của khối <code>@defer</code> vẫn được trì hoãn nạp (lazy deferred). Nội dung HTML hiển thị đầy đủ từ server nhưng ở trạng thái \"bất động\" (dehydrated) cho đến khi sự kiện trigger <code>hydrate</code> kích hoạt.",
+        "<strong>Kích hoạt & Event Replay:</strong> Khi trigger thỏa mãn, khối defer sẽ nạp bundle code tương ứng và tiến hành hydrate để gắn event listeners. Bất kỳ thao tác click hoặc phím bấm nào của người dùng thực hiện trước khi quá trình hoàn tất đều được đưa vào hàng đợi và phát lại (replayed) ngay sau khi hydrate xong."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "controlling-hydration-of-content-with-triggers",
+      "text": "Kiểm soát Hydration bằng các Triggers"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi khối <code>@defer</code> có thể khai báo một hoặc nhiều hydrate triggers, ngăn cách nhau bằng dấu chấm phẩy (<code>;</code>). Angular sẽ kích hoạt hydrate ngay khi <strong>bất kỳ trigger nào</strong> trong danh sách phát sinh tín hiệu."
+    },
+    {
+      "type": "paragraph",
+      "text": "Có ba nhóm trigger chính: <code>hydrate on</code>, <code>hydrate when</code>, và <code>hydrate never</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "hydrate-on",
+      "text": "1. hydrate on: Điều kiện theo sự kiện người dùng & môi trường"
+    },
+    {
+      "type": "table",
+      "headers": ["Trigger", "Mô tả cơ chế kích hoạt"],
+      "rows": [
+        ["hydrate on idle", "Kích hoạt khi trình duyệt rơi vào trạng thái rảnh rỗi (dựa trên requestIdleCallback). Hỗ trợ đặt thời gian timeout."],
+        ["hydrate on viewport", "Kích hoạt khi phần tử được chỉ định đi vào vùng hiển thị (Viewport) thông qua Intersection Observer API."],
+        ["hydrate on interaction", "Kích hoạt khi người dùng tương tác với phần tử (thông qua sự kiện click hoặc keydown)."],
+        ["hydrate on hover", "Kích hoạt khi con trỏ chuột rê vào khu vực chỉ định (thông qua mouseover hoặc focusin)."],
+        ["hydrate on immediate", "Kích hoạt ngay lập tức sau khi toàn bộ nội dung không trì hoãn (non-deferred) render xong."],
+        ["hydrate on timer", "Kích hoạt sau một khoảng thời gian xác định (ví dụ 500ms, 2s)."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 4,
+      "id": "hydrate-on-idle",
+      "text": "hydrate on idle"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kích hoạt tải dependencies và hydrate nội dung khi trình duyệt rảnh rỗi. Bạn có thể truyền thêm tham số timeout (tính bằng ms) để đảm bảo không bị trì hoãn quá lâu:"
+    },
+    {
+      "type": "code",
+      "file": "idle-example.html",
+      "lang": "html",
+      "code": [
+        "@defer (hydrate on idle) {",
+        "  <large-cmp />",
+        "} @placeholder {",
+        "  <div>Large component placeholder</div>",
+        "}",
+        "",
+        "<!-- Kèm thời gian timeout tối đa 500ms -->",
+        "@defer (hydrate on idle(500)) {",
+        "  <large-cmp />",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 4,
+      "id": "hydrate-on-viewport",
+      "text": "hydrate on viewport"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khối nội dung chỉ được hydrate khi người dùng cuộn trang tới vùng nhìn thấy của nó:"
+    },
+    {
+      "type": "code",
+      "file": "viewport-example.html",
+      "lang": "html",
+      "code": [
+        "@defer (hydrate on viewport) {",
+        "  <large-cmp />",
+        "} @placeholder {",
+        "  <div>Large component placeholder</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 4,
+      "id": "hydrate-on-interaction",
+      "text": "hydrate on interaction"
+    },
+    {
+      "type": "paragraph",
+      "text": "Chỉ tải mã và gắn sự kiện khi người dùng click hoặc nhấn phím trên khu vực đó:"
+    },
+    {
+      "type": "code",
+      "file": "interaction-example.html",
+      "lang": "html",
+      "code": [
+        "@defer (hydrate on interaction) {",
+        "  <large-cmp />",
+        "} @placeholder {",
+        "  <div>Large component placeholder</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 4,
+      "id": "hydrate-on-hover",
+      "text": "hydrate on hover"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kích hoạt khi chuột di chuyển vào hoặc phần tử nhận được focus:"
+    },
+    {
+      "type": "code",
+      "file": "hover-example.html",
+      "lang": "html",
+      "code": [
+        "@defer (hydrate on hover) {",
+        "  <large-cmp />",
+        "} @placeholder {",
+        "  <div>Large component placeholder</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 4,
+      "id": "hydrate-on-immediate",
+      "text": "hydrate on immediate"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kích hoạt ngay khi các phần tử tĩnh ban đầu của trang render xong:"
+    },
+    {
+      "type": "code",
+      "file": "immediate-example.html",
+      "lang": "html",
+      "code": [
+        "@defer (hydrate on immediate) {",
+        "  <large-cmp />",
+        "} @placeholder {",
+        "  <div>Large component placeholder</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 4,
+      "id": "hydrate-on-timer",
+      "text": "hydrate on timer"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kích hoạt hydrate sau một mốc thời gian cụ thể (hỗ trợ đơn vị <code>ms</code> hoặc <code>s</code>):"
+    },
+    {
+      "type": "code",
+      "file": "timer-example.html",
+      "lang": "html",
+      "code": [
+        "@defer (hydrate on timer(500ms)) {",
+        "  <large-cmp />",
+        "} @placeholder {",
+        "  <div>Large component placeholder</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "hydrate-when",
+      "text": "2. hydrate when: Điều kiện theo biểu thức logic"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trigger <code>hydrate when</code> nhận một biểu thức điều kiện tùy chỉnh và chỉ kích hoạt hydrate khi biểu thức đó trả về giá trị <em>truthy</em>."
+    },
+    {
+      "type": "code",
+      "file": "when-example.html",
+      "lang": "html",
+      "code": [
+        "@defer (hydrate when condition) {",
+        "  <large-cmp />",
+        "} @placeholder {",
+        "  <div>Large component placeholder</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Điều kiện <code>hydrate when</code> chỉ có thể kích hoạt khi nó nằm ở khối <code>@defer</code> mất nước (dehydrated) <strong>ngoài cùng cấp cao nhất</strong>. Biểu thức điều kiện nằm trong component cha, do đó component cha bắt buộc phải được hydrate thì Angular mới có thể đánh giá được biểu thức đó."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "hydrate-never",
+      "text": "3. hydrate never: Nội dung tĩnh hoàn toàn"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>hydrate never</code> chỉ thị cho Angular rằng khối <code>@defer</code> này sẽ <strong>không bao giờ được hydrate trên client trong lượt tải ban đầu</strong>. Nội dung HTML do server render ra sẽ tồn tại như một phần tĩnh vĩnh viễn không gắn event listeners, tiết kiệm 100% chi phí JavaScript cho phần đó."
+    },
+    {
+      "type": "code",
+      "file": "never-example.html",
+      "lang": "html",
+      "code": [
+        "@defer (on viewport; hydrate never) {",
+        "  <large-cmp />",
+        "} @placeholder {",
+        "  <div>Large component placeholder</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "1. <code>hydrate never</code> áp dụng cho lần tải đầu tiên từ SSR. Nếu sau đó người dùng điều hướng qua Client-side Routing, khối <code>@defer</code> vẫn dùng trigger thông thường (ví dụ: <code>on viewport</code>) để nạp dependencies.<br>2. Đặt <code>hydrate never</code> sẽ ngăn chặn hydrate của toàn bộ cây con bên dưới nó (không một trigger hydrate nào bên dưới được kích hoạt)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "hydrate-triggers-alongside-regular-triggers",
+      "text": "Kết hợp Hydrate Triggers cùng Regular Triggers"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hydrate triggers và regular triggers hoạt động song song bổ trợ cho nhau trên cùng một khối <code>@defer</code>:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Lần tải đầu tiên (Initial Load từ SSR):</strong> Trigger <code>hydrate ...</code> sẽ được áp dụng.",
+        "<strong>Các lần điều hướng sau ở Client (Subsequent Client-Side Navigation):</strong> Trigger thông thường không có tiền tố <code>hydrate</code> (như <code>on idle</code>, <code>on viewport</code>) sẽ được áp dụng."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "combo-triggers.html",
+      "lang": "html",
+      "code": [
+        "@defer (on idle; hydrate on interaction) {",
+        "  <example-cmp />",
+        "} @placeholder {",
+        "  <div>Example Placeholder</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ở ví dụ trên: Khi người dùng vào trang lần đầu từ server, component chỉ hydrate khi có tương tác (<code>hydrate on interaction</code>). Nhưng nếu người dùng chuyển trang bằng <code>routerLink</code> sang trang này ở client, component sẽ tải theo cơ chế rảnh rỗi (<code>on idle</code>)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-does-incremental-hydration-work-with-nested-defer-blocks",
+      "text": "Incremental Hydration với các khối @defer lồng nhau"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hệ thống component và Dependency Injection của Angular tuân theo cấu trúc phân cấp hình cây (hierarchical). Do đó, để một component con được hydrate, <strong>toàn bộ các component cha của nó bắt buộc phải được hydrate trước</strong>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu sự kiện hydrate kích hoạt trên một khối <code>@defer</code> con nằm lồng sâu bên trong, Angular sẽ kích hoạt quá trình hydrate theo thứ tự từ khối cha trên cùng xuống dần tới khối con đó:"
+    },
+    {
+      "type": "code",
+      "file": "nested-defer.html",
+      "lang": "html",
+      "code": [
+        "@defer (hydrate on interaction) {",
+        "  <parent-block-cmp />",
+        "",
+        "  @defer (hydrate on hover) {",
+        "    <child-block-cmp />",
+        "  } @placeholder {",
+        "    <div>Child placeholder</div>",
+        "  }",
+        "",
+        "} @placeholder {",
+        "  <div>Parent Placeholder</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi người dùng rê chuột (hover) vào khối con: Khối <code>@defer</code> cha chứa <code>&lt;parent-block-cmp /&gt;</code> sẽ được kích hoạt hydrate trước, sau đó mới đến khối con <code>&lt;child-block-cmp /&gt;</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "constraints",
+      "text": "Các ràng buộc cần tuân thủ"
+    },
+    {
+      "type": "paragraph",
+      "text": "Incremental hydration có cùng các quy tắc và ràng buộc nghiêm ngặt như Hydration toàn phần:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Không thao tác DOM trực tiếp bằng các API gốc (native DOM APIs) như <code>appendChild</code>, <code>innerHTML</code>.",
+        "Cấu trúc HTML hợp lệ, tránh lỗi lồng thẻ như <code>&lt;div&gt;</code> trong <code>&lt;p&gt;</code> hoặc thiếu <code>&lt;tbody&gt;</code> trong <code>&lt;table&gt;</code>.",
+        "Đảm bảo tính nhất quán của DOM giữa server và client."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "do-i-still-need-to-specify-placeholder-blocks",
+      "text": "Có còn cần phải khai báo khối @placeholder không?"
+    },
+    {
+      "type": "paragraph",
+      "text": "<strong>CÓ, bạn vẫn nên khai báo khối <code>@placeholder</code>.</strong> Mặc dù nội dung <code>@placeholder</code> không được sử dụng trong quá trình SSR và Incremental Hydration (do server đã render main template), nó vẫn rất cần thiết cho các tình huống Client-side rendering tiếp theo khi người dùng chuyển route qua lại trong ứng dụng."
+    }
+  ]
+}

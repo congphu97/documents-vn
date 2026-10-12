@@ -1,0 +1,152 @@
+{
+  "slug": "guide/di/dependency-injection-context",
+  "title": "Ngữ cảnh Injection (Injection context)",
+  "description": "Tìm hiểu về Injection Context trong Angular, thời điểm và vị trí hàm inject(), runInInjectionContext() và assertInInjectionContext() hoạt động.",
+  "source": "https://angular.dev/guide/di/dependency-injection-context",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Hệ thống Dependency Injection (DI) của Angular hoạt động dựa trên một ngữ cảnh runtime (runtime context) nơi injector hiện tại đang khả dụng. Điều này có nghĩa là các injector chỉ hoạt động khi bạn thực thi mã nguồn bên trong ngữ cảnh này."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có một Injection Context khả dụng trong các trường hợp sau:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Trong quá trình khởi tạo (thông qua constructor) của một class được hệ thống DI khởi tạo, chẳng hạn như @Injectable, @Service hoặc @Component.",
+        "Tại phần khởi tạo thuộc tính (field initializers) của các class đó.",
+        "Bên trong hàm factory được chỉ định cho useFactory của một Provider hoặc một @Injectable.",
+        "Bên trong hàm factory được chỉ định cho một InjectionToken.",
+        "Bên trong một stack frame đang thực thi trong một injection context (ví dụ router guards, functional interceptors)."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Việc biết rõ khi nào bạn đang ở trong một injection context cho phép bạn sử dụng hàm `inject()` để truy xuất các dependency một cách an toàn và tiện lợi."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "stack-frame-in-context",
+      "text": "Stack frame trong ngữ cảnh (Stack frame in context)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một số API của Angular được thiết kế để chạy bên trong một injection context. Ví dụ tiêu biểu là các router guards dạng hàm (functional router guards). Điều này cho phép bạn gọi trực tiếp hàm `inject()` bên trong thân hàm guard để lấy ra các service cần thiết:"
+    },
+    {
+      "type": "code",
+      "file": "auth.guard.ts",
+      "lang": "typescript",
+      "code": [
+        "import { inject } from '@angular/core';",
+        "import { ActivatedRouteSnapshot, CanActivateFn, RouterStateSnapshot } from '@angular/router';",
+        "import { PermissionsService, UserToken } from './auth.service';",
+        "",
+        "const canActivateTeam: CanActivateFn = (",
+        "  route: ActivatedRouteSnapshot,",
+        "  state: RouterStateSnapshot,",
+        ") => {",
+        "  return inject(PermissionsService).canActivate(inject(UserToken), route.params['id']);",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "run-within-an-injection-context",
+      "text": "Thực thi bên trong một injection context với runInInjectionContext()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn cần thực thi một hàm bên trong injection context khi bản thân đang ở ngoài ngữ cảnh đó (ví dụ trong một callback bất đồng bộ, event listener, hoặc setTimeout), bạn có thể sử dụng hàm `runInInjectionContext()`. Hàm này yêu cầu quyền truy cập vào một injector, chẳng hạn như `EnvironmentInjector`:"
+    },
+    {
+      "type": "code",
+      "file": "hero.service.ts",
+      "lang": "typescript",
+      "code": [
+        "import { EnvironmentInjector, inject, runInInjectionContext, Service } from '@angular/core';",
+        "import { SomeService } from './some.service';",
+        "",
+        "@Service()",
+        "export class HeroService {",
+        "  private environmentInjector = inject(EnvironmentInjector);",
+        "",
+        "  someMethod() {",
+        "    runInInjectionContext(this.environmentInjector, () => {",
+        "      const service = inject(SomeService);",
+        "      // Thực hiện các thao tác cần thiết với service vừa inject",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Lưu ý rằng inject() chỉ trả về một thực thể nếu injector được cung cấp có thể phân giải được token yêu cầu."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "asserts-the-context",
+      "text": "Kiểm tra ngữ cảnh với assertInInjectionContext()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular cung cấp hàm trợ giúp `assertInInjectionContext()` để xác thực xem ngữ cảnh hiện tại có phải là một injection context hay không, và ném ra thông báo lỗi rõ ràng nếu không phải. Hãy truyền tham chiếu của chính hàm gọi vào để thông báo lỗi chỉ thẳng đến điểm truy cập API chính xác, giúp người dùng dễ dàng debug hơn:"
+    },
+    {
+      "type": "code",
+      "file": "dom-helpers.ts",
+      "lang": "typescript",
+      "code": [
+        "import { assertInInjectionContext, ElementRef, inject } from '@angular/core';",
+        "",
+        "export function injectNativeElement<T extends Element>(): T {",
+        "  assertInInjectionContext(injectNativeElement);",
+        "  return inject(ElementRef).nativeElement;",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau đó, bạn có thể gọi hàm trợ giúp này từ bất kỳ injection context nào (constructor, field initializer, provider factory, hoặc qua `runInInjectionContext`):"
+    },
+    {
+      "type": "code",
+      "file": "preview-card.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { injectNativeElement } from './dom-helpers';",
+        "",
+        "@Component({/* ... */})",
+        "export class PreviewCard {",
+        "  // ✅ Field initializer chạy trong injection context.",
+        "  readonly hostEl = injectNativeElement<HTMLElement>();",
+        "",
+        "  onAction() {",
+        "    // ❌ Lỗi NG0203: Chạy ngoài injection context (khi user click tương tác)",
+        "    const anotherRef = injectNativeElement<HTMLElement>();",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-di-outside-of-a-context",
+      "text": "Sử dụng DI bên ngoài ngữ cảnh (Mã lỗi NG0203)"
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Nếu bạn gọi hàm inject() hoặc assertInInjectionContext() bên ngoài một injection context hợp lệ, Angular sẽ ném ra mã lỗi runtime NG0203: \"inject() must be called from an injection context\"."
+    }
+  ]
+}

@@ -1,0 +1,518 @@
+{
+  "slug": "guide/forms/signals/migration",
+  "title": "Chuyển đổi biểu mẫu hiện có sang Signal Forms (Migrating existing forms to Signal Forms)",
+  "description": "Chiến lược và hướng dẫn chuyển đổi từng bước từ Reactive Forms sang Signal Forms bằng compatForm, SignalFormControl, hỗ trợ tương thích hai chiều và tái sử dụng Custom Controls.",
+  "source": "https://angular.dev/guide/forms/signals/migration",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Hướng dẫn này cung cấp các chiến lược thực tế để chuyển đổi (migrate) codebase hiện có sang <strong>Signal Forms</strong>, tập trung vào khả năng tương tác (interoperability) liền mạch với <strong>Reactive Forms</strong> mà không đòi hỏi phải viết lại toàn bộ hệ thống ngay lập tức."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "top-down-migration-using-compatform",
+      "text": "Chuyển đổi từ trên xuống với compatForm (Top-down migration)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đôi khi bạn muốn sử dụng các đối tượng <code>FormControl</code> hoặc <code>FormGroup</code> hiện có bên trong một Signal Form. Điều này cực kỳ hữu ích đối với các control có:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Logic bất đồng bộ phức tạp đã được kiểm thử ổn định.",
+        "Các toán tử RxJS phức tạp chưa được chuyển đổi (port) sang Signals.",
+        "Tích hợp sâu với các thư viện bên thứ ba chưa hỗ trợ Signals."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "integrating-a-formcontrol-into-a-signal-form",
+      "text": "Tích hợp FormControl vào Signal Form"
+    },
+    {
+      "type": "paragraph",
+      "text": "Xét ví dụ một <code>passwordControl</code> hiện có sử dụng hàm kiểm thực nâng cao <code>enterprisePasswordValidator</code>. Thay vì viết lại validator này, bạn có thể bắc cầu (bridge) control vào trạng thái signal thông qua <code>compatForm</code> từ gói <code>@angular/forms/signals/compat</code>:"
+    },
+    {
+      "type": "code",
+      "file": "compat-form-control.ts",
+      "lang": "ts",
+      "code": [
+        "import { signal } from '@angular/core';",
+        "import { FormControl, Validators } from '@angular/forms';",
+        "import { compatForm } from '@angular/forms/signals/compat';",
+        "",
+        "// 1. Control hiện có với validator chuyên biệt",
+        "const passwordControl = new FormControl('', {",
+        "  validators: [Validators.required, enterprisePasswordValidator()],",
+        "  nonNullable: true,",
+        "});",
+        "",
+        "// 2. Đặt lồng control cũ vào signal trạng thái form",
+        "const user = signal({",
+        "  email: '',",
+        "  password: passwordControl, // Lồng trực tiếp control cũ",
+        "});",
+        "",
+        "// 3. Khởi tạo form tương thích",
+        "const f = compatForm(user);",
+        "",
+        "// Truy cập giá trị qua cây signal",
+        "console.log(f.email().value());    // Giá trị email hiện tại",
+        "console.log(f.password().value()); // Giá trị hiện tại của passwordControl",
+        "",
+        "// Trạng thái phản ứng (reactive state) được ủy nhiệm (proxy) tự động",
+        "const isPasswordValid = f.password().valid();",
+        "const passwordErrors = f.password().errors(); // Trả về CompatValidationError nếu validator cũ bị lỗi"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong template, bạn có thể ràng buộc trường <code>password</code> như một <code>formField</code> thông thường:"
+    },
+    {
+      "type": "code",
+      "file": "compat-form-control.html",
+      "lang": "html",
+      "code": [
+        "<form novalidate>",
+        "  <div>",
+        "    <label>",
+        "      Email:",
+        "      <input [formField]=\"f.email\" />",
+        "    </label>",
+        "  </div>",
+        "  <div>",
+        "    <label>",
+        "      Password:",
+        "      <input [formField]=\"f.password\" type=\"password\" />",
+        "    </label>",
+        "    @if (f.password().touched() && f.password().invalid()) {",
+        "      <div class=\"error-list\">",
+        "        @for (error of f.password().errors(); track error) {",
+        "          <p>{{ error.message || error.kind }}</p>",
+        "        }",
+        "      </div>",
+        "    }",
+        "  </div>",
+        "</form>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "integrating-a-formgroup-into-a-signal-form",
+      "text": "Tích hợp FormGroup vào Signal Form"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể bọc toàn bộ một nhóm <code>FormGroup</code>. Điều này thường xuất hiện khi một khối con có thể tái sử dụng (chẳng hạn Address Block - Khối địa chỉ) vẫn đang được quản lý bởi Reactive Forms:"
+    },
+    {
+      "type": "code",
+      "file": "compat-form-group.ts",
+      "lang": "ts",
+      "code": [
+        "import { signal } from '@angular/core';",
+        "import { FormGroup, FormControl, Validators } from '@angular/forms';",
+        "import { compatForm } from '@angular/forms/signals/compat';",
+        "import { required } from '@angular/forms/signals';",
+        "",
+        "// 1. FormGroup địa chỉ cũ với logic validation sẵn có",
+        "const addressGroup = new FormGroup({",
+        "  street: new FormControl('123 Angular Way', Validators.required),",
+        "  city: new FormControl('Mountain View', Validators.required),",
+        "  zip: new FormControl('94043', Validators.required),",
+        "});",
+        "",
+        "// 2. Đưa addressGroup vào signal model như một giá trị",
+        "const checkoutModel = signal({",
+        "  customerName: 'Pirojok the Cat',",
+        "  shippingAddress: addressGroup,",
+        "});",
+        "",
+        "const f = compatForm(checkoutModel, (p) => {",
+        "  required(p.customerName);",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trường <code>shippingAddress</code> hoạt động như một nhánh trong cây Signal Form. Bạn có thể liên kết các control lồng nhau này trong template bằng cách gọi <code>.control()</code> để lấy FormGroup nguyên bản:"
+    },
+    {
+      "type": "code",
+      "file": "compat-form-group.html",
+      "lang": "html",
+      "code": [
+        "<form novalidate>",
+        "  <h3>Shipping Details</h3>",
+        "  <div>",
+        "    <label>",
+        "      Customer Name:",
+        "      <input [formField]=\"f.customerName\" />",
+        "    </label>",
+        "    @if (f.customerName().touched() && f.customerName().invalid()) {",
+        "      <div class=\"error-list\"><p>Customer name is required.</p></div>",
+        "    }",
+        "  </div>",
+        "",
+        "  <fieldset>",
+        "    <legend>Address</legend>",
+        "    @let street = f.shippingAddress().control().controls.street;",
+        "    <div>",
+        "      <label>",
+        "        Street:",
+        "        <input [formControl]=\"street\" />",
+        "      </label>",
+        "      @if (street.touched && street.invalid) {",
+        "        <div class=\"error-list\"><p>Street is required</p></div>",
+        "      }",
+        "    </div>",
+        "",
+        "    @let city = f.shippingAddress().control().controls.city;",
+        "    <div>",
+        "      <label>",
+        "        City:",
+        "        <input [formControl]=\"city\" />",
+        "      </label>",
+        "      @if (city.touched && city.invalid) {",
+        "        <div class=\"error-list\"><p>City is required</p></div>",
+        "      }",
+        "    </div>",
+        "",
+        "    @let zip = f.shippingAddress().control().controls.zip;",
+        "    <div>",
+        "      <label>",
+        "        Zip Code:",
+        "        <input [formControl]=\"zip\" />",
+        "      </label>",
+        "      @if (zip.touched && zip.invalid) {",
+        "        <div class=\"error-list\"><p>Zip Code is required</p></div>",
+        "      }",
+        "    </div>",
+        "  </fieldset>",
+        "</form>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "accessing-values",
+      "text": "Truy cập giá trị form với compatForm"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong khi <code>compatForm</code> ủy nhiệm việc đọc giá trị ở cấp độ từng control (<code>f.password().value()</code> trả về chuỗi string), thì ở cấp độ toàn form <code>f().value()</code>, đối tượng FormControl gốc vẫn được giữ nguyên:"
+    },
+    {
+      "type": "code",
+      "file": "access-values.ts",
+      "lang": "ts",
+      "code": [
+        "const passwordControl = new FormControl('password');",
+        "const user = signal({ email: '', password: passwordControl });",
+        "const form = compatForm(user);",
+        "",
+        "form.password().value(); // 'password'",
+        "form().value();          // { email: '', password: FormControl } // FormControl vẫn tồn tại nguyên bản",
+        "",
+        "// Nếu cần trích xuất giá trị thuần túy (plain object), bạn tạo một computed:",
+        "const formValue = computed(() => ({",
+        "  email: form.email().value(),",
+        "  password: form.password().value(),",
+        "})); // { email: '', password: '' }"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "bottom-up-migration",
+      "text": "Chuyển đổi từ dưới lên (Bottom-up migration)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cách tiếp cận từ dưới lên cho phép bạn viết các control đơn lẻ bằng Signal Forms, nhưng vẫn cắm chúng vào một <code>FormGroup</code> của Reactive Forms cấp cha."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "integrating-a-signal-form-into-a-formgroup",
+      "text": "Tích hợp Signal Form vào FormGroup bằng SignalFormControl"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể sử dụng <code>SignalFormControl</code> để bọc logic Signal Form và hiển thị nó ra bên ngoài như một <code>FormControl</code> tiêu chuẩn:"
+    },
+    {
+      "type": "code",
+      "file": "signal-form-control-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { ReactiveFormsModule, FormGroup } from '@angular/forms';",
+        "import { SignalFormControl } from '@angular/forms/signals/compat';",
+        "import { required } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  selector: 'app-user-profile',",
+        "  imports: [ReactiveFormsModule],",
+        "  template: `...`,",
+        "})",
+        "export class UserProfile {",
+        "  // 1. Tạo SignalFormControl sử dụng quy tắc của Signal Forms",
+        "  emailControl = new SignalFormControl('', (p) => {",
+        "    required(p, { message: 'Email is required' });",
+        "  });",
+        "",
+        "  // 2. Sử dụng trực tiếp trong FormGroup hiện có",
+        "  form = new FormGroup({",
+        "    email: this.emailControl,",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>SignalFormControl</code> tự động đồng bộ hóa giá trị hai chiều giữa hệ thống Signal Forms và Reactive Forms:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Signal ➔ Reactive:</strong> Cập nhật giá trị qua Signal Forms (<code>this.emailControl.fieldTree().value.set('new@example.com')</code>) sẽ lập tức phản ánh sang <code>this.form.value</code>.",
+        "<strong>Reactive ➔ Signal:</strong> Cập nhật giá trị qua FormGroup cha (<code>this.form.patchValue({ email: 'other@example.com' })</code>) sẽ đồng bộ ngay lập tức vào signal state (<code>this.emailControl.fieldTree().value()</code>)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "binding-signalformcontrol",
+      "text": "Ràng buộc SignalFormControl trong Template"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi sử dụng <code>SignalFormControl</code> bên trong template của <code>FormGroup</code>, hãy dùng directive <code>[formField]=\"emailControl.fieldTree\"</code> thay vì dùng <code>formControlName</code>:"
+    },
+    {
+      "type": "code",
+      "file": "binding-preference.html",
+      "lang": "html",
+      "code": [
+        "<!-- KHUYÊN DÙNG (Prefer): -->",
+        "<form [formGroup]=\"form\">",
+        "  <!-- Control thông thường của Reactive Forms -->",
+        "  <input formControlName=\"name\" />",
+        "",
+        "  <!-- SignalFormControl liên kết qua .fieldTree -->",
+        "  <input [formField]=\"emailControl.fieldTree\" />",
+        "</form>",
+        "",
+        "<!-- TRÁNH DÙNG (Avoid): Không dùng formControlName hoặc [formControl] cho SignalFormControl -->",
+        "<!-- <input formControlName=\"email\" /> -->",
+        "<!-- <input [formControl]=\"emailControl\" /> -->"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "why-signalformcontrol-takes-a-value-instead-of-a-signal",
+      "text": "Vì sao SignalFormControl nhận giá trị thô thay vì một signal?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong Signal Forms tiêu chuẩn, bạn truyền một signal vào hàm: <code>form(mySignal)</code>. Tuy nhiên, <code>SignalFormControl</code> lại nhận một giá trị thô (như chuỗi hoặc đối tượng) làm đối số đầu tiên: <code>new SignalFormControl({ email: '...' })</code>."
+    },
+    {
+      "type": "callout",
+      "calloutType": "note",
+      "title": "Lý do thiết kế",
+      "text": "SignalFormControl chủ động khởi tạo signal ở bên trong để có thể đón bắt (intercept) mọi thao tác ghi dữ liệu từ Reactive Forms và kích hoạt các cập nhật đồng bộ (synchronous updates) theo đúng kỳ vọng của Reactive Forms. Bạn vẫn có thể truy cập signal nội bộ này thông qua thuộc tính <code>.sourceValue</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "differences-and-constraints",
+      "text": "Các điểm khác biệt và ràng buộc khi dùng SignalFormControl"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "disabling-enabling-control",
+      "text": "Bật / Vô hiệu hóa control (Disabling / Enabling)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các phương thức mệnh lệnh (imperative) truyền thống như <code>control.disable()</code> hoặc <code>control.enable()</code> <strong>không được hỗ trợ</strong> trong <code>SignalFormControl</code> và sẽ báo lỗi khi gọi. Trong mô hình Signal Forms, trạng thái vô hiệu hóa phải được suy diễn có tính khai báo từ signal và schema:"
+    },
+    {
+      "type": "code",
+      "file": "disabled-pattern.ts",
+      "lang": "ts",
+      "code": [
+        "// TRÁNH (Avoid): Gọi disable() / enable() thủ công trong effect",
+        "// effect(() => { if (this.isLoading()) control.disable(); }); // SẼ BÁO LỖI!",
+        "",
+        "// NÊN DÙNG (Prefer): Khai báo bằng quy tắc disabled() trong schema",
+        "import { signal } from '@angular/core';",
+        "import { SignalFormControl } from '@angular/forms/signals/compat';",
+        "import { disabled } from '@angular/forms/signals';",
+        "",
+        "export class UserProfile {",
+        "  readonly isLoading = signal(false);",
+        "",
+        "  readonly emailControl = new SignalFormControl('', (p) => {",
+        "    // Control tự động vô hiệu hóa bất cứ khi nào isLoading là true",
+        "    disabled(p, { when: () => this.isLoading() });",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "dynamic-manipulation",
+      "text": "Thêm / Xóa Validators động"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các phương thức như <code>addValidators()</code>, <code>removeValidators()</code>, hoặc <code>setValidators()</code> cũng không được hỗ trợ trên <code>SignalFormControl</code>. Thay vào đó, hãy dùng quy tắc <code>applyWhen()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "dynamic-validation.ts",
+      "lang": "ts",
+      "code": [
+        "import { signal } from '@angular/core';",
+        "import { SignalFormControl } from '@angular/forms/signals/compat';",
+        "import { applyWhen, required } from '@angular/forms/signals';",
+        "",
+        "export class UserProfile {",
+        "  readonly isRequired = signal(false);",
+        "",
+        "  readonly emailControl = new SignalFormControl('', (p) => {",
+        "    applyWhen(",
+        "      p,",
+        "      () => this.isRequired(),",
+        "      (p) => { required(p); }",
+        "    );",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "manual-error-selection",
+      "text": "Quản lý lỗi thủ công (setErrors / markAsPending)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các phương thức <code>setErrors()</code> và <code>markAsPending()</code> không còn được sử dụng. Trong Signal Forms, danh sách lỗi được tự động suy diễn từ các quy tắc schema và trạng thái kiểm thực bất đồng bộ. Mọi lỗi cần được khai báo rõ ràng qua schema rule."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "automatic-status-classes",
+      "text": "Tự động gắn class trạng thái CSS (ng-valid, ng-invalid, ng-dirty...)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Reactive và Template-driven Forms tự động gắn các CSS class như <code>.ng-valid</code>, <code>.ng-invalid</code>, <code>.ng-dirty</code>, <code>.ng-touched</code> vào phần tử input. Mặc định Signal Forms không tự động thêm các class này. Để tái hiện lại hành vi đó, bạn cấu hình preset <code>NG_STATUS_CLASSES</code>:"
+    },
+    {
+      "type": "code",
+      "file": "status-classes-config.ts",
+      "lang": "ts",
+      "code": [
+        "import { bootstrapApplication } from '@angular/platform-browser';",
+        "import { provideSignalFormsConfig } from '@angular/forms/signals';",
+        "import { NG_STATUS_CLASSES } from '@angular/forms/signals/compat';",
+        "",
+        "bootstrapApplication(App, {",
+        "  providers: [",
+        "    provideSignalFormsConfig({",
+        "      classes: NG_STATUS_CLASSES,",
+        "    }),",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hoặc bạn có thể tự định nghĩa bộ class tùy chỉnh theo nhu cầu riêng của dự án:"
+    },
+    {
+      "type": "code",
+      "file": "custom-status-classes.ts",
+      "lang": "ts",
+      "code": [
+        "provideSignalFormsConfig({",
+        "  classes: {",
+        "    'ng-valid': ({ state }) => state().valid(),",
+        "    'ng-invalid': ({ state }) => state().invalid(),",
+        "    'ng-touched': ({ state }) => state().touched(),",
+        "    'ng-dirty': ({ state }) => state().dirty(),",
+        "  },",
+        "})"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "custom-controls",
+      "text": "Tương thích Custom Controls"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bất kỳ Custom Control nào được tạo cho Signal Forms (triển khai <code>FormValueControl</code> hoặc <code>FormCheckboxControl</code>) đều có thể được dùng trực tiếp với Reactive Forms hoặc Template-driven Forms mà không cần thêm bất kỳ cấu hình nào. Điều này cho phép bạn nâng cấp các component dùng <code>ControlValueAccessor</code> cũ sang Signal Custom Controls mà không phá vỡ các nơi đang gọi."
+    },
+    {
+      "type": "callout",
+      "calloutType": "important",
+      "title": "Lưu ý quan trọng",
+      "text": "Không triển khai đồng thời cả ControlValueAccessor và FormValueControl/FormCheckboxControl trên cùng một component. Chỉ chọn một trong hai giao diện."
+    },
+    {
+      "type": "code",
+      "file": "custom-control-with-reactive-form.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, model } from '@angular/core';",
+        "import { FormValueControl } from '@angular/forms/signals';",
+        "import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';",
+        "",
+        "// 1. Custom Control hiện đại viết bằng Signal Forms",
+        "@Component({",
+        "  selector: 'app-basic-input',",
+        "  template: `",
+        "    <input [value]=\"value()\" (input)=\"value.set($event.target.value)\" placeholder=\"Nhập text...\" />",
+        "  `,",
+        "})",
+        "export class BasicInput implements FormValueControl<string> {",
+        "  value = model('');",
+        "}",
+        "",
+        "// 2. Dùng trực tiếp trong một Reactive Form với formControlName",
+        "@Component({",
+        "  selector: 'app-example',",
+        "  imports: [ReactiveFormsModule, BasicInput],",
+        "  template: `",
+        "    <form [formGroup]=\"reactiveFormGroup\">",
+        "      <app-basic-input formControlName=\"reactiveControlName\" />",
+        "    </form>",
+        "    <p>Text: {{ reactiveFormGroup.value.reactiveControlName }}</p>",
+        "  `,",
+        "})",
+        "export class ExampleComponent {",
+        "  readonly reactiveFormGroup = new FormGroup({",
+        "    reactiveControlName: new FormControl(''),",
+        "  });",
+        "}"
+      ]
+    }
+  ]
+}

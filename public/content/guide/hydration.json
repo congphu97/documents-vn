@@ -1,44 +1,352 @@
 {
   "slug": "guide/hydration",
-  "title": "Hydration",
-  "description": "Tài liệu hướng dẫn về Hydration trong Angular.",
+  "title": "Cơ chế Khôi phục trạng thái DOM (Hydration trong Angular)",
+  "description": "Hướng dẫn chi tiết về cơ chế Hydration trong Angular SSR: cách kích hoạt qua provideClientHydration, Event Replay thu nhận và phát lại sự kiện người dùng, các ràng buộc về DOM Mismatch, bỏ qua hydration với ngSkipHydration, tính ổn định ứng dụng, xử lý script bên thứ ba và đa ngôn ngữ i18n.",
   "source": "https://angular.dev/guide/hydration",
-  "status": "reviewed",
+  "status": "ready",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/hydration](https://angular.dev/guide/hydration)."
-    },
-    {
       "type": "paragraph",
-      "text": "Hydration là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "<strong>Hydration</strong> là quá trình khôi phục và kích hoạt lại ứng dụng đã được kết xuất phía máy chủ (SSR) khi chạy trên client. Quá trình này bao gồm việc tái sử dụng lại toàn bộ cấu trúc DOM sẵn có do server tạo ra, duy trì trạng thái của ứng dụng, chuyển giao dữ liệu đã nạp từ server mà không phải tải lại, và gắn các bộ lắng nghe sự kiện (event listeners) vào cây DOM."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "why-is-hydration-important",
+      "text": "Tại sao Hydration lại quan trọng?"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Hydration, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Hydration cải thiện đáng kể hiệu năng của ứng dụng bằng cách tránh các tác vụ dư thừa nhằm tạo lại các nút DOM từ đầu. Thay vào đó, Angular so khớp các phần tử DOM sẵn có với cấu trúc component của ứng dụng tại runtime và tái sử dụng các nút DOM bất cứ khi nào có thể. Hiệu quả này được đo lường thông qua các chỉ số <strong>Core Web Vitals (CWV)</strong>, cụ thể là giảm thiểu <strong>First Input Delay (FID)</strong> / <strong>Interaction to Next Paint (INP)</strong>, rút ngắn <strong>Largest Contentful Paint (LCP)</strong> và triệt tiêu <strong>Cumulative Layout Shift (CLS)</strong>, đồng thời tối ưu hóa mạnh mẽ hiệu quả SEO."
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu không có Hydration, ứng dụng Angular SSR thông thường khi tải xuống trình duyệt sẽ <strong>hủy bỏ (destroy) toàn bộ cây DOM của server và vẽ lại (re-render) từ đầu</strong>. Hành vi này dẫn đến hiện tượng nhấp nháy/giật hình giao diện (UI flicker) rất khó chịu và làm dịch chuyển bố cục trang web."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-do-you-enable-hydration-in-angular",
+      "text": "Cách kích hoạt Hydration trong Angular"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hydration chỉ có thể được kích hoạt cho các ứng dụng đã sử dụng Server-side Rendering (SSR)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-angular-cli",
+      "text": "Sử dụng Angular CLI"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn sử dụng Angular CLI để kích hoạt SSR (bằng cờ <code>ng new --ssr</code> hoặc chạy <code>ng add @angular/ssr</code> sau đó), đoạn mã kích hoạt hydration đã được tự động thêm sẵn vào ứng dụng của bạn."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "manual-setup",
+      "text": "Thiết lập thủ công (Manual setup)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với các ứng dụng Standalone, bạn nhập <code>provideClientHydration</code> từ <code>@angular/platform-browser</code> và thêm vào danh sách providers khi khởi chạy ứng dụng:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "app.config.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Hydration",
-        "import { Component } from \"@angular/core\";",
+        "import { bootstrapApplication } from '@angular/platform-browser';",
+        "import { provideClientHydration } from '@angular/platform-browser';",
+        "import { AppComponent } from './app/app.component';",
         "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideClientHydration(),",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu sử dụng NgModule truyền thống, hãy thêm <code>provideClientHydration()</code> vào mảng <code>providers</code> của root AppModule:"
+    },
+    {
+      "type": "code",
+      "file": "app.module.ts",
+      "lang": "ts",
+      "code": [
+        "import { NgModule } from '@angular/core';",
+        "import { provideClientHydration } from '@angular/platform-browser';",
+        "",
+        "@NgModule({",
+        "  declarations: [AppComponent],",
+        "  bootstrap: [AppComponent],",
+        "  providers: [provideClientHydration()],",
+        "})",
+        "export class AppModule {}"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "important",
+      "title": "Cấu hình ở phía Server",
+      "text": "Đảm bảo rằng <code>provideClientHydration()</code> cũng được bao gồm trong danh sách providers được dùng để bootstrap ứng dụng trên server (trong <code>app.config.server.ts</code> hoặc <code>AppServerModule</code>)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "verify-that-hydration-is-enabled",
+      "text": "Xác minh Hydration đã hoạt động"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau khi khởi động server, bạn hãy mở ứng dụng trên trình duyệt:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Console DevTools:</strong> Ở chế độ dev mode, bảng điều khiển Console sẽ hiển thị thông báo chi tiết về số lượng components và DOM nodes đã được hydrate thành công.",
+        "<strong>Angular DevTools:</strong> Bạn có thể bật tính năng lớp phủ trực quan (overlay) của tiện ích mở rộng Angular DevTools để xem các vùng đã hydrate trên màn hình, cũng như làm nổi bật component gây lỗi nếu có sự cố mismatch."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "capturing-and-replaying-events",
+      "text": "Ghi nhận và Phát lại sự kiện (Event Replay)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi trang web SSR tải xuống, người dùng có thể nhìn thấy nội dung ngay lập tức và bắt đầu click chuột hoặc nhập phím, tuy nhiên các bộ lắng nghe sự kiện của Angular lúc đó chưa kịp gắn kết vì quá trình hydration chưa hoàn tất. Tính năng <strong>Event Replay</strong> (dựa trên thư viện JSAction) sẽ đón bắt toàn bộ các sự kiện của người dùng trong khoảng thời gian này và phát lại (replay) chúng ngay khi hydration kết thúc:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Ghi nhận tương tác người dùng (Capturing):</strong> Trước khi hoàn tất hydration, Event Replay ghi lại mọi hành động mà người dùng thực hiện (click, focusin, v.v.).",
+        "<strong>Lưu trữ sự kiện (Storing):</strong> Event Contract lưu giữ trong bộ nhớ các tương tác trên để không bị thất lạc.",
+        "<strong>Phát lại sự kiện (Relaunch):</strong> Ngay khi hydration hoàn tất, Angular tự động kích hoạt lại các sự kiện đó đến đúng component tiếp nhận."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Event Replay được bật tự động kèm theo <strong>Incremental Hydration</strong>. Nếu bạn chủ động tắt incremental hydration bằng <code>withNoIncrementalHydration()</code>, bạn vẫn có thể bật riêng Event Replay bằng hàm <code>withEventReplay()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "event-replay.ts",
+      "lang": "ts",
+      "code": [
+        "import { bootstrapApplication, provideClientHydration, withEventReplay, withNoIncrementalHydration } from '@angular/platform-browser';",
+        "import { AppComponent } from './app.component';",
+        "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideClientHydration(",
+        "      withNoIncrementalHydration(),",
+        "      withEventReplay()",
+        "    ),",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "constraints",
+      "text": "Các ràng buộc và nguyên nhân gây lỗi DOM Mismatch"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hydration đòi hỏi cấu trúc DOM được sinh ra trên server và client <strong>phải khớp nhau 100%</strong>, bao gồm cả khoảng trắng (whitespaces) và comment nodes do Angular tạo ra. Nếu có sự sai lệch giữa hai bên, Angular sẽ ném lỗi <strong>DOM Mismatch</strong>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "direct-dom-manipulation",
+      "text": "1. Thao tác DOM trực tiếp bằng API gốc (Direct DOM Manipulation)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các component can thiệp DOM trực tiếp bằng các API gốc (như <code>document.getElementById()</code>, <code>appendChild</code>, <code>innerHTML</code>, <code>outerHTML</code>) sẽ làm thay đổi cấu trúc mà Angular không hay biết, gây sập quá trình đối chiếu hydration. Hãy refactor các đoạn mã này sang các API tiêu chuẩn của Angular hoặc dùng <code>ngSkipHydration</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "valid-html-structure",
+      "text": "2. Cấu trúc HTML không hợp lệ (Valid HTML structure)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các trình duyệt web hiện đại có cơ chế tự động sửa lỗi HTML, điều này vô tình làm thay đổi cấu trúc DOM so với những gì server Angular trả về. Các trường hợp hay gặp nhất gồm:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Thẻ <code>&lt;table&gt;</code> không có thẻ <code>&lt;tbody&gt;</code> (Trình duyệt sẽ tự động chèn thêm <code>&lt;tbody&gt;</code>, vì vậy hãy luôn khai báo <code>&lt;tbody&gt;</code> tường minh).",
+        "Đặt thẻ <code>&lt;div&gt;</code> bên trong thẻ đoạn văn <code>&lt;p&gt;</code>.",
+        "Đặt thẻ liên kết <code>&lt;a&gt;</code> bên trong một thẻ <code>&lt;a&gt;</code> khác."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "preserve-whitespaces-configuration",
+      "text": "3. Cấu hình bảo toàn khoảng trắng (Preserve Whitespaces)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular khuyến nghị giữ giá trị mặc định là <code>preserveWhitespaces: false</code>. Nếu bạn thay đổi giá trị này thành <code>true</code> trong <code>tsconfig</code>, hãy đảm bảo rằng nó được cấu hình đồng nhất giữa <code>tsconfig.app.json</code> và <code>tsconfig.server.json</code>. Cấu hình lệch nhau sẽ phá vỡ cơ chế hydration."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "custom-or-noop-zonejs",
+      "text": "4. Zone.js tùy biến hoặc Noop Zone.js"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hydration dựa vào tín hiệu ổn định (stable event) từ Zone.js để bắt đầu serialize dữ liệu trên server hoặc dọn dẹp các nút DOM dư thừa trên client. Việc cung cấp triển khai Zone.js tùy chỉnh hoặc Noop có thể làm sai lệch thời điểm kích hoạt này."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-to-skip-hydration-for-particular-components",
+      "text": "Cách bỏ qua Hydration cho component cụ thể (ngSkipHydration)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với các component bắt buộc phải thao tác trực tiếp vào DOM (như thư viện biểu đồ D3) mà bạn chưa thể viết lại ngay, bạn có thể thêm thuộc tính <code>ngSkipHydration</code> vào thẻ component trong template:"
+    },
+    {
+      "type": "code",
+      "file": "skip-example.html",
+      "lang": "html",
+      "code": [
+        "<app-example ngSkipHydration />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hoặc thiết lập thông qua host binding của Component:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.ts",
+      "lang": "ts",
+      "code": [
         "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Hydration</h1>`",
+        "  selector: 'app-example',",
+        "  host: { ngSkipHydration: 'true' },",
+        "  template: `...`,",
         "})",
         "export class ExampleComponent {}"
       ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "warning",
+      "title": "Lưu ý quan trọng",
+      "text": "<code>ngSkipHydration</code> sẽ khiến component và toàn bộ các component con bên trong bị hủy và render lại từ đầu. Thuộc tính này chỉ được phép đặt trên host node của component (Angular sẽ báo lỗi nếu đặt trên thẻ HTML thông thường). Tuyệt đối không đặt trên root component vì nó sẽ vô hiệu hóa hydration toàn ứng dụng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "hydration-timing-and-application-stability",
+      "text": "Thời điểm Hydration và Tính ổn định của ứng dụng"
+    },
+    {
+      "type": "paragraph",
+      "text": "Quá trình Hydration chỉ bắt đầu thực hiện khi ứng dụng đạt trạng thái <strong>ổn định (stable)</strong>. Sự ổn định có thể bị trì hoãn do các khoảng thời gian chờ kéo dài (<code>setTimeout</code>, <code>setInterval</code>), promise chưa được phân giải hoặc microtasks đang chờ xử lý. Khi đó ứng dụng sẽ gặp lỗi <code>NG0506: Application remains unstable</code> sau 10 giây."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "debugging-application-stability",
+      "text": "Debug tính ổn định với provideStabilityDebugging"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tiện ích <code>provideStabilityDebugging</code> (được tích hợp mặc định trong dev mode) giúp bạn xác định nguyên nhân khiến ứng dụng không đạt được trạng thái ổn định bằng cách ghi nhật ký các task đang chờ vào console:"
+    },
+    {
+      "type": "code",
+      "file": "stability-debugging.ts",
+      "lang": "ts",
+      "code": [
+        "import { provideStabilityDebugging } from '@angular/core';",
+        "import { bootstrapApplication } from '@angular/platform-browser';",
+        "import { AppComponent } from './app.component';",
+        "import 'zone.js/plugins/task-tracking'; // Sử dụng nếu có Zone.js để xem stack trace",
+        "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideStabilityDebugging(),",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "i18n",
+      "text": "Hỗ trợ Đa ngôn ngữ (I18N)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, Angular sẽ bỏ qua hydration đối với các component sử dụng các khối <code>i18n</code> và vẽ lại chúng từ đầu. Để kích hoạt hydration cho cả các khối i18n, hãy truyền thêm hàm <code>withI18nSupport()</code> vào <code>provideClientHydration</code>:"
+    },
+    {
+      "type": "code",
+      "file": "i18n-support.ts",
+      "lang": "ts",
+      "code": [
+        "import { provideClientHydration, withI18nSupport } from '@angular/platform-browser';",
+        "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideClientHydration(",
+        "      withI18nSupport()",
+        "    ),",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "consistent-rendering-across-server-side-and-client-side",
+      "text": "Đảm bảo tính nhất quán giữa Server và Client"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tránh đưa vào các khối <code>@if</code> hoặc điều kiện hiển thị nội dung khác biệt khi render ở server so với client (ví dụ dùng <code>isPlatformBrowser</code>). Sự khác biệt này làm thay đổi layout và dẫn đến điểm số Core Web Vitals bị tụt giảm nghiêm trọng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "third-party-libraries-and-scripts",
+      "text": "Xử lý Thư viện và Script của Bên thứ ba"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nhiều thư viện (như biểu đồ D3) và các đoạn mã script bên thứ ba (như mã theo dõi quảng cáo, analytics) can thiệp trực tiếp vào DOM trước khi hydration diễn ra. Điều này làm thay đổi cấu trúc trang và gây lỗi DOM mismatch."
+    },
+    {
+      "type": "paragraph",
+      "text": "<strong>Giải pháp:</strong> Hãy trì hoãn việc chạy các script này cho đến sau khi hydration hoàn tất, bằng cách sử dụng lifecycle hook <code>afterNextRender</code> của Angular."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "incremental-hydration-link",
+      "text": "Incremental Hydration"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để kiểm soát chi tiết và tối ưu hóa từng phần giao diện tải theo nhu cầu của người dùng, hãy xem tài liệu chuyên sâu về <a href=\"/docs/guide/incremental-hydration\">Incremental Hydration</a>."
     }
   ]
 }

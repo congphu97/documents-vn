@@ -1,0 +1,87 @@
+{
+  "slug": "guide/http/testing",
+  "title": "Testing HTTP requests",
+  "description": "Learn how to test HTTP requests in Angular using provideHttpClientTesting and HttpTestingController.",
+  "source": "https://angular.dev/guide/http/testing",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "As for any external dependency, you must mock the HTTP backend so your tests can simulate interaction with a remote server. The <code>@angular/common/http/testing</code> library provides tools to capture requests made by the application, make assertions about them, and mock the responses."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setup-for-testing",
+      "text": "Setup for testing"
+    },
+    {
+      "type": "paragraph",
+      "text": "Configure <code>TestBed</code> with <code>provideHttpClient()</code> and <code>provideHttpClientTesting()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "data.service.spec.ts",
+      "lang": "ts",
+      "code": [
+        "import { TestBed } from '@angular/core/testing';",
+        "import { provideHttpClient } from '@angular/common/http';",
+        "import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';",
+        "import { DataService } from './data.service';",
+        "",
+        "describe('DataService', () => {",
+        "  let service: DataService;",
+        "  let httpTesting: HttpTestingController;",
+        "",
+        "  beforeEach(() => {",
+        "    TestBed.configureTestingModule({",
+        "      providers: [",
+        "        provideHttpClient(),",
+        "        provideHttpClientTesting(),",
+        "        DataService,",
+        "      ],",
+        "    });",
+        "",
+        "    service = TestBed.inject(DataService);",
+        "    httpTesting = TestBed.inject(HttpTestingController);",
+        "  });",
+        "",
+        "  afterEach(() => {",
+        "    httpTesting.verify(); // Verifies that no requests are outstanding",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "expecting-and-flushing-requests",
+      "text": "Expecting and answering requests"
+    },
+    {
+      "type": "paragraph",
+      "text": "Use <code>httpTesting.expectOne()</code> to assert that a request was made, and call <code>req.flush()</code> to provide mock data:"
+    },
+    {
+      "type": "code",
+      "file": "test-request.spec.ts",
+      "lang": "ts",
+      "code": [
+        "it('should fetch data from API', () => {",
+        "  const testData = { name: 'Angular' };",
+        "",
+        "  service.getData().subscribe((data) => {",
+        "    expect(data).toEqual(testData);",
+        "  });",
+        "",
+        "  // Expect a single GET request to /api/data",
+        "  const req = httpTesting.expectOne('/api/data');",
+        "  expect(req.request.method).toEqual('GET');",
+        "",
+        "  // Resolve the request with test data",
+        "  req.flush(testData);",
+        "});"
+      ]
+    }
+  ]
+}

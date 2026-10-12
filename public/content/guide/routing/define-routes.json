@@ -1,0 +1,593 @@
+{
+  "slug": "guide/routing/define-routes",
+  "title": "Định nghĩa tuyến đường (Define routes)",
+  "description": "Tìm hiểu cách định nghĩa các tuyến đường (routes), cấu hình URL tĩnh và động, ký tự đại diện (wildcard), redirects, tiêu đề trang và tuyến đường lồng nhau trong Angular Router.",
+  "source": "https://angular.dev/guide/routing/define-routes",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Routes đóng vai trò là những khối xây dựng cơ bản (building blocks) cho việc điều hướng bên trong một ứng dụng Angular."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "what-are-routes",
+      "text": "Routes là gì? (What are routes?)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong Angular, một <strong>route</strong> là một đối tượng xác định component nào sẽ được render cho một đường dẫn hoặc mẫu URL cụ thể, kèm theo các tùy chọn cấu hình bổ sung về những gì xảy ra khi người dùng điều hướng đến URL đó."
+    },
+    {
+      "type": "paragraph",
+      "text": "Dưới đây là một ví dụ cơ bản về route:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { AdminPage } from './app-admin';",
+        "",
+        "const adminPage = {",
+        "  path: 'admin',",
+        "  component: AdminPage,",
+        "};"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Với route này, khi người dùng truy cập vào đường dẫn <code>/admin</code>, ứng dụng sẽ hiển thị <code>AdminPage</code> component."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "managing-routes-in-your-application",
+      "text": "Quản lý routes trong ứng dụng (Managing routes in your application)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hầu hết các dự án đều định nghĩa routes trong một tệp riêng biệt có chứa từ <code>routes</code> trong tên tệp (thường là <code>app.routes.ts</code>)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Một tập hợp các routes được khai báo dưới dạng một mảng kiểu <code>Routes</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { HomePage } from './home-page';",
+        "import { AdminPage } from './admin-page';",
+        "",
+        "export const routes: Routes = [",
+        "  {",
+        "    path: '',",
+        "    component: HomePage,",
+        "  },",
+        "  {",
+        "    path: 'admin',",
+        "    component: AdminPage,",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Nếu bạn khởi tạo dự án bằng Angular CLI, các routes của bạn đã được cấu hình sẵn trong tệp <code>src/app/app.routes.ts</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "adding-the-router-to-your-application",
+      "text": "Thêm Router vào ứng dụng (Adding the router to your application)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi khởi động một ứng dụng Angular (chẳng hạn với standalone bootstrap), bạn truyền một đối tượng cấu hình có chứa mảng <code>providers</code>. Bên trong mảng này, bạn có thể thêm Angular Router bằng cách gọi hàm <code>provideRouter</code> với mảng routes của mình:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideRouter } from '@angular/router';",
+        "import { routes } from './app.routes';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideRouter(routes),",
+        "    // ... các provider khác",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "route-url-paths",
+      "text": "Đường dẫn URL của Route (Route URL Paths)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "static-url-paths",
+      "text": "Đường dẫn tĩnh (Static URL Paths)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Static URL Paths là những route có đường dẫn được định nghĩa trước và không thay đổi theo các tham số động. Đây là những route khớp chính xác với chuỗi đường dẫn và cho ra kết quả cố định:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>\"/admin\"</code>",
+        "<code>\"/blog\"</code>",
+        "<code>\"/settings/account\"</code>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "define-url-paths-with-route-parameters",
+      "text": "Định nghĩa đường dẫn với tham số route (Define URL Paths with Route Parameters)"
+    },
+    {
+      "type": "paragraph",
+      "text": "URL có tham số cho phép bạn định nghĩa các đường dẫn động, cho phép nhiều URL khác nhau cùng trỏ về một component duy nhất trong khi vẫn hiển thị dữ liệu động dựa trên các tham số có trong URL."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể định nghĩa dạng đường dẫn này bằng cách thêm các tham số vào chuỗi <code>path</code> và đặt dấu hai chấm (<code>:</code>) ở trước mỗi tham số."
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "Tham số route (Parameters) khác với chuỗi truy vấn (query string) trong URL. Tham số nằm trực tiếp trong cấu trúc đường dẫn (ví dụ: <code>/user/:id</code>), trong khi query string nằm sau dấu hỏi chấm (ví dụ: <code>?sort=asc</code>)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ sau hiển thị component hồ sơ người dùng dựa trên <code>id</code> được truyền qua URL:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { UserProfile } from './user-profile/user-profile';",
+        "",
+        "const routes: Routes = [",
+        "  { path: 'user/:id', component: UserProfile }",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ này, các URL như <code>/user/leeroy</code> và <code>/user/jenkins</code> đều sẽ render <code>UserProfile</code> component. Component này sau đó có thể đọc tham số <code>id</code> để thực hiện các tác vụ tiếp theo như lấy dữ liệu người dùng."
+    },
+    {
+      "type": "paragraph",
+      "text": "Tên tham số route hợp lệ phải bắt đầu bằng chữ cái (a-z, A-Z) và chỉ có thể chứa: chữ cái (a-z, A-Z), chữ số (0-9), dấu gạch dưới (<code>_</code>) hoặc dấu gạch ngang (<code>-</code>)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể định nghĩa các đường dẫn có nhiều tham số:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { UserProfile } from './user-profile';",
+        "import { SocialMediaFeed } from './social-media-feed';",
+        "",
+        "const routes: Routes = [",
+        "  { path: 'user/:id/:social-media', component: SocialMediaFeed },",
+        "  { path: 'user/:id', component: UserProfile },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Với cấu hình trên, người dùng có thể truy cập <code>/user/leeroy/youtube</code> và <code>/user/leeroy/bluesky</code> để xem bảng tin mạng xã hội tương ứng của người dùng <code>leeroy</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "wildcards",
+      "text": "Ký tự đại diện (Wildcards)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn cần bắt tất cả các tuyến đường không khớp với bất kỳ đường dẫn nào đã khai báo, giải pháp là sử dụng ký tự đại diện với hai dấu sao (<code>**</code>). Một trường hợp phổ biến nhất là hiển thị component trang 404 (Page Not Found):"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { Home } from './home/home';",
+        "import { UserProfile } from './user-profile';",
+        "import { NotFound } from './not-found';",
+        "",
+        "const routes: Routes = [",
+        "  { path: 'home', component: Home },",
+        "  { path: 'user/:id', component: UserProfile },",
+        "  { path: '**', component: NotFound },",
+        "];"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Các route chứa ký tự đại diện (wildcard routes) luôn luôn được đặt ở vị trí cuối cùng trong mảng <code>routes</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-angular-matches-urls",
+      "text": "Cách Angular khớp URLs (How Angular matches URLs)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn định nghĩa các routes, thứ tự sắp xếp là vô cùng quan trọng vì Angular áp dụng chiến lược <strong>first-match wins</strong> (khớp đầu tiên sẽ thắng). Nghĩa là khi Angular tìm thấy một route khớp với URL, nó sẽ lập tức dừng việc kiểm tra các route còn lại. Do đó, bạn phải luôn đặt các routes cụ thể hơn (more specific) đứng trước các routes khái quát hơn (less specific)."
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "const routes: Routes = [",
+        "  { path: '', component: Home },             // Đường dẫn rỗng (Root)",
+        "  { path: 'users/new', component: NewUser }, // Tĩnh, cụ thể nhất",
+        "  { path: 'users/:id', component: UserDetail }, // Động",
+        "  { path: 'users', component: Users },       // Tĩnh, ít cụ thể hơn",
+        "  { path: '**', component: NotFound },       // Đại diện (Wildcard) - luôn ở cuối",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu người dùng truy cập vào <code>/users/new</code>, Angular Router sẽ duyệt qua các bước sau:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Kiểm tra <code>''</code> - không khớp.",
+        "Kiểm tra <code>users/new</code> - khớp hoàn toàn! Dừng kiểm tra tại đây.",
+        "Không bao giờ kiểm tra tới <code>users/:id</code> (mặc dù route này cũng có thể khớp).",
+        "Không bao giờ kiểm tra tới <code>users</code>.",
+        "Không bao giờ kiểm tra tới <code>**</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "redirects",
+      "text": "Chuyển hướng (Redirects)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể định nghĩa một route chuyển hướng (redirect) sang một route khác thay vì render component trực tiếp:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { Blog } from './home/blog';",
+        "",
+        "const routes: Routes = [",
+        "  {",
+        "    path: 'articles',",
+        "    redirectTo: '/blog',",
+        "  },",
+        "  {",
+        "    path: 'blog',",
+        "    component: Blog,",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn thay đổi hoặc xóa bỏ một tuyến đường, một số người dùng vẫn có thể nhấp vào các liên kết cũ hoặc dấu trang (bookmarks). Thêm <code>redirectTo</code> giúp chuyển hướng những người dùng đó đến tuyến đường thay thế phù hợp thay vì hiển thị trang lỗi 404."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "page-titles",
+      "text": "Tiêu đề trang (Page titles)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể gắn thuộc tính <code>title</code> cho từng route. Angular sẽ tự động cập nhật tiêu đề tài liệu (document title / thẻ <code>&lt;title&gt;</code>) khi route đó được kích hoạt. Hãy luôn khai báo tiêu đề trang phù hợp để đảm bảo khả năng tiếp cận (accessibility) và SEO cho ứng dụng:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { Home } from './home';",
+        "import { About } from './about';",
+        "",
+        "const routes: Routes = [",
+        "  {",
+        "    path: '',",
+        "    component: Home,",
+        "    title: 'Home Page',",
+        "  },",
+        "  {",
+        "    path: 'about',",
+        "    component: About,",
+        "    title: 'About Us',",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Thuộc tính tiêu đề trang cũng có thể được gán động thông qua một hàm resolver sử dụng <code>ResolveFn</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes, ResolveFn } from '@angular/router';",
+        "import { Products } from './products';",
+        "",
+        "const titleResolver: ResolveFn<string> = (route) => route.queryParams['id'];",
+        "",
+        "const routes: Routes = [",
+        "  {",
+        "    path: 'products',",
+        "    component: Products,",
+        "    title: titleResolver,",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-titlestrategy-for-page-titles",
+      "text": "Sử dụng TitleStrategy cho tiêu đề trang (Using TitleStrategy for page titles)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với các trường hợp nâng cao cần kiểm soát tập trung cách định dạng tiêu đề tài liệu, hãy triển khai lớp kế thừa từ <code>TitleStrategy</code>. Mặc định Angular sử dụng <code>DefaultTitleStrategy</code>. Bạn có thể cung cấp một <code>TitleStrategy</code> tùy biến để thêm hậu tố tên ứng dụng, định dạng breadcrumbs hoặc tạo tiêu đề động từ dữ liệu route:"
+    },
+    {
+      "type": "code",
+      "file": "app-title.strategy.ts",
+      "lang": "ts",
+      "code": [
+        "import { inject, Injectable } from '@angular/core';",
+        "import { Title } from '@angular/platform-browser';",
+        "import { TitleStrategy, RouterStateSnapshot } from '@angular/router';",
+        "",
+        "@Injectable()",
+        "export class AppTitleStrategy extends TitleStrategy {",
+        "  private readonly title = inject(Title);",
+        "",
+        "  updateTitle(snapshot: RouterStateSnapshot): void {",
+        "    // buildTitle lấy tiêu đề từ route cấu hình",
+        "    // Nếu không có, sử dụng tiêu đề mặc định trong index.html",
+        "    const pageTitle = this.buildTitle(snapshot) || this.title.getTitle();",
+        "    this.title.setTitle(`MyAwesomeApp - ${pageTitle}`);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Để áp dụng chiến lược tùy chỉnh này, cung cấp nó qua token <code>TitleStrategy</code> tại tầng ứng dụng:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideRouter, TitleStrategy } from '@angular/router';",
+        "import { routes } from './app.routes';",
+        "import { AppTitleStrategy } from './app-title.strategy';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideRouter(routes),",
+        "    { provide: TitleStrategy, useClass: AppTitleStrategy },",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "route-level-providers-for-dependency-injection",
+      "text": "Providers ở cấp độ Route cho Dependency Injection (Route-level providers)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi route đều có thuộc tính <code>providers</code> cho phép bạn cung cấp các dependency riêng cho nội dung của tuyến đường đó thông qua hệ thống Dependency Injection. Trường hợp sử dụng phổ biến là cung cấp các service chuyên biệt dựa trên phân quyền (ví dụ khu vực quản trị viên admin):"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Route } from '@angular/router';",
+        "import { AdminService, ADMIN_API_KEY } from './admin';",
+        "import { AdminUsers } from './admin-users';",
+        "import { AdminTeams } from './admin-teams';",
+        "",
+        "export const ROUTES: Route[] = [",
+        "  {",
+        "    path: 'admin',",
+        "    providers: [",
+        "      AdminService,",
+        "      { provide: ADMIN_API_KEY, useValue: '12345' },",
+        "    ],",
+        "    children: [",
+        "      { path: 'users', component: AdminUsers },",
+        "      { path: 'teams', component: AdminTeams },",
+        "    ],",
+        "  },",
+        "  // Các route khác trong ứng dụng sẽ KHÔNG thể truy cập",
+        "  // ADMIN_API_KEY hoặc AdminService.",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong đoạn mã trên, nhánh <code>admin</code> cung cấp <code>ADMIN_API_KEY</code> và nó chỉ tồn tại trong phạm vi của route này và các route con của nó. Không có tuyến đường nào bên ngoài có thể truy cập được token này."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "associating-data-with-routes",
+      "text": "Gắn dữ liệu vào Routes (Associating data with routes)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dữ liệu route cho phép bạn đính kèm thông tin bổ sung vào từng tuyến đường. Bạn có thể định cấu hình cách component hoạt động dựa trên dữ liệu này theo hai cách: dữ liệu tĩnh (static data) và dữ liệu động (dynamic data)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "static-data",
+      "text": "Dữ liệu tĩnh (Static data)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể gắn dữ liệu tĩnh tùy ý vào route thông qua thuộc tính <code>data</code> nhằm tập trung hóa các metadata đặc thù của route (chẳng hạn như mã theo dõi analytics, phân quyền quyền hạn):"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { Home } from './home';",
+        "import { About } from './about';",
+        "",
+        "const routes: Routes = [",
+        "  {",
+        "    path: 'about',",
+        "    component: About,",
+        "    data: { analyticsId: '456' },",
+        "  },",
+        "  {",
+        "    path: '',",
+        "    component: Home,",
+        "    data: { analyticsId: '123' },",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể đọc dữ liệu tĩnh này trong component bằng cách inject <code>ActivatedRoute</code> (thông qua <code>route.snapshot.data</code> hoặc signal/observable dữ liệu route)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "dynamic-data-with-resources-and-resolvers",
+      "text": "Dữ liệu động với resources và resolvers (Dynamic data)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn cần lấy dữ liệu bất đồng bộ cho một route, Angular Router hỗ trợ hai cơ chế chính:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Lấy dữ liệu phản ứng với Resources:</strong> Lấy dữ liệu phản ứng bằng API Resource dựa trên Angular Signals.",
+        "<strong>Route data resolvers:</strong> Nạp dữ liệu hoàn tất trước khi kích hoạt route bằng các hàm resolver."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "nested-routes",
+      "text": "Tuyến đường lồng nhau (Nested Routes)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tuyến đường lồng nhau (hay còn gọi là child routes) là một kỹ thuật phổ biến để quản lý các kịch bản điều hướng phức tạp, nơi mà một component chứa một khung nhìn con (sub-view) thay đổi nội dung linh hoạt theo URL."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể thêm các tuyến đường con vào bất kỳ định nghĩa route nào bằng thuộc tính <code>children</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { Product } from './product';",
+        "import { ProductInfo } from './product-info';",
+        "import { ProductReviews } from './product-reviews';",
+        "",
+        "const routes: Routes = [",
+        "  {",
+        "    path: 'product/:id',",
+        "    component: Product,",
+        "    children: [",
+        "      {",
+        "        path: 'info',",
+        "        component: ProductInfo,",
+        "      },",
+        "      {",
+        "        path: 'reviews',",
+        "        component: ProductReviews,",
+        "      },",
+        "    ],",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Thuộc tính <code>children</code> nhận một mảng các đối tượng <code>Route</code>. Để hiển thị các tuyến đường con này, component cha (ở ví dụ trên là <code>Product</code>) cần đặt thẻ <code>&lt;router-outlet&gt;</code> của riêng mình trong template:"
+    },
+    {
+      "type": "code",
+      "file": "product.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Product Component Template -->",
+        "<article>",
+        "  <h1>Product {{ id }}</h1>",
+        "  <router-outlet />",
+        "</article>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau khi thêm routes con vào cấu hình và đặt thẻ <code>&lt;router-outlet /&gt;</code> trong template của component cha, việc điều hướng giữa các URL khớp với routes con sẽ chỉ cập nhật outlet lồng nhau bên trong mà không reload lại toàn bộ component cha."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tiếp tục tìm hiểu về các chiến lược nạp tuyến đường (Route Loading Strategies) và cách hiển thị nội dung với router outlets."
+    }
+  ]
+}

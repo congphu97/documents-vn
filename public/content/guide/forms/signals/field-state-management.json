@@ -1,0 +1,500 @@
+{
+  "slug": "guide/forms/signals/field-state-management",
+  "title": "Quản lý trạng thái trường (Field State Management)",
+  "description": "Tìm hiểu cách theo dõi và phản hồi tương tác người dùng với Field State trong Signal Forms: trạng thái kiểm thực (valid, invalid, errors, pending), tương tác (touched, dirty), khả dụng (disabled, hidden, readonly) và điều hướng tiêu điểm focusBoundControl.",
+  "source": "https://angular.dev/guide/forms/signals/field-state-management",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<strong>Trạng thái trường (Field state)</strong> trong Signal Forms cho phép bạn phản ứng linh hoạt với các tương tác của người dùng thông qua các reactive signal theo dõi trạng thái kiểm thực (như <code>valid</code>, <code>invalid</code>, <code>errors</code>), theo dõi tương tác (như <code>touched</code>, <code>dirty</code>) và khả năng tương tác/hiển thị (như <code>disabled</code>, <code>hidden</code>, <code>readonly</code>)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "understanding-field-state",
+      "text": "Tìm hiểu về Field State (Understanding field state)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn khởi tạo một biểu mẫu với hàm <code>form()</code>, nó trả về một cây trường dữ liệu (field tree) — cấu trúc đối tượng ánh xạ chính xác theo form model. Mỗi trường trong cây đều có thể truy cập được thông qua cú pháp dấu chấm (chẳng hạn như <code>form.email</code>)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "accessing-field-state",
+      "text": "Truy cập Field State (Accessing field state)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn gọi bất kỳ trường nào trong field tree như một hàm (ví dụ: <code>form.email()</code>), nó sẽ trả về một đối tượng <code>FieldState</code> chứa các reactive signal theo dõi trạng thái kiểm thực, tương tác và tính khả dụng của trường. Ví dụ: signal <code>invalid()</code> cho biết trường có đang gặp lỗi kiểm thực hay không:"
+    },
+    {
+      "type": "code",
+      "file": "registration.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal } from '@angular/core';",
+        "import { form, FormField, required, email } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  selector: 'app-registration',",
+        "  imports: [FormField],",
+        "  template: `",
+        "    <input type=\"email\" [formField]=\"registrationForm.email\" />",
+        "    @if (registrationForm.email().invalid()) {",
+        "      <p class=\"error\">Email có lỗi kiểm thực:</p>",
+        "      <ul>",
+        "        @for (error of registrationForm.email().errors(); track error) {",
+        "          <li>{{ error.message }}</li>",
+        "        }",
+        "      </ul>",
+        "    }",
+        "  `,",
+        "})",
+        "export class Registration {",
+        "  registrationModel = signal({",
+        "    email: '',",
+        "    password: '',",
+        "  });",
+        "",
+        "  registrationForm = form(this.registrationModel, (schemaPath) => {",
+        "    required(schemaPath.email, { message: 'Email là bắt buộc' });",
+        "    email(schemaPath.email, { message: 'Vui lòng nhập địa chỉ email hợp lệ' });",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "field-state-signals",
+      "text": "Các Signal trong Field State (Field state signals)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal thông dụng nhất là <code>value()</code> — một <code>WritableSignal</code> cho phép đọc và ghi giá trị hiện tại của trường:"
+    },
+    {
+      "type": "code",
+      "file": "read-value.ts",
+      "lang": "ts",
+      "code": [
+        "const emailValue = registrationForm.email().value();",
+        "console.log(emailValue); // Chuỗi email hiện tại"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bên cạnh <code>value()</code>, field state cung cấp đầy đủ các signal theo 3 nhóm chính:"
+    },
+    {
+      "type": "table",
+      "headers": ["Nhóm", "Signal", "Mô tả"],
+      "rows": [
+        ["<strong>Kiểm thực (Validation)</strong>", "<code>valid()</code>", "Trường vượt qua tất cả các quy tắc và không có validator bất đồng bộ nào đang chạy"],
+        ["", "<code>invalid()</code>", "Trường có lỗi kiểm thực"],
+        ["", "<code>errors()</code>", "Mảng chứa các đối tượng lỗi kiểm thực"],
+        ["", "<code>pending()</code>", "Đang trong quá trình kiểm thực bất đồng bộ (async validation)"],
+        ["<strong>Tương tác (Interaction)</strong>", "<code>touched()</code>", "Người dùng đã focus và sau đó blur ra khỏi trường (nếu có tương tác)"],
+        ["", "<code>dirty()</code>", "Người dùng đã thay đổi giá trị của trường (kể cả khi sau đó sửa lại giống giá trị ban đầu)"],
+        ["<strong>Khả dụng (Availability)</strong>", "<code>disabled()</code>", "Trường bị vô hiệu hóa và không ảnh hưởng đến trạng thái hợp lệ của form cha"],
+        ["", "<code>hidden()</code>", "Đánh dấu trường nên được ẩn; hiển thị trên template được điều khiển bằng <code>@if</code>"],
+        ["", "<code>readonly()</code>", "Trường chỉ đọc, không thể chỉnh sửa và không ảnh hưởng đến form cha"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "validation-state",
+      "text": "Trạng thái kiểm thực (Validation state)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "checking-validity",
+      "text": "Kiểm tra tính hợp lệ (Checking validity)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng <code>valid()</code> và <code>invalid()</code> để hiển thị phản hồi trên giao diện:"
+    },
+    {
+      "type": "code",
+      "file": "valid-check.component.html",
+      "lang": "html",
+      "code": [
+        "<input type=\"email\" [formField]=\"loginForm.email\" />",
+        "@if (loginForm.email().invalid()) {",
+        "  <p class=\"error\">Email không hợp lệ</p>",
+        "}",
+        "@if (loginForm.email().valid()) {",
+        "  <p class=\"success\">Email hợp lệ</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Khi kiểm tra tính hợp lệ trong mã nguồn, hãy dùng <code>invalid()</code> thay vì <code>!valid()</code> nếu bạn muốn phân biệt giữa trạng thái \"có lỗi\" và \"đang chờ kiểm thực\" (pending). Khi async validator đang chạy, cả <code>valid()</code> và <code>invalid()</code> đều trả về <code>false</code> vì form chưa thể kết luận là hợp lệ và cũng chưa tìm thấy lỗi."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "reading-validation-errors",
+      "text": "Đọc lỗi kiểm thực (Reading validation errors)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Truy cập mảng tất cả các lỗi qua <code>errors()</code>, hoặc tìm kiếm một loại lỗi cụ thể với phương thức <code>getError(kind)</code>:"
+    },
+    {
+      "type": "code",
+      "file": "errors-example.html",
+      "lang": "html",
+      "code": [
+        "<!-- Cách 1: Duyệt qua toàn bộ danh sách lỗi -->",
+        "@if (loginForm.email().errors().length > 0) {",
+        "  <div class=\"errors\">",
+        "    @for (error of loginForm.email().errors(); track error) {",
+        "      <p>{{ error.message }}</p>",
+        "    }",
+        "  </div>",
+        "}",
+        "",
+        "<!-- Cách 2: Lấy đích danh lỗi theo kind ('required', 'email', 'minLength', ...) -->",
+        "@if (loginForm.email().getError('required'); as error) {",
+        "  <p class=\"error\">{{ error.message }}</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "pending-validation",
+      "text": "Kiểm thực bất đồng bộ đang chờ xử lý (Pending validation)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal <code>pending()</code> báo hiệu khi một validator bất đồng bộ đang chạy (ví dụ: gọi API kiểm tra email đã tồn tại hay chưa):"
+    },
+    {
+      "type": "code",
+      "file": "pending-example.html",
+      "lang": "html",
+      "code": [
+        "<input type=\"email\" [formField]=\"signupForm.email\" />",
+        "@if (signupForm.email().pending()) {",
+        "  <p class=\"loading\">Đang kiểm tra tính khả dụng của email...</p>",
+        "}",
+        "@if (signupForm.email().invalid() && !signupForm.email().pending()) {",
+        "  <p class=\"error\">Email này đã được đăng ký</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "interaction-state",
+      "text": "Trạng thái tương tác (Interaction state)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "touched-state",
+      "text": "Trạng thái Touched (Touched state)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal <code>touched()</code> theo dõi xem người dùng đã từng focus vào trường và sau đó rời đi (blur) hay chưa, hoặc trường có được đánh dấu là touched bằng code qua <code>markAsTouched()</code> hay không. Chỉ các trường có khả năng tương tác mới có thể trở thành touched."
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn muốn hiển thị toàn bộ lỗi của một phân đoạn form (ví dụ: bước nhập địa chỉ giao hàng trước khi chuyển qua bước thanh toán), gọi <code>markAsTouched()</code> trên trường nhóm cha:"
+    },
+    {
+      "type": "code",
+      "file": "checkout-shipping.component.ts",
+      "lang": "ts",
+      "code": [
+        "continueToPayment() {",
+        "  // Mặc định skipDescendants là false: đánh dấu cả nhóm và tất cả các trường con là touched",
+        "  this.checkoutForm.shipping().markAsTouched();",
+        "  ",
+        "  if (this.checkoutForm.shipping().invalid()) {",
+        "    return; // Dừng lại nếu phân đoạn này có lỗi",
+        "  }",
+        "  this.showPayment.set(true);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "dirty-state",
+      "text": "Trạng thái Dirty (Dirty state)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal <code>dirty()</code> chuyển thành <code>true</code> ngay khi người dùng chỉnh sửa giá trị của trường và sẽ duy trì là <code>true</code> kể cả khi người dùng xóa đi nhập lại giống hệt giá trị khởi tạo ban đầu. Rất hữu ích để cảnh báo \"thay đổi chưa lưu\" hoặc bật/tắt nút Lưu:"
+    },
+    {
+      "type": "code",
+      "file": "profile-dirty.html",
+      "lang": "html",
+      "code": [
+        "<form novalidate>",
+        "  <input [formField]=\"profileForm.name\" />",
+        "  <input [formField]=\"profileForm.bio\" />",
+        "  @if (profileForm().dirty()) {",
+        "    <p class=\"warning\">Bạn có các thay đổi chưa được lưu!</p>",
+        "  }",
+        "</form>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "touched-vs-dirty",
+      "text": "So sánh Touched và Dirty (Touched vs dirty)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>touched():</strong> Người dùng đã focus và blur ra khỏi trường, hoặc được kích hoạt qua <code>markAsTouched()</code>.",
+        "<strong>dirty():</strong> Người dùng đã gõ hoặc thay đổi giá trị của trường (kể cả chưa rời khỏi trường đó)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "availability-state",
+      "text": "Trạng thái khả dụng (Availability state)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các trường <code>disabled</code>, <code>hidden</code>, và <code>readonly</code> là phi tương tác (non-interactive). Chúng <strong>không ảnh hưởng</strong> đến trạng thái hợp lệ (valid), touched hay dirty của form cha."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "disabled-fields",
+      "text": "Trường bị vô hiệu hóa (Disabled fields)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal <code>disabled()</code> cho biết trường có chấp nhận tương tác hay không. Directive <code>[formField]</code> sẽ tự động gán thuộc tính HTML <code>disabled</code> tương ứng:"
+    },
+    {
+      "type": "code",
+      "file": "order-disabled.ts",
+      "lang": "ts",
+      "code": [
+        "const orderForm = form(this.orderModel, (schemaPath) => {",
+        "  disabled(schemaPath.couponCode, {",
+        "    when: ({ valueOf }) => valueOf(schemaPath.total) < 50,",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "hidden-fields",
+      "text": "Trường bị ẩn (Hidden fields)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal <code>hidden()</code> kết hợp với <code>@if</code> trong template để ẩn hiện trường. Khi một trường bị ẩn, các validator của nó (kể cả required) sẽ tạm thời không tham gia kiểm thực, cho phép submit form thuận lợi:"
+    },
+    {
+      "type": "code",
+      "file": "hidden-example.ts",
+      "lang": "ts",
+      "code": [
+        "const profileForm = form(this.profileModel, (schemaPath) => {",
+        "  hidden(schemaPath.publicUrl, {",
+        "    when: ({ valueOf }) => !valueOf(schemaPath.isPublic),",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "readonly-fields",
+      "text": "Trường chỉ đọc (Readonly fields)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Người dùng có thể xem giá trị nhưng không được chỉnh sửa:"
+    },
+    {
+      "type": "code",
+      "file": "readonly-example.ts",
+      "lang": "ts",
+      "code": [
+        "const accountForm = form(this.accountModel, (schemaPath) => {",
+        "  readonly(schemaPath.username);",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "form-level-state",
+      "text": "Trạng thái ở cấp độ Form (Form-level state)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Form gốc (root form) cũng là một trường đặc biệt trong field tree. Khi gọi <code>form()</code> như một hàm (<code>loginForm()</code>), nó trả về một <code>FieldState</code> tổng hợp trạng thái từ tất cả các trường con:"
+    },
+    {
+      "type": "code",
+      "file": "root-form-state.html",
+      "lang": "html",
+      "code": [
+        "<form novalidate>",
+        "  <input [formField]=\"loginForm.email\" />",
+        "  <input [formField]=\"loginForm.password\" />",
+        "  <button [disabled]=\"!loginForm().valid()\">Đăng nhập</button>",
+        "</form>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "state-propagation",
+      "text": "Cơ chế lan truyền trạng thái (State propagation)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trạng thái trường lan truyền từ trường con lên các nhóm cha và tới root form:"
+    },
+    {
+      "type": "code",
+      "file": "propagation.ts",
+      "lang": "ts",
+      "code": [
+        "// Nếu firstName không hợp lệ:",
+        "userForm.profile.firstName().invalid() === true;",
+        "// => Cấp nhóm profile cũng bị invalid:",
+        "userForm.profile().invalid() === true;",
+        "// => Toàn bộ root form cũng invalid:",
+        "userForm().invalid() === true;"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "programmatic-state-changes",
+      "text": "Thay đổi trạng thái bằng lập trình (Programmatic state changes)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "form-submission",
+      "text": "Gửi biểu mẫu với FormRoot và submit()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Directive <code>[formRoot]</code> tự động vô hiệu hóa hành vi submit mặc định của trình duyệt và thêm thuộc tính <code>novalidate</code> vào thẻ <code>&lt;form&gt;</code>:"
+    },
+    {
+      "type": "code",
+      "file": "form-root.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { FormRoot, FormField } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  imports: [FormRoot, FormField],",
+        "  template: `",
+        "    <form [formRoot]=\"registrationForm\">",
+        "      <input [formField]=\"registrationForm.username\" />",
+        "      <input type=\"email\" [formField]=\"registrationForm.email\" />",
+        "      <button type=\"submit\">Đăng ký</button>",
+        "    </form>",
+        "  `,",
+        "})",
+        "export class Registration {",
+        "  registrationModel = signal({ username: '', email: '' });",
+        "  registrationForm = form(this.registrationModel, schema => { ... }, {",
+        "    submission: {",
+        "      action: async () => this.submitToServer(),",
+        "    },",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "resetting-forms-after-submission",
+      "text": "Đặt lại Form sau khi gửi (Resetting forms)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức <code>reset()</code> xóa sạch cờ <code>touched</code> và <code>dirty</code>, đồng thời cho phép bạn truyền vào dữ liệu mới để khôi phục về giá trị khởi tạo:"
+    },
+    {
+      "type": "code",
+      "file": "reset-example.ts",
+      "lang": "ts",
+      "code": [
+        "submission: {",
+        "  action: async (f) => {",
+        "    await this.api.sendMessage(this.contactModel());",
+        "    // Xóa cờ tương tác và đưa form về giá trị ban đầu:",
+        "    f().reset({ ...this.INITIAL_MODEL });",
+        "  },",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "focus-a-form-control-bound-to-a-form-field",
+      "text": "Chuyển tiêu điểm vào control (focusBoundControl)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức <code>focusBoundControl()</code> trên field state cho phép bạn lập trình chuyển tiêu điểm bàn phím (focus) vào thẻ điều khiển UI tương ứng. Rất hữu ích khi submit form không hợp lệ để tự động trỏ con trỏ vào ô lỗi đầu tiên:"
+    },
+    {
+      "type": "code",
+      "file": "focus-first-error.ts",
+      "lang": "ts",
+      "code": [
+        "onSubmit() {",
+        "  const firstError = this.registrationForm().errorSummary()[0];",
+        "  if (firstError?.fieldTree) {",
+        "    // Chuyển focus vào ô nhập liệu lỗi đầu tiên:",
+        "    firstError.fieldTree().focusBoundControl();",
+        "  } else {",
+        "    // Tiến hành gửi dữ liệu",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Nếu ô nhập liệu nằm ngoài tầm nhìn (viewport) và bạn không muốn trang web tự động cuộn đến vị trí đó, hãy truyền tham số: <code>field().focusBoundControl({ preventScroll: true });</code>"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/validation\">Kiểm thực dữ liệu trong Signal Forms (Validation)</a>",
+        "<a href=\"/docs/guide/forms/signals/models\">Mô hình biểu mẫu (Form models)</a>",
+        "<a href=\"/docs/guide/forms/signals/custom-controls\">Xây dựng điều khiển tùy chỉnh (Custom controls)</a>"
+      ]
+    }
+  ]
+}

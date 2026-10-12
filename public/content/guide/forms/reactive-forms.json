@@ -1,43 +1,646 @@
 {
   "slug": "guide/forms/reactive-forms",
-  "title": "Reactive Forms",
-  "description": "Tài liệu hướng dẫn về Reactive Forms trong Angular.",
+  "title": "Biểu mẫu Phản ứng (Reactive Forms)",
+  "description": "Hướng dẫn toàn diện về Reactive Forms trong Angular: cách tạo FormControl, gom nhóm với FormGroup, lồng nhóm, sử dụng FormBuilder, kiểm thực dữ liệu, tạo biểu mẫu động với FormArray, luồng sự kiện hợp nhất (unified events) và kiểm soát lan truyền sự kiện.",
   "source": "https://angular.dev/guide/forms/reactive-forms",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/forms/reactive-forms](https://angular.dev/guide/forms/reactive-forms)."
-    },
-    {
       "type": "paragraph",
-      "text": "Reactive Forms là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "<strong>Reactive forms</strong> cung cấp một cách tiếp cận hướng mô hình (model-driven approach) để xử lý dữ liệu nhập vào của biểu mẫu khi các giá trị thay đổi theo thời gian. Hướng dẫn này chỉ dẫn bạn cách tạo và cập nhật một control cơ bản, gom nhiều control vào một nhóm, kiểm thực (validate) giá trị của form, và tạo các biểu mẫu động cho phép thêm/xóa control tại thời điểm runtime."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "overview-of-reactive-forms",
+      "text": "Tổng quan về Reactive Forms (Overview of reactive forms)"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Reactive Forms, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Reactive forms sử dụng cách tiếp cận rõ ràng (explicit) và bất biến (immutable) để quản lý trạng thái của form tại bất kỳ thời điểm nào. Mỗi thay đổi đối với trạng thái form sẽ trả về một trạng thái mới, giúp duy trì tính toàn vẹn của model giữa các lần thay đổi. Reactive forms được xây dựng xoay quanh các luồng Observable, nơi dữ liệu nhập và các giá trị của form được cung cấp dưới dạng stream có thể truy cập đồng bộ."
+    },
+    {
+      "type": "paragraph",
+      "text": "Reactive forms cũng cung cấp một quy trình kiểm thử (testing) trực quan và đáng tin cậy vì dữ liệu luôn nhất quán và có thể đoán trước. Bất kỳ thành phần nào tiêu thụ các Observable stream này đều có thể thao tác dữ liệu một cách an toàn."
+    },
+    {
+      "type": "paragraph",
+      "text": "Reactive forms khác biệt rõ rệt so với <strong>Template-driven forms</strong>: Reactive forms cho phép truy cập đồng bộ vào data model, tính bất biến với các toán tử Observable, và theo dõi thay đổi thông qua Observable stream. Ngược lại, Template-driven forms cho phép sửa đổi dữ liệu trực tiếp trong template nhưng ít rõ ràng hơn do dựa vào các directive nhúng trong template và dữ liệu khả biến (mutable) để theo dõi bất đồng bộ."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "adding-a-basic-form-control",
+      "text": "Thêm một form control cơ bản (Adding a basic form control)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Có ba bước chính để sử dụng một form control:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Tạo component và import <code>ReactiveFormsModule</code>.",
+        "Khởi tạo một thực thể <code>FormControl</code> trong class component.",
+        "Đăng ký <code>FormControl</code> đó vào template HTML bằng directive <code>[formControl]</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "declare-a-formcontrol-instance",
+      "text": "Khai báo thực thể FormControl"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng hàm khởi tạo của <code>FormControl</code> để đặt giá trị ban đầu (ví dụ chuỗi rỗng <code>''</code>). Bằng cách khai báo control trong class component, bạn có quyền truy cập ngay lập tức để lắng nghe, cập nhật và kiểm thực trạng thái input:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "name-editor.component.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Reactive Forms",
-        "import { Component } from \"@angular/core\";",
+        "import { Component } from '@angular/core';",
+        "import { FormControl, ReactiveFormsModule } from '@angular/forms';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Reactive Forms</h1>`",
+        "  selector: 'app-name-editor',",
+        "  templateUrl: './name-editor.component.html',",
+        "  styleUrls: ['./name-editor.component.css'],",
+        "  imports: [ReactiveFormsModule],",
         "})",
-        "export class ExampleComponent {}"
+        "export class NameEditorComponent {",
+        "  name = new FormControl('');",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "register-the-control-in-the-template",
+      "text": "Đăng ký control trong template"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau khi tạo control trong component class, bạn liên kết nó với phần tử input trong template thông qua cú pháp ràng buộc <code>[formControl]</code>:"
+    },
+    {
+      "type": "code",
+      "file": "name-editor.component.html",
+      "lang": "html",
+      "code": [
+        "<label for=\"name\">Name: </label>",
+        "<input id=\"name\" type=\"text\" [formControl]=\"name\" />"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "displaying-a-form-control-value",
+      "text": "Hiển thị giá trị form control"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể hiển thị giá trị theo hai cách:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Thông qua Observable <code>valueChanges</code> bằng <code>AsyncPipe</code> hoặc đăng ký nhận tin <code>subscribe()</code>.",
+        "Thông qua thuộc tính <code>value</code> để lấy ảnh chụp nhanh (snapshot) giá trị tức thời."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "name-editor.component.html",
+      "lang": "html",
+      "code": [
+        "<p>Value: {{ name.value }}</p>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "replacing-a-form-control-value",
+      "text": "Cập nhật giá trị form control theo lập trình (setValue)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Reactive forms cung cấp phương thức <code>setValue()</code> để thay đổi giá trị của control bằng mã lập trình mà không cần tương tác của người dùng (ví dụ: khi nhận dữ liệu phản hồi từ backend API):"
+    },
+    {
+      "type": "code",
+      "file": "name-editor.component.ts",
+      "lang": "ts",
+      "code": [
+        "updateName() {",
+        "  this.name.setValue('Nancy');",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "grouping-form-controls",
+      "text": "Gom nhóm các Form Controls (FormGroup)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Biểu mẫu thường chứa nhiều trường liên quan với nhau. Reactive forms cung cấp hai cách gom nhóm các control:"
+    },
+    {
+      "type": "table",
+      "headers": ["Cơ chế gom nhóm", "Chi tiết"],
+      "rows": [
+        ["<strong>FormGroup</strong>", "Định nghĩa một form với tập hợp các control cố định được quản lý cùng nhau. Cho phép lồng các FormGroup vào nhau."],
+        ["<strong>FormArray</strong>", "Định nghĩa một form động, cho phép thêm hoặc xóa control tại runtime theo chỉ mục số."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "create-a-formgroup-instance",
+      "text": "Tạo thực thể FormGroup"
+    },
+    {
+      "type": "code",
+      "file": "profile-editor.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';",
+        "",
+        "@Component({",
+        "  selector: 'app-profile-editor',",
+        "  templateUrl: './profile-editor.component.html',",
+        "  styleUrls: ['./profile-editor.component.css'],",
+        "  imports: [ReactiveFormsModule],",
+        "})",
+        "export class ProfileEditorComponent {",
+        "  profileForm = new FormGroup({",
+        "    firstName: new FormControl(''),",
+        "    lastName: new FormControl(''),",
+        "  });",
+        "",
+        "  onSubmit() {",
+        "    console.warn(this.profileForm.value);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "associate-the-formgroup-model-and-view",
+      "text": "Liên kết FormGroup với Template"
+    },
+    {
+      "type": "paragraph",
+      "text": "Gắn directive <code>[formGroup]</code> vào thẻ <code>&lt;form&gt;</code> và sử dụng <code>formControlName</code> cho từng input con:"
+    },
+    {
+      "type": "code",
+      "file": "profile-editor.component.html",
+      "lang": "html",
+      "code": [
+        "<form [formGroup]=\"profileForm\" (ngSubmit)=\"onSubmit()\">",
+        "  <label for=\"first-name\">First Name: </label>",
+        "  <input id=\"first-name\" type=\"text\" formControlName=\"firstName\" />",
+        "",
+        "  <label for=\"last-name\">Last Name: </label>",
+        "  <input id=\"last-name\" type=\"text\" formControlName=\"lastName\" />",
+        "",
+        "  <button type=\"submit\" [disabled]=\"!profileForm.valid\">Submit</button>",
+        "</form>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-nested-form-groups",
+      "text": "Tạo FormGroup lồng nhau (Nested Form Groups)"
+    },
+    {
+      "type": "paragraph",
+      "text": "FormGroup có thể chứa các FormGroup con khác. Điều này giúp chia nhỏ và tổ chức các nhóm thông tin phức tạp (như khối Địa chỉ - Address Block):"
+    },
+    {
+      "type": "code",
+      "file": "profile-editor-nested.component.ts",
+      "lang": "ts",
+      "code": [
+        "profileForm = new FormGroup({",
+        "  firstName: new FormControl(''),",
+        "  lastName: new FormControl(''),",
+        "  address: new FormGroup({",
+        "    street: new FormControl(''),",
+        "    city: new FormControl(''),",
+        "    state: new FormControl(''),",
+        "    zip: new FormControl(''),",
+        "  }),",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong template, bạn sử dụng directive <code>formGroupName</code> để bao bọc nhóm con:"
+    },
+    {
+      "type": "code",
+      "file": "profile-editor-nested.component.html",
+      "lang": "html",
+      "code": [
+        "<div formGroupName=\"address\">",
+        "  <h2>Address</h2>",
+        "  <label for=\"street\">Street: </label>",
+        "  <input id=\"street\" type=\"text\" formControlName=\"street\" />",
+        "",
+        "  <label for=\"city\">City: </label>",
+        "  <input id=\"city\" type=\"text\" formControlName=\"city\" />",
+        "",
+        "  <label for=\"state\">State: </label>",
+        "  <input id=\"state\" type=\"text\" formControlName=\"state\" />",
+        "",
+        "  <label for=\"zip\">Zip Code: </label>",
+        "  <input id=\"zip\" type=\"text\" formControlName=\"zip\" />",
+        "</div>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "updating-parts-of-the-data-model",
+      "text": "Cập nhật một phần dữ liệu: setValue() vs patchValue()"
+    },
+    {
+      "type": "table",
+      "headers": ["Phương thức", "Đặc điểm & Cơ chế"],
+      "rows": [
+        ["<code>setValue()</code>", "Yêu cầu cấu trúc đối tượng truyền vào phải khớp 100% với cấu trúc FormGroup. Sẽ ném lỗi nếu thiếu hoặc thừa bất kỳ control nào."],
+        ["<code>patchValue()</code>", "Cập nhật linh hoạt chỉ những thuộc tính được định nghĩa trong đối tượng truyền vào mà không ném lỗi nếu thiếu thuộc tính khác."]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "patch-value-example.ts",
+      "lang": "ts",
+      "code": [
+        "updateProfile() {",
+        "  this.profileForm.patchValue({",
+        "    firstName: 'Nancy',",
+        "    address: {",
+        "      street: '123 Drew Street',",
+        "    },",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-the-formbuilder-service-to-generate-controls",
+      "text": "Sử dụng FormBuilder để rút gọn việc khởi tạo"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dịch vụ <code>FormBuilder</code> cung cấp các hàm tiện ích cú pháp (syntactic sugar) giúp giảm bớt mã lệnh lặp lại khi khởi tạo cây control:"
+    },
+    {
+      "type": "code",
+      "file": "form-builder-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';",
+        "",
+        "@Component({",
+        "  selector: 'app-profile-editor',",
+        "  imports: [ReactiveFormsModule],",
+        "  templateUrl: './profile-editor.component.html',",
+        "})",
+        "export class ProfileEditorComponent {",
+        "  private formBuilder = inject(FormBuilder);",
+        "",
+        "  profileForm = this.formBuilder.group({",
+        "    firstName: ['', Validators.required],",
+        "    lastName: [''],",
+        "    address: this.formBuilder.group({",
+        "      street: [''],",
+        "      city: [''],",
+        "      state: [''],",
+        "      zip: [''],",
+        "    }),",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "validating-form-input",
+      "text": "Kiểm thực dữ liệu nhập vào (Validating form input)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong Reactive forms, các validator là các hàm thuần túy (pure functions) được gán trực tiếp khi định nghĩa control. Thuộc tính <code>status</code> và <code>valid</code> của form sẽ tự động phản ánh trạng thái hợp lệ:"
+    },
+    {
+      "type": "code",
+      "file": "status-display.html",
+      "lang": "html",
+      "code": [
+        "<p>Form Status: {{ profileForm.status }}</p>",
+        "<button type=\"submit\" [disabled]=\"!profileForm.valid\">Submit</button>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-dynamic-forms",
+      "text": "Tạo biểu mẫu động với FormArray (Creating dynamic forms)"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>FormArray</code> quản lý một danh sách các control theo chỉ mục số (index) thay vì theo tên. Đây là lựa chọn lý tưởng khi số lượng control không cố định trước mà tăng giảm linh hoạt theo tương tác của người dùng (ví dụ: thêm bí danh - aliases, thêm số điện thoại):"
+    },
+    {
+      "type": "code",
+      "file": "form-array-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { FormBuilder, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';",
+        "",
+        "@Component({",
+        "  selector: 'app-profile-editor',",
+        "  imports: [ReactiveFormsModule],",
+        "  templateUrl: './profile-editor.component.html',",
+        "})",
+        "export class ProfileEditorComponent {",
+        "  private formBuilder = inject(FormBuilder);",
+        "",
+        "  profileForm = this.formBuilder.group({",
+        "    firstName: ['', Validators.required],",
+        "    aliases: this.formBuilder.array([this.formBuilder.control('')]),",
+        "  });",
+        "",
+        "  // Getter tiện lợi để truy cập FormArray với đúng kiểu dữ liệu",
+        "  get aliases() {",
+        "    return this.profileForm.get('aliases') as FormArray;",
+        "  }",
+        "",
+        "  addAlias() {",
+        "    this.aliases.push(this.formBuilder.control(''));",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Template liên kết với FormArray bằng directive <code>formArrayName</code> và lặp qua các control bằng cú pháp <code>@for</code>:"
+    },
+    {
+      "type": "code",
+      "file": "form-array-template.html",
+      "lang": "html",
+      "code": [
+        "<div formArrayName=\"aliases\">",
+        "  <h2>Aliases</h2>",
+        "  <button type=\"button\" (click)=\"addAlias()\">+ Add another alias</button>",
+        "",
+        "  @for (alias of aliases.controls; track $index; let i = $index) {",
+        "    <div>",
+        "      <label for=\"alias-{{ i }}\">Alias {{ i + 1 }}:</label>",
+        "      <input id=\"alias-{{ i }}\" type=\"text\" [formControlName]=\"i\" />",
+        "    </div>",
+        "  }",
+        "</div>"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "note",
+      "title": "Lưu ý trong ứng dụng Zoneless (Zoneless Applications)",
+      "text": "Trong các ứng dụng Angular không dùng Zone.js (Zoneless), thao tác thay đổi cấu trúc mảng trực tiếp như <code>FormArray.push()</code> không tự động kích hoạt chu kỳ Change Detection của component. Bạn cần thông báo thủ công cho Angular bằng cách gọi <code>ChangeDetectorRef.markForCheck()</code> trong một subscription của <code>valueChanges</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-formarraydirective-for-top-level-form-arrays",
+      "text": "Sử dụng FormArray làm Form cấp cao nhất (Top-level FormArray)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể gắn trực tiếp <code>[formArray]</code> vào thẻ <code>&lt;form&gt;</code> nếu toàn bộ biểu mẫu là một danh sách danh mục mà không cần bọc trong một FormGroup cha:"
+    },
+    {
+      "type": "code",
+      "file": "top-level-form-array.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { FormArray, FormControl, ReactiveFormsModule } from '@angular/forms';",
+        "",
+        "@Component({",
+        "  selector: 'form-array-example',",
+        "  imports: [ReactiveFormsModule],",
+        "  template: `",
+        "    <form [formArray]=\"form\">",
+        "      @for (control of form.controls; track $index) {",
+        "        <input [formControlName]=\"$index\" />",
+        "      }",
+        "    </form>",
+        "  `,",
+        "})",
+        "export class FormArrayExampleComponent {",
+        "  controls = [new FormControl('fish'), new FormControl('cat'), new FormControl('dog')];",
+        "  form = new FormArray(this.controls);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "unified-control-state-change-events",
+      "text": "Luồng sự kiện trạng thái hợp nhất (Unified Events Stream)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tất cả các control trong Reactive Forms đều cung cấp một luồng Observable duy nhất <code>events</code> trên <code>AbstractControl</code> (áp dụng cho <code>FormControl</code>, <code>FormGroup</code>, <code>FormArray</code>, và <code>FormRecord</code>). Luồng hợp nhất này cho phép bạn theo dõi toàn bộ các thay đổi về giá trị, trạng thái kiểm thực, pristine, touched, reset và submit chỉ với một <code>subscribe()</code> duy nhất."
+    },
+    {
+      "type": "table",
+      "headers": ["Lớp sự kiện", "Thời điểm phát ra"],
+      "rows": [
+        ["<code>ValueChangeEvent</code>", "Khi giá trị của control bị thay đổi."],
+        ["<code>StatusChangeEvent</code>", "Khi trạng thái kiểm thực cập nhật thành VALID, INVALID, PENDING, hoặc DISABLED."],
+        ["<code>PristineChangeEvent</code>", "Khi trạng thái pristine / dirty của control thay đổi."],
+        ["<code>TouchedChangeEvent</code>", "Khi trạng thái touched / untouched của control thay đổi."],
+        ["<code>FormResetEvent</code>", "Khi control hoặc toàn bộ form được reset lại."],
+        ["<code>FormSubmittedEvent</code>", "Khi form được gửi đi (submit)."]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "unified-events.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import {",
+        "  FormControl, FormGroup, ValueChangeEvent, StatusChangeEvent,",
+        "  PristineChangeEvent, TouchedChangeEvent, FormResetEvent, FormSubmittedEvent,",
+        "} from '@angular/forms';",
+        "",
+        "@Component({ /* ... */ })",
+        "export class UnifiedEventsComponent {",
+        "  form = new FormGroup({",
+        "    username: new FormControl(''),",
+        "  });",
+        "",
+        "  constructor() {",
+        "    this.form.events.subscribe((e) => {",
+        "      if (e instanceof ValueChangeEvent) {",
+        "        console.log('Giá trị đổi thành:', e.value);",
+        "      }",
+        "      if (e instanceof StatusChangeEvent) {",
+        "        console.log('Trạng thái kiểm thực:', e.status);",
+        "      }",
+        "      if (e instanceof PristineChangeEvent) {",
+        "        console.log('Trạng thái pristine:', e.pristine);",
+        "      }",
+        "      if (e instanceof TouchedChangeEvent) {",
+        "        console.log('Trạng thái touched:', e.touched);",
+        "      }",
+        "      if (e instanceof FormResetEvent) {",
+        "        console.log('Form đã được reset');",
+        "      }",
+        "      if (e instanceof FormSubmittedEvent) {",
+        "        console.log('Form đã được submit');",
+        "      }",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "filtering-specific-events",
+      "text": "Lọc sự kiện cụ thể bằng toán tử RxJS"
+    },
+    {
+      "type": "code",
+      "file": "filter-events.ts",
+      "lang": "ts",
+      "code": [
+        "import { filter } from 'rxjs/operators';",
+        "import { StatusChangeEvent } from '@angular/forms';",
+        "",
+        "control.events",
+        "  .pipe(filter((e) => e instanceof StatusChangeEvent))",
+        "  .subscribe((e) => console.log('Status:', e.status));"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "managing-form-control-state",
+      "text": "Quản lý trạng thái form control bằng phương thức"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>markAsTouched()</code>: Đánh dấu control là đã chạm (touched). Mặc định lan truyền lên các control cha.",
+        "<code>markAsUntouched()</code>: Đánh dấu là chưa chạm (untouched). Tự động hạ xuống tất cả control con và tính toán lại cha.",
+        "<code>markAsDirty()</code>: Đánh dấu giá trị đã bị thay đổi (dirty).",
+        "<code>markAsPristine()</code>: Đánh dấu giá trị còn nguyên bản (pristine).",
+        "<code>markAllAsTouched()</code>: Đánh dấu control và toàn bộ các con cháu là touched. Thường dùng khi submit form để hiển thị mọi lỗi kiểm thực.",
+        "<code>markAllAsDirty()</code>: Đánh dấu control và tất cả control con cháu là dirty."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "controlling-event-emission-and-propagation",
+      "text": "Kiểm soát phát sự kiện và lan truyền (emitEvent & onlySelf)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi cập nhật control bằng lập trình (<code>setValue</code>, <code>patchValue</code>, <code>updateValueAndValidity</code>), bạn có thể kiểm soát chính xác hành vi phát sự kiện và sự lan truyền qua hai cờ tùy chọn:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong><code>emitEvent: false</code></strong>: Ngăn chặn phát sinh sự kiện qua <code>valueChanges</code>, <code>statusChanges</code> và <code>events</code>. Hữu ích khi cập nhật dữ liệu tự động (auto-fill, load bản nháp) mà không muốn kích hoạt logic tự lưu (auto-save) hoặc tránh vòng lặp đệ quy vô hạn.",
+        "<strong><code>onlySelf: true</code></strong>: Giới hạn cập nhật chỉ xảy ra trên chính control đó mà không lan truyền (cascade) lên các control cha trong cây phân cấp."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "propagation-options.ts",
+      "lang": "ts",
+      "code": [
+        "// Tải bản nháp mà không kích hoạt auto-save",
+        "this.postForm.setValue(savedDraft, { emitEvent: false });",
+        "",
+        "// Cập nhật validator và kiểm thực mà không thông báo cho FormGroup cha",
+        "postal.updateValueAndValidity({ onlySelf: true, emitEvent: false });"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "utility-functions-for-narrowing-form-control-types",
+      "text": "Các hàm Type Guard tiện ích để thu hẹp kiểu dữ liệu"
+    },
+    {
+      "type": "table",
+      "headers": ["Hàm Utility Guard", "Mô tả"],
+      "rows": [
+        ["<code>isFormControl(control)</code>", "Trả về true và thu hẹp kiểu nếu control là một <code>FormControl</code>."],
+        ["<code>isFormGroup(control)</code>", "Trả về true và thu hẹp kiểu nếu control là một <code>FormGroup</code>."],
+        ["<code>isFormRecord(control)</code>", "Trả về true và thu hẹp kiểu nếu control là một <code>FormRecord</code>."],
+        ["<code>isFormArray(control)</code>", "Trả về true và thu hẹp kiểu nếu control là một <code>FormArray</code>."]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "type-guard-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { AbstractControl, isFormArray } from '@angular/forms';",
+        "",
+        "export function positiveValues(control: AbstractControl) {",
+        "  if (!isFormArray(control)) {",
+        "    return null; // Không phải FormArray: validator không áp dụng",
+        "  }",
+        "  // Sau khi thu hẹp kiểu an toàn, có thể truy cập mảng controls của FormArray:",
+        "  const hasNegative = control.controls.some((c) => c.value < 0);",
+        "  return hasNegative ? { positiveValues: true } : null;",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reactive-forms-api-summary",
+      "text": "Tóm tắt các Lớp và Directive chính trong API Reactive Forms"
+    },
+    {
+      "type": "table",
+      "headers": ["Thành phần", "Vai trò và Chức năng"],
+      "rows": [
+        ["<code>AbstractControl</code>", "Lớp trừu tượng cơ sở cung cấp hành vi chung cho FormControl, FormGroup và FormArray."],
+        ["<code>FormControl</code>", "Quản lý giá trị và trạng thái kiểm thực của một trường nhập đơn lẻ."],
+        ["<code>FormGroup</code>", "Quản lý nhóm các control có tên cụ thể theo cấu trúc đối tượng."],
+        ["<code>FormArray</code>", "Quản lý mảng các control theo chỉ mục số động."],
+        ["<code>FormRecord</code>", "Quản lý tập hợp các FormControl có cùng kiểu dữ liệu với key động."],
+        ["<code>FormBuilder</code>", "Dịch vụ tiêm phụ thuộc (injectable) cung cấp các hàm factory ngắn gọn để tạo control."],
+        ["<code>[formControl]</code>", "Directive liên kết một FormControl độc lập vào một phần tử DOM."],
+        ["<code>formControlName</code>", "Directive liên kết FormControl theo tên thuộc tính trong FormGroup cha."],
+        ["<code>[formGroup]</code>", "Directive gắn thực thể FormGroup vào thẻ <code>&lt;form&gt;</code>."],
+        ["<code>formGroupName</code>", "Directive gắn nhóm con lồng nhau trong FormGroup."],
+        ["<code>[formArray]</code> / <code>formArrayName</code>", "Directive gắn mảng FormArray vào DOM."]
       ]
     }
   ]

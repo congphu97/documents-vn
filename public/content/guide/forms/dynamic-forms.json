@@ -1,0 +1,343 @@
+{
+  "slug": "guide/forms/dynamic-forms",
+  "title": "Xây dựng biểu mẫu động (Building dynamic forms)",
+  "description": "Hướng dẫn xây dựng dynamic forms dựa trên metadata mô hình câu hỏi (QuestionBase), tự động sinh FormGroup và render template theo dữ liệu nhận từ backend trong Angular.",
+  "source": "https://angular.dev/guide/forms/dynamic-forms",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Nhiều biểu mẫu, chẳng hạn như bảng câu hỏi khảo sát (questionnaires), có cấu trúc định dạng và mục đích rất giống nhau. Để việc tạo các phiên bản biểu mẫu khác nhau trở nên nhanh chóng và dễ dàng hơn, bạn có thể tạo một dynamic form template dựa trên metadata mô tả mô hình nghiệp vụ (business object model). Sau đó, sử dụng template này để tự động kết xuất các form mới khi dữ liệu thay đổi."
+    },
+    {
+      "type": "paragraph",
+      "text": "Kỹ thuật này đặc biệt hữu ích khi nội dung form thay đổi thường xuyên theo yêu cầu nghiệp vụ hoặc bối cảnh người dùng, trong khi giao diện và phong cách thiết kế vẫn giữ tính nhất quán. Ví dụ trong hướng dẫn này là biểu mẫu nộp đơn xin việc cho các anh hùng (Job Application for Heroes) với các câu hỏi có thể thay đổi linh hoạt."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "enable-reactive-forms-for-your-project",
+      "text": "Kích hoạt Reactive Forms cho dự án"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dynamic forms được xây dựng trên nền tảng của <strong>Reactive Forms</strong>. Để sử dụng các directive của reactive forms, hãy nhập <code>ReactiveFormsModule</code> từ <code>@angular/forms</code> vào component container:"
+    },
+    {
+      "type": "code",
+      "file": "dynamic-form.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, computed, inject, input } from '@angular/core';",
+        "import { FormGroup, ReactiveFormsModule } from '@angular/forms';",
+        "import { DynamicFormQuestionComponent } from './dynamic-form-question.component';",
+        "import { QuestionBase } from './question-base';",
+        "import { QuestionControlService } from './question-control.service';",
+        "",
+        "@Component({",
+        "  selector: 'app-dynamic-form',",
+        "  templateUrl: './dynamic-form.component.html',",
+        "  providers: [QuestionControlService],",
+        "  imports: [DynamicFormQuestionComponent, ReactiveFormsModule],",
+        "})",
+        "export class DynamicFormComponent {",
+        "  private readonly qcs = inject(QuestionControlService);",
+        "  readonly questions = input<QuestionBase<string>[] | null>([]);",
+        "",
+        "  // Tạo FormGroup phản ứng mỗi khi danh sách questions thay đổi",
+        "  readonly form = computed<FormGroup>(() =>",
+        "    this.qcs.toFormGroup(this.questions() as QuestionBase<string>[])",
+        "  );",
+        "",
+        "  payLoad = '';",
+        "",
+        "  onSubmit() {",
+        "    this.payLoad = JSON.stringify(this.form().getRawValue());",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "create-a-form-object-model",
+      "text": "Tạo mô hình đối tượng Form (Form Object Model)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi trường nhập liệu trong biểu mẫu động cần một mô hình dữ liệu mô tả thuộc tính và cấu hình của nó. Lớp cơ sở <code>QuestionBase</code> định nghĩa các đặc tính chung nhất của một câu hỏi:"
+    },
+    {
+      "type": "code",
+      "file": "question-base.ts",
+      "lang": "ts",
+      "code": [
+        "export class QuestionBase<T> {",
+        "  value: T | undefined;",
+        "  key: string;",
+        "  label: string;",
+        "  required: boolean;",
+        "  order: number;",
+        "  controlType: string;",
+        "  type: string;",
+        "  options: { key: string; value: string }[];",
+        "",
+        "  constructor(options: {",
+        "    value?: T;",
+        "    key?: string;",
+        "    label?: string;",
+        "    required?: boolean;",
+        "    order?: number;",
+        "    controlType?: string;",
+        "    type?: string;",
+        "    options?: { key: string; value: string }[];",
+        "  } = {}) {",
+        "    this.value = options.value;",
+        "    this.key = options.key || '';",
+        "    this.label = options.label || '';",
+        "    this.required = !!options.required;",
+        "    this.order = options.order === undefined ? 1 : options.order;",
+        "    this.controlType = options.controlType || '';",
+        "    this.type = options.type || '';",
+        "    this.options = options.options || [];",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "define-control-classes",
+      "text": "Định nghĩa các lớp Control cụ thể"
+    },
+    {
+      "type": "paragraph",
+      "text": "Từ lớp cơ sở <code>QuestionBase</code>, kế thừa các lớp chuyên biệt tương ứng với các loại input HTML thực tế:"
+    },
+    {
+      "type": "code",
+      "file": "question-textbox.ts",
+      "lang": "ts",
+      "code": [
+        "import { QuestionBase } from './question-base';",
+        "",
+        "export class TextboxQuestion extends QuestionBase<string> {",
+        "  override controlType = 'textbox';",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "question-dropdown.ts",
+      "lang": "ts",
+      "code": [
+        "import { QuestionBase } from './question-base';",
+        "",
+        "export class DropdownQuestion extends QuestionBase<string> {",
+        "  override controlType = 'dropdown';",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "compose-form-groups",
+      "text": "Biến đổi Metadata thành FormGroup (QuestionControlService)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dịch vụ <code>QuestionControlService</code> chuyển đổi mảng các đối tượng câu hỏi thành một thực thể <code>FormGroup</code> với các validator tương ứng:"
+    },
+    {
+      "type": "code",
+      "file": "question-control.service.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable } from '@angular/core';",
+        "import { FormControl, FormGroup, Validators } from '@angular/forms';",
+        "import { QuestionBase } from './question-base';",
+        "",
+        "@Injectable()",
+        "export class QuestionControlService {",
+        "  toFormGroup(questions: QuestionBase<string>[]) {",
+        "    const group: any = {};",
+        "",
+        "    questions.forEach((question) => {",
+        "      group[question.key] = question.required",
+        "        ? new FormControl(question.value || '', Validators.required)",
+        "        : new FormControl(question.value || '');",
+        "    });",
+        "",
+        "    return new FormGroup(group);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "compose-dynamic-form-contents",
+      "text": "Kết xuất câu hỏi động (DynamicFormQuestionComponent)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Component <code>DynamicFormQuestionComponent</code> chịu trách nhiệm hiển thị từng câu hỏi dựa trên thuộc tính <code>controlType</code> bằng cấu trúc <code>@switch</code>:"
+    },
+    {
+      "type": "code",
+      "file": "dynamic-form-question.component.html",
+      "lang": "html",
+      "code": [
+        "<div [formGroup]=\"form()\">",
+        "  <label [attr.for]=\"question().key\">{{ question().label }}</label>",
+        "",
+        "  <div>",
+        "    @switch (question().controlType) {",
+        "      @case ('textbox') {",
+        "        <input",
+        "          [formControlName]=\"question().key\"",
+        "          [id]=\"question().key\"",
+        "          [type]=\"question().type\"",
+        "        />",
+        "      }",
+        "      @case ('dropdown') {",
+        "        <select [id]=\"question().key\" [formControlName]=\"question().key\">",
+        "          @for (opt of question().options; track opt.key) {",
+        "            <option [value]=\"opt.key\">{{ opt.value }}</option>",
+        "          }",
+        "        </select>",
+        "      }",
+        "    }",
+        "  </div>",
+        "",
+        "  @if (form().get(question().key)?.invalid && (form().get(question().key)?.dirty || form().get(question().key)?.touched)) {",
+        "    <div class=\"errorMessage\">{{ question().label }} là bắt buộc</div>",
+        "  }",
+        "</div>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "supply-data",
+      "text": "Cung cấp dữ liệu câu hỏi (QuestionService)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dịch vụ <code>QuestionService</code> cung cấp danh sách câu hỏi. Trong thực tế, dữ liệu này có thể được tải từ API server:"
+    },
+    {
+      "type": "code",
+      "file": "question.service.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable } from '@angular/core';",
+        "import { of } from 'rxjs';",
+        "import { QuestionBase } from './question-base';",
+        "import { TextboxQuestion } from './question-textbox';",
+        "import { DropdownQuestion } from './question-dropdown';",
+        "",
+        "@Injectable()",
+        "export class QuestionService {",
+        "  getQuestions() {",
+        "    const questions: QuestionBase<string>[] = [",
+        "      new DropdownQuestion({",
+        "        key: 'favoriteAnimal',",
+        "        label: 'Thú cưng yêu thích',",
+        "        options: [",
+        "          { key: 'cat', value: 'Mèo' },",
+        "          { key: 'dog', value: 'Chó' },",
+        "          { key: 'horse', value: 'Ngựa' },",
+        "          { key: 'capybara', value: 'Chuột lang nước (Capybara)' },",
+        "        ],",
+        "        order: 3,",
+        "      }),",
+        "      new TextboxQuestion({",
+        "        key: 'firstName',",
+        "        label: 'Tên của bạn',",
+        "        value: 'Alex',",
+        "        required: true,",
+        "        order: 1,",
+        "      }),",
+        "      new TextboxQuestion({",
+        "        key: 'emailAddress',",
+        "        label: 'Địa chỉ Email',",
+        "        type: 'email',",
+        "        order: 2,",
+        "      }),",
+        "    ];",
+        "",
+        "    return of(questions.sort((a, b) => a.order - b.order));",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "create-a-dynamic-form-template",
+      "text": "Template cho Container Dynamic Form"
+    },
+    {
+      "type": "code",
+      "file": "dynamic-form.component.html",
+      "lang": "html",
+      "code": [
+        "<div>",
+        "  <form (ngSubmit)=\"onSubmit()\" [formGroup]=\"form()\">",
+        "    @for (question of questions(); track question.key) {",
+        "      <div class=\"form-row\">",
+        "        <app-question [question]=\"question\" [form]=\"form()\" />",
+        "      </div>",
+        "    }",
+        "",
+        "    <div class=\"form-row\">",
+        "      <button type=\"submit\" [disabled]=\"!form().valid\">Lưu dữ liệu</button>",
+        "    </div>",
+        "  </form>",
+        "",
+        "  @if (payLoad) {",
+        "    <div class=\"form-row\">",
+        "      <strong>Dữ liệu đã lưu:</strong><br />",
+        "      <pre>{{ payLoad }}</pre>",
+        "    </div>",
+        "  }",
+        "</div>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "display-the-form",
+      "text": "Hiển thị biểu mẫu trong ứng dụng"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { AsyncPipe } from '@angular/common';",
+        "import { Observable } from 'rxjs';",
+        "import { DynamicFormComponent } from './dynamic-form.component';",
+        "import { QuestionService } from './question.service';",
+        "import { QuestionBase } from './question-base';",
+        "",
+        "@Component({",
+        "  selector: 'app-root',",
+        "  imports: [AsyncPipe, DynamicFormComponent],",
+        "  providers: [QuestionService],",
+        "  template: `",
+        "    <div>",
+        "      <h2>Đơn ứng tuyển Hero</h2>",
+        "      <app-dynamic-form [questions]=\"questions$ | async\" />",
+        "    </div>",
+        "  `,",
+        "})",
+        "export class AppComponent {",
+        "  questions$: Observable<QuestionBase<string>[]> = inject(QuestionService).getQuestions();",
+        "}"
+      ]
+    }
+  ]
+}

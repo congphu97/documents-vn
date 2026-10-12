@@ -1,0 +1,166 @@
+{
+  "slug": "guide/templates/boundary",
+  "title": "Error boundaries with @boundary",
+  "description": "Error boundaries (@boundary) giúp khoanh vùng và xử lý sự cố runtime trong quá trình rendering và change detection, ngăn ứng dụng bị sập toàn bộ.",
+  "source": "https://angular.dev/guide/templates/error-boundaries",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "@boundary hiện đang trong giai đoạn Developer Preview của Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular template hỗ trợ cơ chế Error Boundaries (vùng bao lỗi) giúp xử lý các lỗi runtime phát sinh trong quá trình rendering và change detection. Error boundaries ngăn việc lỗi của một component đơn lẻ làm sập toàn bộ ứng dụng, đồng thời cung cấp giao diện dự phòng (fallback UI) cho người dùng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "catching-errors-with-boundary-and-error",
+      "text": "Bắt lỗi với @boundary và @error"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khối @boundary bao bọc một phần template của bạn. Nếu bất kỳ component hoặc directive nào bên trong ném ra lỗi trong quá trình khởi tạo hoặc change detection, Angular sẽ bắt lỗi đó và chuyển sang render khối @error tương ứng:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@boundary {",
+        "  <app-risky-component />",
+        "} @error {",
+        "  <p>Đã xảy ra lỗi khi tải thành phần này!</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "accessing-the-error-object",
+      "text": "Truy cập thông tin lỗi ($error)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể đọc thông tin chi tiết về lỗi được bắt thông qua biến ngầm định $error bên trong khối @error:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@boundary {",
+        "  <app-risky-component />",
+        "} @error {",
+        "  <p>Chi tiết lỗi: {{ $error.message }}</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resetting-the-boundary",
+      "text": "Khôi phục trạng thái với $reset()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể cho phép người dùng thử tải lại nội dung bằng cách gọi hàm ngầm định $reset() trong khối @error. Khi được gọi, nó sẽ reset trạng thái boundary và render lại nội dung ban đầu:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@boundary {",
+        "  <app-flaky-component />",
+        "} @error {",
+        "  <p>Tải dữ liệu thất bại.</p>",
+        "  <button (click)=\"$reset()\">Thử lại</button>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "conditional-error-handling-with-when",
+      "text": "Xử lý lỗi theo điều kiện với mệnh đề when"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể dùng mệnh đề when để phân loại lỗi và hiển thị giao diện fallback phù hợp cho từng loại sự cố (ví dụ lỗi mạng vs lỗi không xác định). Hãy sắp xếp các khối @error từ cụ thể đến khái quát nhất:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@boundary {",
+        "  <app-chart-dashboard />",
+        "} @error (let err; reset = $reset; when isRenderError(err)) {",
+        "  <p>Sự cố kết nối mạng. Vui lòng kiểm tra đường truyền.</p>",
+        "  <button (click)=\"reset()\">Thử kết nối lại</button>",
+        "} @error {",
+        "  <p>Đã xảy ra sự cố không lường trước: {{ $error.message }}</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "global-error-handler-integration",
+      "text": "Tích hợp với Global ErrorHandler"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi một lỗi được @boundary bắt giữ, Angular vẫn có thể thông báo cho ErrorHandler toàn cục. Bạn có thể triển khai hook tuỳ chọn onViewError để gửi log về các hệ thống giám sát (như Sentry, Datadog):"
+    },
+    {
+      "type": "code",
+      "file": "error-handler.service.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Injectable, ErrorHandler, ErrorDetails } from '@angular/core';",
+        "",
+        "@Injectable()",
+        "export class MyErrorHandler implements ErrorHandler {",
+        "  handleError(error: any): void {",
+        "    // Xử lý các lỗi chưa được bắt (uncaught)",
+        "  }",
+        "",
+        "  // Hook lắng nghe lỗi đã được @boundary bắt",
+        "  onViewError(error: Error, details: ErrorDetails): void {",
+        "    console.warn('Lỗi được bắt bởi boundary:', details.boundary);",
+        "    myErrorTrackingService.log(error);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "content-projection",
+      "text": "Lưu ý quan trọng với Content Projection"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bọc thẻ <ng-content> trong @boundary sẽ KHÔNG bắt được lỗi từ các component được chiếu vào (projected content), bởi vì nội dung đó thuộc về view của component cha. Để bắt lỗi, hãy đặt @boundary ở component cha bao quanh wrapper:"
+    },
+    {
+      "type": "code",
+      "file": "content-projection-boundary.html",
+      "lang": "html",
+      "code": [
+        "<!-- Nên dùng (ở component cha): -->",
+        "@boundary {",
+        "  <app-wrapper>",
+        "    <app-risky-component />",
+        "  </app-wrapper>",
+        "} @error {",
+        "  <p>Đã xảy ra lỗi!</p>",
+        "}"
+      ]
+    }
+  ]
+}

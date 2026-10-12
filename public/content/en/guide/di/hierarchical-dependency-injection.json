@@ -1,0 +1,40 @@
+{
+  "slug": "guide/di/hierarchical-dependency-injection",
+  "title": "Hierarchical injectors",
+  "description": "Learn how Angular's hierarchical injector system resolves dependencies through component and environment hierarchies.",
+  "source": "https://angular.dev/guide/di/hierarchical-dependency-injection",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Injectors in Angular have rules that govern how they locate and instantiate dependencies. Angular has a hierarchical injection system, which means that injectors can be nested in a tree structure mirroring your component hierarchy."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "two-injector-hierarchies",
+      "text": "Two injector hierarchies"
+    },
+    {
+      "type": "paragraph",
+      "text": "There are two main injector hierarchies in Angular:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>EnvironmentInjector hierarchy:</strong> Configured at the application root level (via <code>ApplicationConfig.providers</code> or route-level providers).",
+        "<strong>NodeInjector hierarchy:</strong> Created invisibly at each DOM element where a component or directive is declared (via <code>@Component.providers</code>)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resolution-rules",
+      "text": "Resolution rules"
+    },
+    {
+      "type": "paragraph",
+      "text": "When a component requests a dependency, Angular first searches the local <code>NodeInjector</code>. If not found, it traverses upward through parent component NodeInjectors until it reaches the root, then searches the <code>EnvironmentInjector</code> hierarchy up to the platform injector."
+    }
+  ]
+}

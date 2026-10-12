@@ -1,0 +1,73 @@
+{
+  "slug": "guide/http/setup",
+  "title": "Setting up HttpClient",
+  "description": "Learn how to provide and configure HttpClient in modern Angular applications with provideHttpClient.",
+  "source": "https://angular.dev/guide/http/setup",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<code>HttpClient</code> is available for injection by default in modern Angular applications. You provide it through dependency injection at the root level using <code>provideHttpClient()</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "providing-httpclient",
+      "text": "Providing HttpClient through dependency injection"
+    },
+    {
+      "type": "paragraph",
+      "text": "In standalone applications, configure <code>provideHttpClient()</code> inside <code>app.config.ts</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideHttpClient } from '@angular/common/http';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideHttpClient(),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configuring-features",
+      "text": "Configuring features of HttpClient"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>provideHttpClient</code> accepts optional feature functions to customize its behavior:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>withFetch()</code>: Configures HttpClient to use the browser's Fetch API backend instead of XMLHttpRequest (highly recommended for SSR).",
+        "<code>withInterceptors([...])</code>: Configures functional interceptors for handling requests and responses.",
+        "<code>withInterceptorsFromDi()</code>: Enables legacy class-based interceptors provided via the <code>HTTP_INTERCEPTORS</code> token.",
+        "<code>withJsonpSupport()</code>: Enables JSONP support.",
+        "<code>withXsrfConfiguration(...)</code>: Customizes XSRF protection settings."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "http-features.ts",
+      "lang": "ts",
+      "code": [
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideHttpClient(",
+        "      withFetch(),",
+        "      withInterceptors([authInterceptor, loggingInterceptor])",
+        "    ),",
+        "  ],",
+        "};"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "slug": "guide/forms/typed-forms",
+  "title": "Typed Forms",
+  "description": "Learn about strongly typed reactive forms in Angular: strict type safety for FormControl, FormGroup, FormRecord, and FormArray.",
+  "source": "https://angular.dev/guide/forms/typed-forms",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular's reactive forms are strictly typed by default. Typed forms ensure that the values of form controls, groups, and arrays are type-safe across your entire application, catching errors at compile time rather than runtime."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "basic-usage",
+      "text": "Basic Usage"
+    },
+    {
+      "type": "paragraph",
+      "text": "When you create a <code>FormControl</code>, Angular infers its type automatically from its initial value:"
+    },
+    {
+      "type": "code",
+      "file": "typed-control.ts",
+      "lang": "ts",
+      "code": [
+        "const emailControl = new FormControl('test@example.com');",
+        "// Inferred type: FormControl<string | null>",
+        "",
+        "const value = emailControl.value;",
+        "// TypeScript knows `value` is string | null"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "non-nullable-controls",
+      "text": "Non-nullable controls"
+    },
+    {
+      "type": "paragraph",
+      "text": "By default, calling <code>control.reset()</code> resets the value to <code>null</code>, which is why controls include <code>null</code> in their type. To create a control that resets to its initial value rather than null, set <code>nonNullable: true</code> or use <code>NonNullableFormBuilder</code>:"
+    },
+    {
+      "type": "code",
+      "file": "non-nullable.ts",
+      "lang": "ts",
+      "code": [
+        "const nameControl = new FormControl('Alice', { nonNullable: true });",
+        "// Type: FormControl<string>",
+        "",
+        "nameControl.reset();",
+        "console.log(nameControl.value); // 'Alice', not null!"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "typing-form-groups",
+      "text": "Typing FormGroups"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can define an explicit interface for your form model:"
+    },
+    {
+      "type": "code",
+      "file": "profile-form.ts",
+      "lang": "ts",
+      "code": [
+        "interface LoginForm {",
+        "  username: FormControl<string>;",
+        "  password: FormControl<string>;",
+        "  rememberMe: FormControl<boolean>;",
+        "}",
+        "",
+        "const loginForm = new FormGroup<LoginForm>({",
+        "  username: new FormControl('', { nonNullable: true }),",
+        "  password: new FormControl('', { nonNullable: true }),",
+        "  rememberMe: new FormControl(false, { nonNullable: true }),",
+        "});",
+        "",
+        "loginForm.value.username; // string"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "form-record",
+      "text": "Dynamic keys with FormRecord"
+    },
+    {
+      "type": "paragraph",
+      "text": "When you need a <code>FormGroup</code> where controls can be dynamically added or removed with unknown keys at compile time, use <code>FormRecord</code>:"
+    },
+    {
+      "type": "code",
+      "file": "form-record.ts",
+      "lang": "ts",
+      "code": [
+        "const permissions = new FormRecord<FormControl<boolean>>({",
+        "  read: new FormControl(true, { nonNullable: true }),",
+        "  write: new FormControl(false, { nonNullable: true }),",
+        "});",
+        "",
+        "permissions.addControl('delete', new FormControl(false, { nonNullable: true }));"
+      ]
+    }
+  ]
+}

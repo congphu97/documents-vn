@@ -1,22 +1,242 @@
 {
   "slug": "guide/templates/pipes",
-  "title": "Pipes trong Angular Template",
-  "description": "Biến đổi dữ liệu đầu ra hiển thị trên template bằng các built-in pipes hoặc custom pipes.",
+  "title": "Pipes",
+  "description": "Pipes là toán tử đặc biệt trong template Angular giúp biến đổi và định dạng dữ liệu (ngày tháng, tiền tệ, chuỗi, ...) một cách trực quan và tối ưu.",
   "source": "https://angular.dev/guide/templates/pipes",
   "status": "reviewed",
   "blocks": [
     {
       "type": "paragraph",
-      "text": "Pipes là các hàm đơn giản dùng để định dạng dữ liệu (ngày tháng, tiền tệ, số, chữ hoa/thường) ngay trong template trước khi hiển thị."
+      "text": "Pipes là các toán tử đặc biệt trong biểu thức template Angular cho phép bạn biến đổi dữ liệu theo phong cách khai báo (declarative). Pipes giúp bạn định nghĩa một hàm biến đổi một lần và tái sử dụng nó trên nhiều template khác nhau. Cú pháp pipe sử dụng ký tự gạch đứng (|), lấy cảm hứng từ Unix pipeline."
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Ký tự | trong template của Angular không phải là toán tử bitwise OR của JavaScript. Template Angular không hỗ trợ các toán tử thao tác bit."
     },
     {
       "type": "code",
-      "file": "order-details.component.html",
+      "file": "shopping-cart.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { CurrencyPipe, DatePipe, TitleCasePipe } from '@angular/common';",
+        "",
+        "@Component({",
+        "  selector: 'app-root',",
+        "  imports: [CurrencyPipe, DatePipe, TitleCasePipe],",
+        "  template: `",
+        "    <main>",
+        "      <!-- Biến đổi tên công ty thành Title Case và định dạng ngày tháng theo locale -->",
+        "      <h1>Mua sắm từ {{ company | titlecase }} vào ngày {{ purchasedOn | date }}</h1>",
+        "",
+        "      <!-- Biến đổi số tiền thành chuỗi định dạng tiền tệ -->",
+        "      <p>Tổng tiền: {{ amount | currency }}</p>",
+        "    </main>",
+        "  `,",
+        "})",
+        "export class ShoppingCart {",
+        "  amount = 123.45;",
+        "  company = 'acme corporation';",
+        "  purchasedOn = '2024-07-08';",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "built-in-pipes",
+      "text": "Các Pipe tích hợp sẵn (Built-in Pipes)"
+    },
+    {
+      "type": "table",
+      "headers": ["Tên Pipe", "Mô tả"],
+      "rows": [
+        ["AsyncPipe", "Đọc giá trị từ một Promise hoặc RxJS Observable tự động subscribe/unsubscribe."],
+        ["CurrencyPipe", "Biến đổi số thành chuỗi tiền tệ định dạng theo locale."],
+        ["DatePipe", "Định dạng giá trị Date theo quy tắc locale."],
+        ["DecimalPipe", "Biến đổi số thành chuỗi số thập phân theo locale."],
+        ["I18nPluralPipe", "Khớp số lượng với chuỗi số ít / số nhiều theo locale."],
+        ["I18nSelectPipe", "Khớp key với bộ lựa chọn tuỳ chỉnh."],
+        ["JsonPipe", "Chuyển object thành chuỗi JSON qua JSON.stringify (tiện cho debug)."],
+        ["KeyValuePipe", "Chuyển Object hoặc Map thành mảng các cặp key-value."],
+        ["LowerCasePipe", "Chuyển văn bản thành chữ thường."],
+        ["UpperCasePipe", "Chuyển văn bản thành chữ in hoa."],
+        ["TitleCasePipe", "Viết hoa chữ cái đầu mỗi từ."],
+        ["PercentPipe", "Biến đổi số thành tỷ lệ phần trăm."],
+        ["SlicePipe", "Cắt một mảng hoặc chuỗi lấy tập hợp con."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-pipes",
+      "text": "Sử dụng Pipes và truyền tham số"
+    },
+    {
+      "type": "paragraph",
+      "text": "Toán tử pipe (|) là một toán tử hai ngôi: toán hạng bên trái là giá trị cần biến đổi, toán hạng bên phải là tên pipe cùng các tham số bổ sung cách nhau bởi dấu hai chấm (:)."
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
       "lang": "html",
       "code": [
-        "<p>Ngày đặt: {{ orderDate | date:'dd/MM/yyyy' }}</p>",
-        "<p>Tổng tiền: {{ price | currency:'VND' }}</p>",
-        "<p>Tên: {{ userName | uppercase }}</p>"
+        "<!-- Kết hợp nhiều pipe (chạy từ trái sang phải) -->",
+        "<p>{{ scheduledOn | date | uppercase }}</p>",
+        "",
+        "<!-- Truyền 1 tham số định dạng giờ phút -->",
+        "<p>{{ scheduledOn | date: 'hh:mm' }}</p>",
+        "",
+        "<!-- Truyền nhiều tham số: định dạng và timezone -->",
+        "<p>{{ scheduledOn | date: 'hh:mm' : 'UTC' }}</p>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "pipe-operator-precedence",
+      "text": "Độ ưu tiên của toán tử Pipe"
+    },
+    {
+      "type": "paragraph",
+      "text": "Toán tử pipe có độ ưu tiên thấp hơn các toán tử nhị phân (+, -, *, /, &&, ||, ??) nhưng cao hơn toán tử ba ngôi (ternary operator ? :). Vì vậy, luôn dùng ngoặc đơn khi kết hợp với toán tử ba ngôi:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- firstName và lastName được cộng chuỗi trước khi qua pipe -->",
+        "{{ firstName + lastName | uppercase }}",
+        "",
+        "<!-- Dùng ngoặc tròn rõ ràng với toán tử ba ngôi -->",
+        "{{ (isAdmin ? 'Access granted' : 'Access denied') | uppercase }}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "change-detection-with-pipes",
+      "text": "Cơ chế Change Detection của Pure Pipe"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, tất cả các pipe đều là pure (thuần khiết). Chúng chỉ thực thi lại khi giá trị nguyên thủy (String, Number, Boolean...) thay đổi hoặc khi tham chiếu đối tượng (Array, Object) thay đổi (so sánh bằng ===). Nhờ đó, Angular tránh việc gọi hàm biến đổi lặp lại không cần thiết và tăng tốc độ render đáng kể."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-custom-pipes",
+      "text": "Tạo Custom Pipe"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để tạo một pipe tuỳ chỉnh, định nghĩa class với decorator @Pipe và implement interface PipeTransform:"
+    },
+    {
+      "type": "code",
+      "file": "kebab-case.pipe.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Pipe, PipeTransform } from '@angular/core';",
+        "",
+        "@Pipe({",
+        "  name: 'kebabCase',",
+        "})",
+        "export class KebabCasePipe implements PipeTransform {",
+        "  transform(value: string): string {",
+        "    return value.toLowerCase().replace(/ /g, '-');",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Quy ước đặt tên: thuộc tính `name` dùng camelCase (không dùng dấu gạch ngang), tên class dùng PascalCase kèm hậu tố Pipe (ví dụ: `KebabCasePipe`)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "detecting-change-within-arrays-or-objects",
+      "text": "Bắt thay đổi bên trong mảng/đối tượng với Impure Pipe"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu muốn pipe chạy mỗi chu kỳ kiểm tra thay đổi bất kể tham chiếu có đổi hay không, bạn cần đặt pure: false. Tuy nhiên cần hạn chế tối đa vì có thể gây ảnh hưởng nặng đến hiệu năng:"
+    },
+    {
+      "type": "code",
+      "file": "join-names-impure.pipe.ts",
+      "lang": "typescript",
+      "code": [
+        "@Pipe({",
+        "  name: 'joinNamesImpure',",
+        "  pure: false,",
+        "})",
+        "export class JoinNamesImpurePipe implements PipeTransform {",
+        "  transform(names: string[]): string {",
+        "    return names.join(', ');",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-pipe-logic-outside-templates",
+      "text": "Sử dụng logic của Pipe bên ngoài Template"
+    },
+    {
+      "type": "paragraph",
+      "text": "Pipes được thiết kế dành riêng cho template. Không nên inject pipe class vào Service. Thay vào đó, hãy tách logic ra thành một hàm standalone function và tái sử dụng hàm đó:"
+    },
+    {
+      "type": "code",
+      "file": "kebab-case.ts & kebab-case.pipe.ts",
+      "lang": "typescript",
+      "code": [
+        "// 1. Tách hàm dùng chung",
+        "export function toKebabCase(value: string): string {",
+        "  return value.toLowerCase().replace(/ /g, '-');",
+        "}",
+        "",
+        "// 2. Pipe chỉ việc gọi hàm đó",
+        "@Pipe({ name: 'kebabCase' })",
+        "export class KebabCasePipe implements PipeTransform {",
+        "  transform(value: string): string {",
+        "    return toKebabCase(value);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "use-formatting-functions-for-built-in-pipes",
+      "text": "Sử dụng các hàm format độc lập cho Built-in Pipes"
+    },
+    {
+      "type": "paragraph",
+      "text": "Với các pipe định dạng tích hợp sẵn, Angular cung cấp các hàm độc lập từ gói @angular/common (như formatDate, formatCurrency, formatNumber, formatPercent) thay vì inject Pipe:"
+    },
+    {
+      "type": "code",
+      "file": "price.service.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Service, LOCALE_ID, inject } from '@angular/core';",
+        "import { formatNumber } from '@angular/common';",
+        "",
+        "@Service()",
+        "export class PriceService {",
+        "  private locale = inject(LOCALE_ID);",
+        "",
+        "  // Sử dụng hàm formatNumber độc lập thay vì inject DecimalPipe",
+        "  format(value: number) {",
+        "    return formatNumber(value, this.locale, '1.2-2');",
+        "  }",
+        "}"
       ]
     }
   ]

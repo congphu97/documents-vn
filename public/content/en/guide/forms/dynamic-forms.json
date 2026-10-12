@@ -1,0 +1,95 @@
+{
+  "slug": "guide/forms/dynamic-forms",
+  "title": "Building dynamic forms",
+  "description": "Learn how to build dynamic forms that are configured and rendered based on metadata and data models at runtime in Angular.",
+  "source": "https://angular.dev/guide/forms/dynamic-forms",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Many forms, such as questionnaires, can be very similar to one another in format and intent. To make it faster and easier to generate different versions of such a form, you can create a dynamic form template based on metadata that describes the business object model."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "question-model",
+      "text": "Creating a form object model"
+    },
+    {
+      "type": "paragraph",
+      "text": "The foundation for a dynamic form is an object model that can describe all scenarios needed by the form functionality:"
+    },
+    {
+      "type": "code",
+      "file": "question-base.ts",
+      "lang": "ts",
+      "code": [
+        "export class QuestionBase<T> {",
+        "  value: T | undefined;",
+        "  key: string;",
+        "  label: string;",
+        "  required: boolean;",
+        "  order: number;",
+        "  controlType: string;",
+        "  type: string;",
+        "  options: { key: string; value: string }[];",
+        "",
+        "  constructor(options: {",
+        "    value?: T;",
+        "    key?: string;",
+        "    label?: string;",
+        "    required?: boolean;",
+        "    order?: number;",
+        "    controlType?: string;",
+        "    type?: string;",
+        "    options?: { key: string; value: string }[];",
+        "  } = {}) {",
+        "    this.value = options.value;",
+        "    this.key = options.key || '';",
+        "    this.label = options.label || '';",
+        "    this.required = !!options.required;",
+        "    this.order = options.order === undefined ? 1 : options.order;",
+        "    this.controlType = options.controlType || '';",
+        "    this.type = options.type || '';",
+        "    this.options = options.options || [];",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "question-control-service",
+      "text": "Transforming metadata into FormControls"
+    },
+    {
+      "type": "paragraph",
+      "text": "A dynamic form uses a service to convert the question model to a <code>FormGroup</code>:"
+    },
+    {
+      "type": "code",
+      "file": "question-control.service.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable } from '@angular/core';",
+        "import { FormControl, FormGroup, Validators } from '@angular/forms';",
+        "import { QuestionBase } from './question-base';",
+        "",
+        "@Injectable({ providedIn: 'root' })",
+        "export class QuestionControlService {",
+        "  toFormGroup(questions: QuestionBase<string>[]) {",
+        "    const group: any = {};",
+        "",
+        "    questions.forEach((question) => {",
+        "      group[question.key] = question.required",
+        "        ? new FormControl(question.value || '', Validators.required)",
+        "        : new FormControl(question.value || '');",
+        "    });",
+        "",
+        "    return new FormGroup(group);",
+        "  }",
+        "}"
+      ]
+    }
+  ]
+}

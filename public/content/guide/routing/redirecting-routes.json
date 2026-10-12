@@ -1,0 +1,233 @@
+{
+  "slug": "guide/routing/redirecting-routes",
+  "title": "Chuyển hướng tuyến đường (Redirecting Routes)",
+  "description": "Tìm hiểu cách cấu hình chuyển hướng (redirects) trong Angular Router: pathMatch ('prefix' vs 'full'), chuyển hướng có điều kiện với hàm RedirectFunction và xử lý đường dẫn cũ.",
+  "source": "https://angular.dev/guide/routing/redirecting-routes",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Chuyển hướng tuyến đường (Route redirects) cho phép bạn tự động đưa người dùng từ một route này sang một route khác. Hãy hình dung nó giống như dịch vụ chuyển tiếp thư từ bưu điện: thư gửi đến một địa chỉ cũ sẽ tự động được chuyển tiếp đến địa chỉ mới. Tính năng này rất hữu ích để xử lý các URL cũ (legacy URLs), thiết lập các tuyến đường mặc định hoặc kiểm soát phân luồng truy cập."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-to-configure-redirects",
+      "text": "Cách cấu hình chuyển hướng (How to configure redirects)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể định nghĩa chuyển hướng trong cấu hình route của mình bằng thuộc tính <code>redirectTo</code>. Thuộc tính này chấp nhận một chuỗi đường dẫn:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "",
+        "const routes: Routes = [",
+        "  // Chuyển hướng đơn giản",
+        "  { path: 'marketing', redirectTo: 'newsletter' },",
+        "",
+        "  // Chuyển hướng kèm tham số đường dẫn",
+        "  { path: 'legacy-user/:id', redirectTo: 'users/:id' },",
+        "",
+        "  // Chuyển hướng bất kỳ URL nào không khớp (chuyển hướng wildcard)",
+        "  { path: '**', redirectTo: '/login' },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ trên, có ba trường hợp chuyển hướng:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Khi người dùng truy cập <code>/marketing</code>, họ sẽ được chuyển hướng sang <code>/newsletter</code>.",
+        "Khi người dùng truy cập bất kỳ đường dẫn nào dạng <code>/legacy-user/:id</code>, họ sẽ được chuyển sang đường dẫn tương ứng là <code>/users/:id</code>.",
+        "Khi người dùng truy cập bất kỳ đường dẫn nào chưa được khai báo trong router, họ sẽ được chuyển hướng về trang đăng nhập nhờ ký tự đại diện <code>**</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "understanding-pathmatch",
+      "text": "Tìm hiểu về pathMatch (Understanding pathMatch)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Thuộc tính <code>pathMatch</code> trên các route cho phép lập trình viên kiểm soát cách Angular khớp một URL với định nghĩa route. <code>pathMatch</code> nhận một trong hai giá trị:"
+    },
+    {
+      "type": "table",
+      "headers": ["Giá trị (Value)", "Mô tả (Description)"],
+      "rows": [
+        ["<code>'full'</code>", "Toàn bộ đường dẫn URL phải khớp hoàn toàn chính xác."],
+        ["<code>'prefix'</code>", "Chỉ cần phần đầu (tiền tố) của URL khớp với đường dẫn là được kích hoạt."]
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Theo mặc định, tất cả các cấu hình chuyển hướng (redirects) đều sử dụng chiến lược <code>'prefix'</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "pathmatch-prefix",
+      "text": "pathMatch: 'prefix'"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>pathMatch: 'prefix'</code> là chiến lược mặc định và rất lý tưởng khi bạn muốn Angular Router khớp tất cả các route con tiếp theo sau khi kích hoạt chuyển hướng:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "export const routes: Routes = [",
+        "  // Route chuyển hướng này...",
+        "  { path: 'news', redirectTo: 'blog' },",
+        "  // ...hoàn toàn tương đương với việc khai báo tường minh pathMatch:",
+        "  { path: 'news', redirectTo: 'blog', pathMatch: 'prefix' },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ này, tất cả các route có tiền tố là <code>news</code> đều sẽ được chuyển hướng sang tương đương <code>/blog</code>:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>/news</code> chuyển hướng sang <code>/blog</code>",
+        "<code>/news/article</code> chuyển hướng sang <code>/blog/article</code>",
+        "<code>/news/article/:id</code> chuyển hướng sang <code>/blog/article/:id</code>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "pathmatch-full",
+      "text": "pathMatch: 'full'"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặt khác, <code>pathMatch: 'full'</code> hữu ích khi bạn muốn Angular Router chỉ chuyển hướng một đường dẫn cụ thể duy nhất:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "export const routes: Routes = [",
+        "  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ này, chỉ khi người dùng truy cập chính xác vào URL gốc (đường dẫn rỗng <code>''</code>), router mới chuyển hướng người dùng đến trang <code>'/dashboard'</code>. Bất kỳ trang nào khác (ví dụ: <code>/login</code>, <code>/about</code>, <code>/product/:id</code>) sẽ không bị ảnh hưởng và không kích hoạt chuyển hướng."
+    },
+    {
+      "type": "callout",
+      "kind": "caution",
+      "text": "Hãy hết sức cẩn thận khi cấu hình chuyển hướng trên trang gốc (<code>\"\"</code>). Nếu bạn không đặt <code>pathMatch: 'full'</code>, do tiền tố rỗng khớp với mọi chuỗi URL, router sẽ chuyển hướng tất cả mọi URL trong ứng dụng của bạn sang trang đích đó!"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để minh họa rõ hơn sự khác biệt, nếu ví dụ <code>news</code> ở phần trước sử dụng <code>pathMatch: 'full'</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "export const routes: Routes = [",
+        "  { path: 'news', redirectTo: '/blog', pathMatch: 'full' },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Điều này có nghĩa là:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Chỉ riêng đường dẫn <code>/news</code> mới được chuyển hướng đến <code>/blog</code>.",
+        "Bất kỳ phân đoạn con nào tiếp theo như <code>/news/articles</code> hay <code>/news/articles/1</code> sẽ <strong>không</strong> được chuyển hướng sang tiền tố <code>/blog</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "conditional-redirects",
+      "text": "Chuyển hướng có điều kiện (Conditional redirects)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Thuộc tính <code>redirectTo</code> cũng có thể nhận một hàm (kiểu <code>RedirectFunction</code>) để thêm logic điều kiện linh hoạt cho việc chuyển hướng người dùng."
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm này chỉ có quyền truy cập vào một phần dữ liệu của <code>ActivatedRouteSnapshot</code> (vì ở giai đoạn khớp route ban đầu, một số thông tin như title đã resolve hay lazy-loaded component chưa sẵn sàng). Hàm thường trả về một chuỗi URL hoặc một đối tượng <code>UrlTree</code>, ngoài ra cũng có thể trả về một Observable hoặc Promise."
+    },
+    {
+      "type": "paragraph",
+      "text": "Dưới đây là ví dụ chuyển hướng người dùng đến thực đơn (menu) tương ứng theo thời gian trong ngày:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { Menu } from './menu';",
+        "",
+        "export const routes: Routes = [",
+        "  {",
+        "    path: 'restaurant/:location/menu',",
+        "    redirectTo: (activatedRouteSnapshot) => {",
+        "      const location = activatedRouteSnapshot.params['location'];",
+        "      const currentHour = new Date().getHours();",
+        "",
+        "      // Kiểm tra xem người dùng có yêu cầu món ăn cụ thể qua query parameter không",
+        "      if (activatedRouteSnapshot.queryParams['meal']) {",
+        "        return `/restaurant/${location}/menu/${activatedRouteSnapshot.queryParams['meal']}`;",
+        "      }",
+        "",
+        "      // Tự động chuyển hướng dựa trên giờ trong ngày",
+        "      if (currentHour >= 5 && currentHour < 11) {",
+        "        return `/restaurant/${location}/menu/breakfast`; // Bữa sáng",
+        "      } else if (currentHour >= 11 && currentHour < 17) {",
+        "        return `/restaurant/${location}/menu/lunch`;     // Bữa trưa",
+        "      } else {",
+        "        return `/restaurant/${location}/menu/dinner`;    // Bữa tối",
+        "      }",
+        "    },",
+        "  },",
+        "  // Các tuyến đường đích",
+        "  { path: 'restaurant/:location/menu/breakfast', component: Menu },",
+        "  { path: 'restaurant/:location/menu/lunch', component: Menu },",
+        "  { path: 'restaurant/:location/menu/dinner', component: Menu },",
+        "  // Chuyển hướng mặc định cho trang chủ",
+        "  { path: '', redirectTo: '/restaurant/downtown/menu', pathMatch: 'full' },",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Xem thêm tài liệu chi tiết về thuộc tính <code>redirectTo</code> trong tài liệu tham khảo chính thức của Angular."
+    }
+  ]
+}

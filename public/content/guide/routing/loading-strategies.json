@@ -1,0 +1,174 @@
+{
+  "slug": "guide/routing/loading-strategies",
+  "title": "Chiến lược tải tuyến đường (Route Loading Strategies)",
+  "description": "Hiểu rõ cách thức và thời điểm tải các tuyến đường (routes) và components trong Angular: Tải trước (Eager loading) và Tải lười (Lazy loading) với loadComponent, loadChildren và injection context.",
+  "source": "https://angular.dev/guide/routing/loading-strategies",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Hiểu cách thức và thời điểm các route cùng component được tải trong Angular Routing là điều cốt yếu để xây dựng các ứng dụng web có tốc độ phản hồi nhanh. Angular cung cấp hai chiến lược chính để kiểm soát hành vi tải:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Eagerly loaded (Tải trước / tải ngay):</strong> Các routes và components được tải ngay lập tức cùng với bundle khởi động của ứng dụng.",
+        "<strong>Lazily loaded (Tải lười / tải theo nhu cầu):</strong> Các routes và components chỉ được tải khi thực sự cần thiết (khi người dùng điều hướng tới route đó)."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi phương pháp đều có những lợi thế riêng cho các tình huống sử dụng khác nhau."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "eagerly-loaded-components",
+      "text": "Components được tải trước (Eagerly loaded components)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn định nghĩa một route bằng thuộc tính <code>component</code>, component được tham chiếu sẽ được tải trước như một phần của cùng gói JavaScript (bundle) với cấu hình route."
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { HomePage } from './components/home/home-page';",
+        "import { LoginPage } from './components/auth/login-page';",
+        "",
+        "export const routes: Routes = [",
+        "  // HomePage và LoginPage đều được import trực tiếp trong cấu hình này,",
+        "  // do đó mã nguồn của chúng được đóng gói sẵn vào cùng JavaScript bundle với tệp này.",
+        "  {",
+        "    path: '',",
+        "    component: HomePage,",
+        "  },",
+        "  {",
+        "    path: 'login',",
+        "    component: LoginPage,",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Việc tải trước các component theo cách này đồng nghĩa với việc trình duyệt phải tải về và phân tích cú pháp (parse) tất cả mã JavaScript cho các component đó ngay trong lần tải trang ban đầu. Tuy nhiên, ưu điểm là các component này sẽ có sẵn ngay lập tức trong Angular mà không cần chờ thêm bất kỳ yêu cầu mạng nào khi người dùng chuyển trang."
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc dù việc đưa nhiều JavaScript hơn vào lần tải trang đầu tiên có thể làm chậm thời gian tải trang ban đầu (initial load time), nhưng nó mang lại trải nghiệm chuyển tiếp mượt mà, tức thì khi người dùng di chuyển giữa các trang."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "lazily-loaded-components-and-routes",
+      "text": "Tải lười components và routes (Lazily loaded components and routes)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể sử dụng thuộc tính <code>loadComponent</code> để tải lười JavaScript của một component tại thời điểm route đó được kích hoạt. Thuộc tính <code>loadChildren</code> cho phép tải lười một tập hợp các routes con trong quá trình khớp tuyến đường:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "",
+        "export const routes: Routes = [",
+        "  {",
+        "    path: 'login',",
+        "    loadComponent: () => import('./components/auth/login-page'),",
+        "  },",
+        "  {",
+        "    path: 'admin',",
+        "    loadComponent: () => import('./admin/admin.component'),",
+        "    loadChildren: () => import('./admin/admin.routes'),",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Thuộc tính <code>loadComponent</code> và <code>loadChildren</code> nhận vào một hàm loader trả về một <code>Promise</code> phân giải thành một Angular component hoặc một mảng các route tương ứng. Trong hầu hết các trường hợp, hàm này sử dụng cú pháp chuẩn của JavaScript là <code>import()</code> động. Tuy nhiên, bạn có thể sử dụng bất kỳ hàm loader bất đồng bộ nào."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Nếu tệp được tải lười sử dụng <code>export default</code>, bạn có thể trả về trực tiếp promise <code>import()</code> mà không cần gọi thêm <code>.then(m => m.ComponentClass)</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Tải lười các tuyến đường có thể cải thiện đáng kể tốc độ tải ban đầu của ứng dụng Angular bằng cách tách bớt một lượng lớn mã nguồn JavaScript ra khỏi bundle ban đầu. Các phần mã này sẽ được trình đóng gói (bundler) chia tách thành các \"chunk\" JavaScript riêng biệt mà Router chỉ tải về khi người dùng thực sự truy cập vào route tương ứng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "injection-context-lazy-loading",
+      "text": "Tải lười theo ngữ cảnh Injection (Injection context lazy loading)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular Router thực thi các hàm trong <code>loadComponent</code> và <code>loadChildren</code> bên trong <strong>ngữ cảnh injection (injection context)</strong> của route hiện tại. Điều này cho phép bạn gọi hàm <code>inject()</code> ngay bên trong các hàm loader này để truy cập vào các provider đã được khai báo trên route đó, kế thừa từ route cha thông qua phân cấp DI, hoặc từ root."
+    },
+    {
+      "type": "paragraph",
+      "text": "Khả năng này mở ra kỹ thuật tải lười phụ thuộc ngữ cảnh (context-aware lazy loading):"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { inject } from '@angular/core';",
+        "import { FeatureFlags } from './feature-flags';",
+        "",
+        "export const routes: Routes = [",
+        "  {",
+        "    path: 'dashboard',",
+        "    // Chạy bên trong injection context của route này",
+        "    loadComponent: () => {",
+        "      const flags = inject(FeatureFlags);",
+        "      return flags.isPremium",
+        "        ? import('./dashboard/premium-dashboard')",
+        "        : import('./dashboard/basic-dashboard');",
+        "    },",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "should-i-use-an-eager-or-a-lazy-route",
+      "text": "Nên sử dụng Eager hay Lazy Route? (Should I use an eager or a lazy route?)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Có rất nhiều yếu tố cần xem xét khi quyết định xem một route nên được tải trước hay tải lười:"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nói chung, tải trước (eager loading) được khuyến nghị cho trang chính / trang chủ (landing page) mà hầu hết người dùng sẽ xem ngay lập tức, trong khi các trang tính năng phụ khác nên được tải lười (lazy-loaded)."
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Mặc dù lazy routes mang lại lợi ích hiệu năng ban đầu bằng cách giảm lượng dữ liệu tải lúc đầu, nó sẽ phát sinh thêm các yêu cầu tải dữ liệu bổ sung trong tương lai khi người dùng bấm vào chuyển trang. Điều này đặc biệt cần lưu ý khi lồng ghép tải lười nhiều cấp (nested lazy loading), vì có thể gây độ trễ cảm nhận cho người dùng nếu mạng chậm."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tìm hiểu cách [Hiển thị nội dung tuyến đường với Outlets (Display the contents of your routes with Outlets)](/docs/guide/routing/show-routes-with-outlets)."
+    }
+  ]
+}

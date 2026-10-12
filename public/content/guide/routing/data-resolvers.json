@@ -1,0 +1,458 @@
+{
+  "slug": "guide/routing/data-resolvers",
+  "title": "Bộ phân giải dữ liệu (Data resolvers)",
+  "description": "Tìm hiểu cách sử dụng Data Resolvers trong Angular để nạp trước dữ liệu trước khi chuyển trang, liên kết dữ liệu trực tiếp vào input component, xử lý lỗi điều hướng và tối ưu trải nghiệm người dùng.",
+  "source": "https://angular.dev/guide/routing/data-resolvers",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Bộ phân giải dữ liệu (Data resolvers) cho phép bạn nạp dữ liệu trước khi điều hướng đến một tuyến đường (route), đảm bảo các component của bạn nhận đầy đủ dữ liệu cần thiết trước khi bắt đầu render. Điều này giúp loại bỏ trạng thái rỗng tạm thời hoặc tình trạng giật giao diện và cải thiện trải nghiệm người dùng bằng cách chuẩn bị sẵn dữ liệu thiết yếu."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Nếu ứng dụng của bạn sử dụng Angular Signals, hãy cân nhắc sử dụng [route resources](/docs/guide/routing/data-fetching-with-resources) để nạp dữ liệu phản ứng bằng API Resource tích hợp sẵn khả năng nạp dữ liệu không chặn điều hướng (non-blocking)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "what-are-data-resolvers",
+      "text": "Data resolvers là gì? (What are data resolvers?)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một data resolver là một hàm thực thi theo kiểu <code>ResolveFn</code>. Nó chạy trước khi một route được kích hoạt và có thể nạp dữ liệu từ API, database hoặc các nguồn dữ liệu khác. Dữ liệu đã được phân giải (resolved data) sau đó sẽ có sẵn cho component thông qua dịch vụ <code>ActivatedRoute</code> hoặc component inputs."
+    },
+    {
+      "type": "paragraph",
+      "text": "Data resolvers có toàn quyền truy cập vào các service được cung cấp ở cấp độ route (route-level providers) cũng như thông tin cụ thể của route thông qua đối số <code>route</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "why-use-data-resolvers",
+      "text": "Tại sao nên sử dụng Data resolvers? (Why use data resolvers?)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Data resolvers giải quyết nhiều thách thức phổ biến trong định tuyến ứng dụng:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Ngăn chặn trạng thái trống rỗng (Prevent empty states):</strong> Các component nhận dữ liệu ngay lập tức ngay khi vừa được hiển thị.",
+        "<strong>Trải nghiệm người dùng tốt hơn:</strong> Không cần hiển thị vòng quay loading (spinner) cho các dữ liệu cốt lõi của trang.",
+        "<strong>Xử lý lỗi tập trung:</strong> Xử lý các lỗi nạp dữ liệu trước khi người dùng thực sự bước vào route.",
+        "<strong>Tính nhất quán dữ liệu (Data consistency):</strong> Đảm bảo dữ liệu bắt buộc đã sẵn sàng trước khi render - điều này đặc biệt quan trọng đối với Render phía máy chủ (Server-Side Rendering - SSR)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-a-resolver",
+      "text": "Tạo một Resolver (Creating a resolver)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn tạo một resolver bằng cách viết một hàm có kiểu <code>ResolveFn</code>. Hàm này nhận hai đối số: <code>ActivatedRouteSnapshot</code> và <code>RouterStateSnapshot</code>:"
+    },
+    {
+      "type": "code",
+      "file": "user-resolvers.ts",
+      "lang": "ts",
+      "code": [
+        "import { inject } from '@angular/core';",
+        "import type { ActivatedRouteSnapshot, ResolveFn, RouterStateSnapshot } from '@angular/router';",
+        "import { UserStore, SettingsStore } from './user-store';",
+        "import type { User, Settings } from './types';",
+        "",
+        "export const userResolver: ResolveFn<User> = (",
+        "  route: ActivatedRouteSnapshot,",
+        "  state: RouterStateSnapshot,",
+        ") => {",
+        "  const userStore = inject(UserStore);",
+        "  const userId = route.paramMap.get('id')!;",
+        "  return userStore.getUser(userId);",
+        "};",
+        "",
+        "export const settingsResolver: ResolveFn<Settings> = (",
+        "  route: ActivatedRouteSnapshot,",
+        "  state: RouterStateSnapshot,",
+        ") => {",
+        "  const settingsStore = inject(SettingsStore);",
+        "  const userId = route.paramMap.get('id')!;",
+        "  return settingsStore.getUserSettings(userId);",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configuring-routes-with-resolvers",
+      "text": "Cấu hình Routes với Resolvers (Configuring routes with resolvers)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn muốn gán một hoặc nhiều resolvers vào một route, bạn thêm chúng dưới khóa <code>resolve</code> trong cấu hình route:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { UserDetail } from './user-detail';",
+        "import { userResolver, settingsResolver } from './user-resolvers';",
+        "",
+        "export const routes: Routes = [",
+        "  {",
+        "    path: 'user/:id',",
+        "    component: UserDetail,",
+        "    resolve: {",
+        "      user: userResolver,",
+        "      settings: settingsResolver,",
+        "    },",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "accessing-resolved-data-in-components",
+      "text": "Truy cập dữ liệu phân giải trong Components (Accessing resolved data)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-activatedroute",
+      "text": "Sử dụng ActivatedRoute"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể đọc dữ liệu phân giải bằng cách truy cập thuộc tính <code>data</code> của <code>ActivatedRoute</code> kết hợp với <code>toSignal</code>:"
+    },
+    {
+      "type": "code",
+      "file": "user-detail.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject, computed } from '@angular/core';",
+        "import { ActivatedRoute } from '@angular/router';",
+        "import { toSignal } from '@angular/core/rxjs-interop';",
+        "import type { User, Settings } from './types';",
+        "",
+        "@Component({",
+        "  template: `",
+        "    <h1>{{ user().name }}</h1>",
+        "    <p>{{ user().email }}</p>",
+        "    <div>Theme: {{ settings().theme }}</div>",
+        "  `,",
+        "})",
+        "export class UserDetail {",
+        "  private route = inject(ActivatedRoute);",
+        "  private data = toSignal(this.route.data, { requireSync: true });",
+        "",
+        "  user = computed(() => this.data().user as User);",
+        "  settings = computed(() => this.data().settings as Settings);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-withcomponentinputbinding",
+      "text": "Sử dụng withComponentInputBinding"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một phương pháp hiện đại và trực quan hơn nhiều là sử dụng tính năng <code>withComponentInputBinding()</code> khi thiết lập router trong <code>app.config.ts</code>. Tính năng này cho phép tự động chuyển dữ liệu phân giải thành các <code>input</code> của component:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideRouter, withComponentInputBinding } from '@angular/router';",
+        "import { routes } from './app.routes';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideRouter(routes, withComponentInputBinding()),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nhờ đó, component chỉ cần khai báo các signal inputs với tên tương ứng với key trong <code>resolve</code>:"
+    },
+    {
+      "type": "code",
+      "file": "user-detail.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, input } from '@angular/core';",
+        "import type { User, Settings } from './types';",
+        "",
+        "@Component({",
+        "  template: `",
+        "    <h1>{{ user().name }}</h1>",
+        "    <p>{{ user().email }}</p>",
+        "    <div>Theme: {{ settings().theme }}</div>",
+        "  `,",
+        "})",
+        "export class UserDetail {",
+        "  user = input.required<User>();",
+        "  settings = input.required<Settings>();",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Cách tiếp cận này mang lại tính an toàn kiểu dữ liệu (type safety) cao hơn rất nhiều và loại bỏ hoàn toàn việc phải inject thủ công <code>ActivatedRoute</code> chỉ để lấy dữ liệu."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "error-handling-in-resolvers",
+      "text": "Xử lý lỗi trong Resolvers (Error handling in resolvers)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi nạp dữ liệu thất bại, nếu không được xử lý khéo léo, một sự kiện <code>NavigationError</code> sẽ nổ ra và quá trình chuyển trang sẽ bị hủy bỏ hoàn toàn, gây ức chế cho người dùng. Có ba cách chính để xử lý lỗi trong data resolvers:"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "centralize-error-handling-in-withnavigationerrorhandler",
+      "text": "Tập trung xử lý lỗi với withNavigationErrorHandler"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tính năng <code>withNavigationErrorHandler</code> cung cấp một vị trí tập trung duy nhất để xử lý tất cả lỗi điều hướng, bao gồm cả lỗi ném ra từ resolver. Điều này giúp giữ cho resolver gọn gàng và tránh lặp lại mã xử lý lỗi:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig, inject } from '@angular/core';",
+        "import { provideRouter, Router, withNavigationErrorHandler } from '@angular/router';",
+        "import { routes } from './app.routes';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideRouter(",
+        "      routes,",
+        "      withNavigationErrorHandler((error) => {",
+        "        const router = inject(Router);",
+        "        if (error.error?.message) {",
+        "          console.error('Lỗi điều hướng:', error.error.message);",
+        "        }",
+        "        router.navigate(['/error']);",
+        "      }),",
+        "    ),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "managing-errors-through-a-subscription-to-router-events",
+      "text": "Quản lý lỗi thông qua đăng ký sự kiện Router Events"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể lắng nghe trực tiếp sự kiện <code>NavigationError</code> từ <code>router.events</code>. Phương pháp này phù hợp khi bạn cần cung cấp khả năng thử lại (retry) hoặc hiển thị thông báo lỗi dạng banner trên giao diện:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject, signal } from '@angular/core';",
+        "import { Router, NavigationError, RouterOutlet } from '@angular/router';",
+        "import { toSignal } from '@angular/core/rxjs-interop';",
+        "import { map } from 'rxjs';",
+        "",
+        "@Component({",
+        "  selector: 'app-root',",
+        "  imports: [RouterOutlet],",
+        "  template: `",
+        "    @if (errorMessage()) {",
+        "      <div class=\"error-banner\">",
+        "        {{ errorMessage() }}",
+        "        <button (click)=\"retryNavigation()\">Thử lại</button>",
+        "      </div>",
+        "    }",
+        "    <router-outlet />",
+        "  `,",
+        "})",
+        "export class App {",
+        "  private router = inject(Router);",
+        "  private lastFailedUrl = signal('');",
+        "",
+        "  errorMessage = toSignal(",
+        "    this.router.events.pipe(",
+        "      map((event) => {",
+        "        if (event instanceof NavigationError) {",
+        "          this.lastFailedUrl.set(event.url);",
+        "          return 'Điều hướng thất bại. Vui lòng thử lại!';",
+        "        }",
+        "        return '';",
+        "      }),",
+        "    ),",
+        "    { initialValue: '' },",
+        "  );",
+        "",
+        "  retryNavigation() {",
+        "    if (this.lastFailedUrl()) {",
+        "      this.router.navigateByUrl(this.lastFailedUrl());",
+        "    }",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "handling-errors-directly-in-the-resolver",
+      "text": "Xử lý lỗi trực tiếp trong Resolver"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể bắt lỗi ngay trong resolver và trả về một <code>RedirectCommand</code> để chuyển hướng an toàn về trang danh sách:"
+    },
+    {
+      "type": "code",
+      "file": "user.resolver.ts",
+      "lang": "ts",
+      "code": [
+        "import { inject } from '@angular/core';",
+        "import { ResolveFn, RedirectCommand, Router } from '@angular/router';",
+        "import { catchError, of } from 'rxjs';",
+        "import { UserStore } from './user-store';",
+        "import type { User } from './types';",
+        "",
+        "export const userResolver: ResolveFn<User | RedirectCommand> = (route) => {",
+        "  const userStore = inject(UserStore);",
+        "  const router = inject(Router);",
+        "  const userId = route.paramMap.get('id')!;",
+        "",
+        "  return userStore.getUser(userId).pipe(",
+        "    catchError((error) => {",
+        "      console.error('Không thể nạp dữ liệu người dùng:', error);",
+        "      return of(new RedirectCommand(router.parseUrl('/users')));",
+        "    }),",
+        "  );",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "navigation-loading-considerations",
+      "text": "Cân nhắc UX khi tải dữ liệu điều hướng (Navigation loading considerations)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc dù resolver giúp loại bỏ loading state bên trong component, nhưng nó lại chặn quá trình chuyển route cho đến khi nạp xong dữ liệu. Nếu mạng chậm, người dùng bấm vào link sẽ thấy trang đứng yên một lúc trước khi màn hình mới xuất hiện."
+    },
+    {
+      "type": "paragraph",
+      "text": "Để cải thiện trải nghiệm, bạn nên cung cấp thanh tiến trình điều hướng (navigation feedback):"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, computed, inject } from '@angular/core';",
+        "import { Router, RouterOutlet } from '@angular/router';",
+        "",
+        "@Component({",
+        "  selector: 'app-root',",
+        "  imports: [RouterOutlet],",
+        "  template: `",
+        "    @if (isNavigating()) {",
+        "      <div class=\"loading-bar\">Đang tải dữ liệu...</div>",
+        "    }",
+        "    <router-outlet />",
+        "  `,",
+        "})",
+        "export class App {",
+        "  private router = inject(Router);",
+        "  isNavigating = computed(() => !!this.router.currentNavigation());",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reading-parent-resolved-data-in-child-resolvers",
+      "text": "Đọc dữ liệu phân giải của cha trong Resolver con (Reading parent resolved data)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các resolver được thực thi tuần tự từ route cha xuống route con. Khi route cha định nghĩa một resolver, dữ liệu phân giải của nó sẽ sẵn sàng cho các resolver con thông qua <code>route.parent?.data</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { inject } from '@angular/core';",
+        "import { ActivatedRouteSnapshot } from '@angular/router';",
+        "import { userResolver } from './user-resolvers';",
+        "import { PostService } from './post.service';",
+        "import type { User } from './types';",
+        "",
+        "export const routes: Routes = [",
+        "  {",
+        "    path: 'users/:id',",
+        "    resolve: { user: userResolver }, // Chạy trước trên route cha",
+        "    children: [",
+        "      {",
+        "        path: 'posts',",
+        "        resolve: {",
+        "          posts: (route: ActivatedRouteSnapshot) => {",
+        "            const postService = inject(PostService);",
+        "            // Đọc dữ liệu user đã phân giải từ cha:",
+        "            const user = route.parent?.data['user'] as User;",
+        "            return postService.getPostByUser(user.id);",
+        "          },",
+        "        },",
+        "      },",
+        "    ],",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Lưu ý: Do các resolver chạy tuần tự từ cha xuống con, việc lồng nhau nhiều cấp sẽ tạo ra chuỗi mạng waterfall làm tăng tổng thời gian chờ. Nếu route con không phụ thuộc vào dữ liệu của cha, hãy cân nhắc sử dụng route resources để thực thi song song."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "best-practices",
+      "text": "Thực hành tốt nhất (Best practices)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Giữ resolver tinh gọn:</strong> Chỉ tải dữ liệu tối cần thiết để render trang đầu tiên, không tải toàn bộ dữ liệu phụ trợ.",
+        "<strong>Luôn xử lý lỗi:</strong> Không để lỗi mạng làm hỏng luồng điều hướng của người dùng.",
+        "<strong>Áp dụng cơ chế Cache:</strong> Lưu đệm dữ liệu phân giải để tránh gọi API trùng lặp khi quay lại trang.",
+        "<strong>Cung cấp chỉ báo tiến trình:</strong> Hiển thị hiệu ứng loading bar trên đầu trang khi resolver đang hoạt động.",
+        "<strong>Thiết lập timeout hợp lý:</strong> Tránh để resolver treo vô thời hạn làm người dùng không thể chuyển trang."
+      ]
+    }
+  ]
+}

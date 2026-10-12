@@ -1,0 +1,289 @@
+{
+  "slug": "guide/di/defining-dependency-providers",
+  "title": "Định nghĩa Dependency Providers (Defining dependency providers)",
+  "description": "Tìm hiểu các mô hình cấu hình provider tự động và thủ công: InjectionToken, useClass, useValue, useFactory, useExisting, phạm vi injector và hàm provide*.",
+  "source": "https://angular.dev/guide/di/defining-dependency-providers",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular cung cấp hai cách chính để làm cho các service và giá trị sẵn sàng cho việc inject:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Cung cấp tự động (Automatic provision): Sử dụng providedIn trong decorator @Injectable, dùng decorator @Service, hoặc khai báo hàm factory trong cấu hình InjectionToken.",
+        "Cung cấp thủ công (Manual provision): Sử dụng mảng providers trong component, directive, route hoặc cấu hình khởi tạo ứng dụng (application config)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "automatic-provision-for-non-class-dependencies",
+      "text": "Cung cấp tự động cho các dependency không phải là class"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong khi decorator `@Injectable({ providedIn: 'root' })` hoạt động rất tốt cho các service (dạng class), bạn cũng có thể cần cung cấp các loại giá trị khác trên toàn cục — ví dụ như đối tượng cấu hình, hàm hoặc giá trị nguyên thủy (primitive). Angular cung cấp `InjectionToken` cho mục đích này."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "what-is-an-injectiontoken",
+      "text": "InjectionToken là gì? (What is an InjectionToken?)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một `InjectionToken` là một đối tượng mà hệ thống DI của Angular dùng để định danh duy nhất các giá trị cần inject. Bạn có thể xem nó như một chiếc chìa khóa đặc biệt giúp lưu trữ và truy xuất bất kỳ kiểu giá trị nào trong DI container:"
+    },
+    {
+      "type": "code",
+      "file": "tokens.example.ts",
+      "lang": "typescript",
+      "code": [
+        "import { InjectionToken } from '@angular/core';",
+        "",
+        "// Tạo token cho giá trị chuỗi",
+        "export const API_URL = new InjectionToken<string>('api.url');",
+        "",
+        "// Tạo token cho một hàm",
+        "export const LOGGER = new InjectionToken<(msg: string) => void>('logger.function');",
+        "",
+        "// Tạo token cho kiểu dữ liệu đối tượng phức tạp",
+        "export interface Config {",
+        "  apiUrl: string;",
+        "  timeout: number;",
+        "}",
+        "export const CONFIG_TOKEN = new InjectionToken<Config>('app.config');"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Tham số chuỗi (ví dụ: 'api.url') chỉ là mô tả thuần túy phục vụ cho việc debug — Angular định danh token theo tham chiếu đối tượng (object reference) chứ không dựa vào chuỗi này."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "injectiontoken-with-providedin-root",
+      "text": "InjectionToken với providedIn: 'root'"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một `InjectionToken` có hàm `factory` mặc định sẽ được cung cấp ở `providedIn: 'root'`, giúp token khả dụng trên toàn bộ ứng dụng mà không cần khai báo trong mảng providers:"
+    },
+    {
+      "type": "code",
+      "file": "app/config.token.ts",
+      "lang": "typescript",
+      "code": [
+        "import { InjectionToken, Component, inject } from '@angular/core';",
+        "",
+        "export interface AppConfig {",
+        "  apiUrl: string;",
+        "  version: string;",
+        "  features: Record<string, boolean>;",
+        "}",
+        "",
+        "export const APP_CONFIG = new InjectionToken<AppConfig>('app.config', {",
+        "  providedIn: 'root',",
+        "  factory: () => ({",
+        "    apiUrl: 'https://api.example.com',",
+        "    version: '1.0.0',",
+        "    features: { darkMode: true, analytics: false },",
+        "  }),",
+        "});",
+        "",
+        "@Component({",
+        "  selector: 'app-header',",
+        "  template: `<h1>Phiên bản: {{ config.version }}</h1>`,",
+        "})",
+        "export class Header {",
+        "  config = inject(APP_CONFIG); // Tự động khả dụng ở mọi nơi!",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "when-to-use-injectiontoken-with-factory-functions",
+      "text": "Khi nào nên dùng InjectionToken kèm hàm factory"
+    },
+    {
+      "type": "paragraph",
+      "text": "InjectionToken kèm factory function là giải pháp lý tưởng khi bạn không thể dùng class nhưng vẫn muốn cung cấp dependency toàn cục:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Cung cấp các API gốc của trình duyệt (ví dụ: window.localStorage, window.sessionStorage).",
+        "Cung cấp các cấu hình phức tạp với logic tính toán lúc runtime (URL params, cookie, localStorage).",
+        "Cung cấp hàm tiện ích có thể inject các service khác bên trong hàm factory."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "app/storage.token.ts",
+      "lang": "typescript",
+      "code": [
+        "export const LOCAL_STORAGE = new InjectionToken<Storage>('localStorage', {",
+        "  providedIn: 'root',",
+        "  factory: () => window.localStorage,",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "understanding-manual-provider-configuration",
+      "text": "Hiểu về cấu hình Provider thủ công (Manual provider configuration)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cấu hình thủ công thông qua mảng `providers` là cần thiết khi: service không có providedIn, bạn muốn tạo instance riêng biệt cho từng component thay vì dùng singleton, service cần cấu hình theo runtime, hoặc bạn cần cung cấp giá trị không phải class."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "example-creating-component-specific-instances",
+      "text": "Tạo các instance riêng biệt gắn liền với vòng đời component"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các service có `providedIn: 'root'` có thể bị ghi đè (override) ở cấp component bằng cách thêm vào mảng `providers` của component đó. Khi component bị hủy (destroy), thực thể service tương ứng cũng bị giải phóng theo:"
+    },
+    {
+      "type": "code",
+      "file": "app/isolated.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  selector: 'app-isolated',",
+        "  providers: [DataStore], // Tạo instance DataStore mới hoàn toàn cho riêng component này",
+        "  template: `...`,",
+        "})",
+        "export class Isolated {",
+        "  dataStore = inject(DataStore);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "injector-hierarchy-in-angular",
+      "text": "Hệ thống phân cấp Injector trong Angular (Injector hierarchy)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hệ thống DI của Angular hoạt động theo mô hình cây phân cấp. Khi component yêu cầu một dependency, Angular bắt đầu tìm kiếm từ injector của chính component đó và duyệt ngược lên cây component cho đến khi tìm thấy provider. Điều này mang lại 3 ưu điểm: Scoped instances (phạm vi riêng), Override behavior (ghi đè provider từ cha) và Memory efficiency (chỉ khởi tạo khi cần)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "declaring-a-provider",
+      "text": "Khai báo một Provider và các kiểu giá trị (Provider value types)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi đối tượng cấu hình provider gồm 2 phần: Khóa định danh (`provide`) và cách tạo giá trị (`useClass`, `useValue`, `useFactory`, `useExisting`):"
+    },
+    {
+      "type": "table",
+      "headers": ["Kiểu cấu hình", "Ý nghĩa & Cách dùng"],
+      "rows": [
+        ["useClass", "Cung cấp một class. Cho phép tráo đổi sang Mock class hoặc triển khai khác (ví dụ: Logger -> BetterLogger)."],
+        ["useValue", "Cung cấp giá trị tĩnh (chuỗi, số, đối tượng cấu hình tĩnh)."],
+        ["useFactory", "Cung cấp một hàm tạo giá trị động theo runtime, có thể inject thêm các dependency khác."],
+        ["useExisting", "Tạo bí danh (alias) trỏ về một provider đã tồn tại, đảm bảo trả về cùng một instance duy nhất."]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "provider-types.example.ts",
+      "lang": "typescript",
+      "code": [
+        "// useClass",
+        "{ provide: Logger, useClass: BetterLogger },",
+        "",
+        "// useValue",
+        "{ provide: API_URL_TOKEN, useValue: 'https://api.example.com' },",
+        "",
+        "// useFactory",
+        "{ provide: ApiClient, useFactory: (http: HttpClient) => new ApiClient(http), deps: [HttpClient] },",
+        "",
+        "// useExisting",
+        "{ provide: OldLogger, useExisting: NewLogger }"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "TypeScript Interface không thể làm khóa định danh DI vì interface sẽ bị loại bỏ hoàn toàn sau khi biên dịch sang JavaScript. Hãy sử dụng InjectionToken<T> để thay thế."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "multiple-providers",
+      "text": "Nhiều provider cho cùng một token (multi: true)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng cờ `multi: true` khi bạn muốn nhiều provider cùng đóng góp giá trị vào một token duy nhất (trả về một mảng chứa tất cả instance):"
+    },
+    {
+      "type": "code",
+      "file": "multi-providers.ts",
+      "lang": "typescript",
+      "code": [
+        "export const INTERCEPTOR_TOKEN = new InjectionToken<Interceptor[]>('interceptors');",
+        "",
+        "providers: [",
+        "  { provide: INTERCEPTOR_TOKEN, useClass: AuthInterceptor, multi: true },",
+        "  { provide: INTERCEPTOR_TOKEN, useClass: LoggingInterceptor, multi: true },",
+        "]"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "where-can-you-specify-providers",
+      "text": "Các vị trí khai báo providers (Where can you specify providers?)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Application bootstrap (bootstrapApplication): Singleton toàn cục cho toàn ứng dụng.",
+        "Component hoặc Directive: Tạo instance độc lập cho từng cây component, tự giải phóng khi component bị hủy.",
+        "Route providers: Gắn với các route cụ thể (loadChildren / providers), lý tưởng cho lazy-loaded feature modules."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "library-author-patterns",
+      "text": "Mô hình thiết kế cho tác giả thư viện (The provide* pattern)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Thay vì bắt người dùng cấu hình thủ công các provider phức tạp, các thư viện hiện đại xuất ra các hàm trả về mảng provider (tương tự `provideRouter`, `provideHttpClient`):"
+    },
+    {
+      "type": "code",
+      "file": "provide-analytics.ts",
+      "lang": "typescript",
+      "code": [
+        "export function provideAnalytics(config: AnalyticsConfig): Provider[] {",
+        "  return [",
+        "    { provide: ANALYTICS_CONFIG, useValue: config },",
+        "    AnalyticsService,",
+        "  ];",
+        "}",
+        "",
+        "// Sử dụng trong app.config.ts:",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [provideAnalytics({ trackingId: 'GA-123' })],",
+        "};"
+      ]
+    }
+  ]
+}

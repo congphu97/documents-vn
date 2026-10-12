@@ -1,44 +1,266 @@
 {
   "slug": "guide/hydration",
   "title": "Hydration",
-  "description": "Documentation guide for Hydration in Angular.",
+  "description": "Learn about Angular hydration: how it works, how to enable it with provideClientHydration, event replay, DOM mismatch constraints, skipping hydration with ngSkipHydration, and debugging application stability.",
   "source": "https://angular.dev/guide/hydration",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Official documentation from [angular.dev/guide/hydration](https://angular.dev/guide/hydration)."
-    },
-    {
       "type": "paragraph",
-      "text": "Hydration is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+      "text": "<strong>Hydration</strong> is the process that restores the server-side rendered application on the client. This includes things like reusing the server rendered DOM structures, persisting the application state, transferring application data that was retrieved already by the server, and other processes."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Overview and Concepts"
+      "id": "why-is-hydration-important",
+      "text": "Why is hydration important?"
     },
     {
       "type": "paragraph",
-      "text": "To master Hydration, explore the core mechanisms and design patterns provided by Angular."
+      "text": "Hydration improves application performance by avoiding extra work to re-create DOM nodes. Instead, Angular tries to match existing DOM elements to the application's structure at runtime and reuses DOM nodes when possible. This results in a performance improvement that can be measured using <strong>Core Web Vitals (CWV)</strong> statistics, such as reducing the First Input Delay (<strong>FID</strong> / <strong>INP</strong>) and Largest Contentful Paint (<strong>LCP</strong>), as well as Cumulative Layout Shift (<strong>CLS</strong>). Improving these numbers also affects things like SEO performance."
+    },
+    {
+      "type": "paragraph",
+      "text": "Without hydration enabled, server-side rendered Angular applications will destroy and re-render the application's DOM, which may result in a visible UI flicker. This re-rendering can negatively impact Core Web Vitals like LCP and cause a layout shift. Enabling hydration allows the existing DOM to be re-used and prevents a flicker."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-do-you-enable-hydration-in-angular",
+      "text": "How do you enable hydration in Angular"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hydration can be enabled for server-side rendered (SSR) applications only."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-angular-cli",
+      "text": "Using Angular CLI"
+    },
+    {
+      "type": "paragraph",
+      "text": "If you've used Angular CLI to enable SSR (either by enabling it during application creation with <code>ng new --ssr</code> or later via <code>ng add @angular/ssr</code>), the code that enables hydration should already be included in your application."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "manual-setup",
+      "text": "Manual setup"
+    },
+    {
+      "type": "paragraph",
+      "text": "If you have a custom setup, you can enable hydration manually by importing <code>provideClientHydration</code> from <code>@angular/platform-browser</code> and adding that provider to your app's bootstrapping providers list:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "app.config.ts",
       "lang": "ts",
       "code": [
-        "// Example demonstration for Hydration",
-        "import { Component } from \"@angular/core\";",
+        "import { bootstrapApplication } from '@angular/platform-browser';",
+        "import { provideClientHydration } from '@angular/platform-browser';",
+        "import { AppComponent } from './app/app.component';",
         "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideClientHydration(),",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Make sure that the <code>provideClientHydration()</code> call is also included into a set of providers that is used to bootstrap an application on the server (in <code>app.config.server.ts</code>)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "verify-that-hydration-is-enabled",
+      "text": "Verify that hydration is enabled"
+    },
+    {
+      "type": "paragraph",
+      "text": "After you've configured hydration and have started up your server, load your application in the browser:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Console DevTools:</strong> While running an application in dev mode, you can confirm hydration is enabled by opening Developer Tools. You should see a message that includes hydration-related stats, such as the number of components and nodes hydrated.",
+        "<strong>Angular DevTools:</strong> You can also use the Angular DevTools browser extension to see hydration status of components on a page, including an overlay indicating hydrated parts and highlighting hydration mismatch errors."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "capturing-and-replaying-events",
+      "text": "Capturing and replaying events"
+    },
+    {
+      "type": "paragraph",
+      "text": "When an application is rendered on the server, it is visible in a browser as soon as produced HTML loads. Users may assume they can interact with the page, but event listeners are not attached until hydration completes. The <strong>Event Replay</strong> feature captures all events that happen before hydration and replays them once hydration has completed."
+    },
+    {
+      "type": "paragraph",
+      "text": "Event replay is enabled alongside incremental hydration. If you opt out of incremental hydration with <code>withNoIncrementalHydration()</code>, you can still enable event replay using <code>withEventReplay()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "event-replay.ts",
+      "lang": "ts",
+      "code": [
+        "import { bootstrapApplication, provideClientHydration, withEventReplay, withNoIncrementalHydration } from '@angular/platform-browser';",
+        "import { AppComponent } from './app.component';",
+        "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideClientHydration(",
+        "      withNoIncrementalHydration(),",
+        "      withEventReplay()",
+        "    ),",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "constraints",
+      "text": "Constraints"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hydration imposes a few constraints on your application. Your application must have the same generated DOM structure on both the server and the client. This also includes whitespaces and comment nodes that Angular produces during rendering on the server."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "direct-dom-manipulation",
+      "text": "Direct DOM Manipulation"
+    },
+    {
+      "type": "paragraph",
+      "text": "If you have components that manipulate the DOM using native DOM APIs (such as <code>document.getElementById()</code>, <code>appendChild</code>, <code>innerHTML</code>, or <code>outerHTML</code>), the hydration process will encounter errors because Angular cannot resolve these untracked changes."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "valid-html-structure",
+      "text": "Valid HTML structure"
+    },
+    {
+      "type": "paragraph",
+      "text": "Common cases of invalid HTML structure that result in DOM mismatch errors include:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>&lt;table&gt;</code> without a <code>&lt;tbody&gt;</code> (modern browsers automatically insert a <code>&lt;tbody&gt;</code> element, causing a mismatch).",
+        "<code>&lt;div&gt;</code> inside a <code>&lt;p&gt;</code>.",
+        "<code>&lt;a&gt;</code> inside another <code>&lt;a&gt;</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "preserve-whitespaces-configuration",
+      "text": "Preserve Whitespaces Configuration"
+    },
+    {
+      "type": "paragraph",
+      "text": "We recommend using the default setting of <code>false</code> for <code>preserveWhitespaces</code>. If you choose to enable it, ensure it is set consistently in <code>tsconfig.server.json</code> and <code>tsconfig.app.json</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-to-skip-hydration-for-particular-components",
+      "text": "How to skip hydration for particular components"
+    },
+    {
+      "type": "paragraph",
+      "text": "As a workaround for components that manipulate the DOM directly (such as D3 charts), you can add the <code>ngSkipHydration</code> attribute to skip hydrating that component:"
+    },
+    {
+      "type": "code",
+      "file": "template.html",
+      "lang": "html",
+      "code": [
+        "<app-example ngSkipHydration />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Alternatively, you can set <code>ngSkipHydration</code> as a host binding:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.ts",
+      "lang": "ts",
+      "code": [
         "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Hydration</h1>`",
+        "  selector: 'app-example',",
+        "  host: { ngSkipHydration: 'true' },",
+        "  template: `...`,",
         "})",
         "export class ExampleComponent {}"
       ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "hydration-timing-and-application-stability",
+      "text": "Hydration Timing and Application Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hydration and post-hydration processes occur once the application has reported stability. Delays can be caused by intervals, timeouts, unresolved promises, or pending microtasks. The <code>provideStabilityDebugging</code> utility helps identify why your application fails to stabilize by logging pending tasks to the console."
+    },
+    {
+      "type": "code",
+      "file": "stability.ts",
+      "lang": "ts",
+      "code": [
+        "import { provideStabilityDebugging } from '@angular/core';",
+        "import { bootstrapApplication } from '@angular/platform-browser';",
+        "import { AppComponent } from './app.component';",
+        "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideStabilityDebugging(),",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "i18n",
+      "text": "I18N"
+    },
+    {
+      "type": "paragraph",
+      "text": "By default, Angular skips hydration for components that use i18n blocks. To enable hydration for i18n blocks, add <code>withI18nSupport</code> to your <code>provideClientHydration</code> call:"
+    },
+    {
+      "type": "code",
+      "file": "i18n.ts",
+      "lang": "ts",
+      "code": [
+        "import { provideClientHydration, withI18nSupport } from '@angular/platform-browser';",
+        "",
+        "provideClientHydration(withI18nSupport());"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "incremental-hydration",
+      "text": "Incremental Hydration"
+    },
+    {
+      "type": "paragraph",
+      "text": "Incremental hydration is an advanced form of hydration that allows for more granular control over when hydration happens. See the <a href=\"/docs/guide/incremental-hydration\">Incremental Hydration guide</a> for more details."
     }
   ]
 }

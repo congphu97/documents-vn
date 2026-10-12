@@ -1,0 +1,330 @@
+{
+  "slug": "guide/routing/lifecycle-and-events",
+  "title": "Vòng đời và Sự kiện Router (Router Lifecycle and Events)",
+  "description": "Tìm hiểu chi tiết các sự kiện vòng đời trong Angular Router: cách lắng nghe Router.events, gỡ lỗi với withDebugTracing, hiển thị thanh tiến trình tải trang, theo dõi Analytics và xử lý lỗi điều hướng.",
+  "source": "https://angular.dev/guide/routing/lifecycle-and-events",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular Router cung cấp một tập hợp toàn diện các sự kiện và hook vòng đời cho phép bạn phản hồi lại các thay đổi điều hướng và thực thi logic tùy chỉnh trong toàn bộ quá trình định tuyến."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "common-router-events",
+      "text": "Các sự kiện Router phổ biến (Common router events)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular Router phát ra các sự kiện điều hướng mà bạn có thể đăng ký lắng nghe để theo dõi vòng đời điều hướng. Các sự kiện này có sẵn thông qua Observable <code>Router.events</code>. Bảng dưới đây liệt kê các sự kiện chính theo trình tự thời gian xảy ra:"
+    },
+    {
+      "type": "table",
+      "headers": ["Sự kiện (Event)", "Mô tả (Description)"],
+      "rows": [
+        ["<code>NavigationStart</code>", "Xảy ra khi quá trình điều hướng bắt đầu và chứa URL được yêu cầu."],
+        ["<code>RoutesRecognized</code>", "Xảy ra sau khi router xác định được route nào khớp với URL và chứa thông tin trạng thái route."],
+        ["<code>GuardsCheckStart</code>", "Bắt đầu giai đoạn kiểm tra route guards (như <code>canActivate</code>, <code>canDeactivate</code>)."],
+        ["<code>GuardsCheckEnd</code>", "Báo hiệu việc đánh giá guard hoàn tất và chứa kết quả (cho phép hoặc từ chối)."],
+        ["<code>ResolveStart</code>", "Bắt đầu giai đoạn giải quyết dữ liệu. Các route resolvers và route resources bắt đầu nạp dữ liệu."],
+        ["<code>ResolveEnd</code>", "Giai đoạn phân giải dữ liệu hoàn tất. Tất cả dữ liệu bắt buộc và blocking resources đã sẵn sàng."],
+        ["<code>NavigationEnd</code>", "Sự kiện cuối cùng khi điều hướng hoàn tất thành công. Router cập nhật URL trên thanh địa chỉ."],
+        ["<code>NavigationSkipped</code>", "Xảy ra khi router bỏ qua điều hướng (chẳng hạn khi điều hướng đến cùng URL hiện tại)."]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Các sự kiện lỗi hoặc hủy điều hướng phổ biến bao gồm:"
+    },
+    {
+      "type": "table",
+      "headers": ["Sự kiện (Event)", "Mô tả (Description)"],
+      "rows": [
+        ["<code>NavigationCancel</code>", "Xảy ra khi router hủy điều hướng, thường do một guard trả về <code>false</code> hoặc <code>RedirectCommand</code>."],
+        ["<code>NavigationError</code>", "Xảy ra khi điều hướng gặp lỗi bất ngờ, chẳng hạn lỗi ném ra từ resolver hoặc lỗi nạp blocking resource."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-to-subscribe-to-router-events",
+      "text": "Cách đăng ký lắng nghe sự kiện Router (How to subscribe to router events)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn muốn chạy mã trong các giai đoạn cụ thể của vòng đời điều hướng, hãy đăng ký <code>router.events</code> và kiểm tra kiểu của sự kiện bằng toán tử <code>instanceof</code>:"
+    },
+    {
+      "type": "code",
+      "file": "router-events.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { Event, Router, NavigationStart, NavigationEnd } from '@angular/router';",
+        "import { takeUntilDestroyed } from '@angular/core/rxjs-interop';",
+        "",
+        "@Component({/* ... */})",
+        "export class RouterEvents {",
+        "  private readonly router = inject(Router);",
+        "",
+        "  constructor() {",
+        "    this.router.events.pipe(takeUntilDestroyed()).subscribe((event: Event) => {",
+        "      if (event instanceof NavigationStart) {",
+        "        console.log('Quá trình điều hướng bắt đầu:', event.url);",
+        "      }",
+        "      if (event instanceof NavigationEnd) {",
+        "        console.log('Quá trình điều hướng hoàn tất:', event.url);",
+        "      }",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Lưu ý rằng kiểu <code>Event</code> từ <code>@angular/router</code> trùng tên với kiểu <code>Event</code> toàn cục của trình duyệt Web DOM, hãy đảm bảo import đúng từ <code>@angular/router</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-to-debug-routing-events",
+      "text": "Cách gỡ lỗi các sự kiện Router (How to debug routing events)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Việc điều tra nguyên nhân lỗi điều hướng có thể khó khăn nếu không thấy rõ chuỗi sự kiện diễn ra. Angular cung cấp tính năng debug tích hợp sẵn giúp ghi lại toàn bộ chuỗi sự kiện router ra bảng điều khiển Console bằng hàm <code>withDebugTracing()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideRouter, withDebugTracing } from '@angular/router';",
+        "import { routes } from './app.routes';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideRouter(routes, withDebugTracing()),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "common-use-cases",
+      "text": "Các trường hợp sử dụng phổ biến (Common use cases)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "loading-indicators",
+      "text": "Chỉ báo tải trang (Loading indicators)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hiển thị thanh tiến trình nạp trang khi người dùng đang di chuyển giữa các route:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, computed, inject } from '@angular/core';",
+        "import { Router, RouterOutlet } from '@angular/router';",
+        "",
+        "@Component({",
+        "  selector: 'app-root',",
+        "  imports: [RouterOutlet],",
+        "  template: `",
+        "    @if (isNavigating()) {",
+        "      <div class=\"loading-bar\">Đang tải trang...</div>",
+        "    }",
+        "    <router-outlet />",
+        "  `,",
+        "})",
+        "export class App {",
+        "  private router = inject(Router);",
+        "  // Phản ứng tự động dựa vào currentNavigation()",
+        "  isNavigating = computed(() => !this.router.currentNavigation());",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "analytics-tracking",
+      "text": "Theo dõi Analytics (Analytics tracking)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tự động ghi nhận lượt xem trang (Pageviews) mỗi khi người dùng chuyển tuyến đường thành công:"
+    },
+    {
+      "type": "code",
+      "file": "analytics.service.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable, inject, DestroyRef } from '@angular/core';",
+        "import { Router, NavigationEnd } from '@angular/router';",
+        "import { takeUntilDestroyed } from '@angular/core/rxjs-interop';",
+        "",
+        "@Injectable({ providedIn: 'root' })",
+        "export class AnalyticsService {",
+        "  private router = inject(Router);",
+        "  private destroyRef = inject(DestroyRef);",
+        "",
+        "  startTracking() {",
+        "    this.router.events",
+        "      .pipe(takeUntilDestroyed(this.destroyRef))",
+        "      .subscribe((event) => {",
+        "        if (event instanceof NavigationEnd) {",
+        "          this.trackPageView(event.url);",
+        "        }",
+        "      });",
+        "  }",
+        "",
+        "  private trackPageView(url: string) {",
+        "    console.log('Ghi nhận lượt xem trang:', url);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "error-handling",
+      "text": "Xử lý lỗi và phản hồi cho người dùng (Error handling)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bắt lỗi điều hướng và hiển thị thông báo thân thiện hoặc cảnh báo từ chối quyền truy cập:"
+    },
+    {
+      "type": "code",
+      "file": "error-handler.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject, signal } from '@angular/core';",
+        "import {",
+        "  Router,",
+        "  NavigationStart,",
+        "  NavigationError,",
+        "  NavigationCancel,",
+        "  NavigationCancellationCode,",
+        "} from '@angular/router';",
+        "import { takeUntilDestroyed } from '@angular/core/rxjs-interop';",
+        "",
+        "@Component({",
+        "  selector: 'app-error-handler',",
+        "  template: `",
+        "    @if (errorMessage()) {",
+        "      <div class=\"error-banner\">",
+        "        {{ errorMessage() }}",
+        "        <button (click)=\"dismissError()\">Đóng</button>",
+        "      </div>",
+        "    }",
+        "  `,",
+        "})",
+        "export class GlobalErrorHandler {",
+        "  private router = inject(Router);",
+        "  readonly errorMessage = signal('');",
+        "",
+        "  constructor() {",
+        "    this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {",
+        "      if (event instanceof NavigationStart) {",
+        "        this.errorMessage.set('');",
+        "      } else if (event instanceof NavigationError) {",
+        "        console.error('Lỗi điều hướng:', event.error);",
+        "        this.errorMessage.set('Không thể tải trang. Vui lòng thử lại.');",
+        "      } else if (event instanceof NavigationCancel) {",
+        "        console.warn('Điều hướng bị hủy:', event.reason);",
+        "        if (event.code === NavigationCancellationCode.GuardRejected) {",
+        "          this.errorMessage.set('Bạn không có quyền truy cập vào trang này.');",
+        "        }",
+        "      }",
+        "    });",
+        "  }",
+        "",
+        "  dismissError() {",
+        "    this.errorMessage.set('');",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "all-router-events",
+      "text": "Danh sách toàn bộ các sự kiện Router (All router events)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "navigation-events",
+      "text": "Sự kiện tiến trình điều hướng (Navigation events)"
+    },
+    {
+      "type": "table",
+      "headers": ["Sự kiện (Event)", "Mô tả (Description)"],
+      "rows": [
+        ["<code>NavigationStart</code>", "Xảy ra khi điều hướng bắt đầu."],
+        ["<code>RouteConfigLoadStart</code>", "Xảy ra trước khi tải cấu hình route lười (lazy-loaded chunk)."],
+        ["<code>RouteConfigLoadEnd</code>", "Xảy ra sau khi tải xong cấu hình route lười."],
+        ["<code>RoutesRecognized</code>", "Xảy ra khi router phân tích cú pháp URL và nhận diện được cây routes."],
+        ["<code>GuardsCheckStart</code>", "Bắt đầu kiểm tra guards."],
+        ["<code>GuardsCheckEnd</code>", "Kết thúc kiểm tra guards."],
+        ["<code>ResolveStart</code>", "Bắt đầu giai đoạn phân giải dữ liệu resolvers/resources."],
+        ["<code>ResolveEnd</code>", "Kết thúc giai đoạn phân giải dữ liệu."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "activation-events",
+      "text": "Sự kiện kích hoạt component (Activation events)"
+    },
+    {
+      "type": "table",
+      "headers": ["Sự kiện (Event)", "Mô tả (Description)"],
+      "rows": [
+        ["<code>ActivationStart</code>", "Bắt đầu kích hoạt một route."],
+        ["<code>ChildActivationStart</code>", "Bắt đầu kích hoạt route con."],
+        ["<code>ActivationEnd</code>", "Kết thúc kích hoạt route."],
+        ["<code>ChildActivationEnd</code>", "Kết thúc kích hoạt route con."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "navigation-completion-events",
+      "text": "Sự kiện kết thúc điều hướng (Navigation completion events)"
+    },
+    {
+      "type": "table",
+      "headers": ["Sự kiện (Event)", "Mô tả (Description)"],
+      "rows": [
+        ["<code>NavigationEnd</code>", "Điều hướng hoàn tất thành công."],
+        ["<code>NavigationCancel</code>", "Điều hướng bị hủy (thường do guards từ chối hoặc chuyển hướng)."],
+        ["<code>NavigationError</code>", "Điều hướng thất bại do gặp lỗi không mong muốn."],
+        ["<code>NavigationSkipped</code>", "Router bỏ qua điều hướng (ví dụ chuyển hướng cùng URL)."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "other-events",
+      "text": "Sự kiện khác (Other events)"
+    },
+    {
+      "type": "table",
+      "headers": ["Sự kiện (Event)", "Mô tả (Description)"],
+      "rows": [
+        ["<code>Scroll</code>", "Xảy ra khi khôi phục vị trí cuộn trang hoặc cuộn đến thẻ anchor fragment."]
+      ]
+    }
+  ]
+}

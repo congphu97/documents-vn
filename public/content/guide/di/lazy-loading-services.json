@@ -1,0 +1,158 @@
+{
+  "slug": "guide/di/lazy-loading-services",
+  "title": "Lazy loading services",
+  "description": "Tải các service theo yêu cầu (on-demand) với hàm injectAsync() và prefetch trigger giúp tối ưu hóa dung lượng bundle tải trang ban đầu của Angular.",
+  "source": "https://angular.dev/guide/di/lazy-loading-services",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "Để tính năng lazy loading hoạt động, service bạn nạp bắt buộc phải được tự động cung cấp (auto-provided). Hãy trang trí service bằng @Injectable({ providedIn: 'root' }) hoặc @Service(). Nếu không có auto-provisioning, Angular sẽ không có cách nào khởi tạo service sau khi nạp mã nguồn về."
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm injectAsync của Angular cho phép bạn nạp một service theo yêu cầu (on-demand), chỉ tải về khi nó thực sự cần thiết. Điều này đặc biệt hữu ích khi một service phụ thuộc vào một thư viện nặng hoặc một tính năng ít khi dùng tới, và bạn không muốn phải trả giá cho dung lượng tải ở lượt truy cập trang đầu tiên."
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn sử dụng injectAsync, mã nguồn của service sẽ được trình đóng gói (bundler) tách thành một JavaScript chunk riêng biệt và chỉ được tải về lần đầu tiên khi bạn gọi lấy instance. Sau khi tải xong, Angular sẽ phân giải service thông qua hệ thống DI thông thường, do đó service vẫn có thể phụ thuộc vào các injectable khác và hoạt động như bất kỳ singleton nào."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "lazily-injecting-a-service",
+      "text": "Inject một service theo cơ chế lười (Lazily injecting a service)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hãy tưởng tượng một ReportExporter phụ thuộc vào một thư viện xử lý bảng tính Excel rất nặng. Hầu hết người dùng chỉ mở báo cáo để xem; chỉ một số ít người bấm nút Xuất file (Export). Hãy nạp exporter theo yêu cầu:"
+    },
+    {
+      "type": "code",
+      "file": "report.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component, injectAsync } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'app-report',",
+        "  template: `<button (click)=\"export()\">Xuất file</button>`,",
+        "})",
+        "export class Report {",
+        "  private exporter = injectAsync(() =>",
+        "    import('./report-exporter').then((m) => m.ReportExporter)",
+        "  );",
+        "",
+        "  async export() {",
+        "    const exporter = await this.exporter();",
+        "    exporter.export();",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Lần gọi đầu tiên tới `this.exporter()` sẽ kích hoạt dynamic import và phân giải service từ DI. Các lần gọi tiếp theo sẽ tái sử dụng cùng một Promise đó, đảm bảo file chunk chỉ được tải về đúng một lần duy nhất."
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu service được lazy load sử dụng cú pháp export mặc định (default export), bạn có thể truyền thẳng dynamic import vào mà không cần .then(), Angular sẽ tự động unwrap giá trị default giúp bạn:"
+    },
+    {
+      "type": "code",
+      "file": "report-exporter.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Service } from '@angular/core';",
+        "",
+        "@Service()",
+        "export default class ReportExporter {",
+        "  /* ... */",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "report.ts",
+      "lang": "typescript",
+      "code": [
+        "private exporter = injectAsync(() => import('./report-exporter'));"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "prefetching-the-dependency",
+      "text": "Tải trước dependency (Prefetching the dependency)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Theo mặc định, file chunk lười chỉ được tải khi bạn gọi hàm được trả về. Bạn có thể bắt đầu quá trình tải về sớm hơn bằng cách truyền vào một trigger prefetch trong phần tùy chọn. Một trigger là bất kỳ hàm nào trả về một Promise — khi Promise đó resolve, Angular sẽ kích hoạt loader tải mã nguồn."
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular đi kèm với hàm `onIdle` tích hợp sẵn, một trigger chờ cho đến khi trình duyệt rảnh rỗi (idle):"
+    },
+    {
+      "type": "code",
+      "file": "report-prefetch.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component, injectAsync, onIdle } from '@angular/core';",
+        "",
+        "@Component({/* ... */})",
+        "export class Report {",
+        "  private exporter = injectAsync(",
+        "    () => import('./report-exporter').then((m) => m.ReportExporter),",
+        "    {",
+        "      prefetch: onIdle,",
+        "    }",
+        "  );",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể cấu hình `onIdle` kèm thời gian chờ tối đa (timeout) để việc prefetch luôn diễn ra trong một khoảng thời gian xác định trước, ngay cả trên những trang web đang bận rộn xử lý tác vụ khác:"
+    },
+    {
+      "type": "code",
+      "file": "timeout-prefetch.ts",
+      "lang": "typescript",
+      "code": [
+        "injectAsync(loader, { prefetch: () => onIdle({ timeout: 1_000 }) });"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Prefetching là hành động đón đầu mang tính cơ hội. Nếu người dùng nhấn nút kích hoạt tính năng trước khi trigger prefetch kịp kích hoạt, Angular vẫn tải dependency ngay lập tức và giải quyết lời gọi await ngay khi tải xong."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "provide-a-custom-prefetch-trigger",
+      "text": "Cung cấp một Trigger Prefetch tùy chỉnh (Provide a custom prefetch trigger)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một `PrefetchTrigger` thực chất chỉ là một hàm trả về một Promise; loader sẽ chạy ngay khi Promise đó resolve. Bạn có thể tận dụng điều này để đồng bộ việc prefetch với các tín hiệu của riêng mình, ví dụ như khi người dùng di chuột (hover) vào nút bấm hoặc theo một chu kỳ lập lịch (scheduler tick):"
+    },
+    {
+      "type": "code",
+      "file": "custom-trigger.ts",
+      "lang": "typescript",
+      "code": [
+        "import { PrefetchTrigger } from '@angular/core';",
+        "",
+        "export function onHover(target: HTMLElement): PrefetchTrigger {",
+        "  return () =>",
+        "    new Promise<void>((resolve) => {",
+        "      target.addEventListener('pointerenter', () => resolve(), { once: true });",
+        "    });",
+        "}"
+      ]
+    }
+  ]
+}

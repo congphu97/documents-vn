@@ -1,31 +1,243 @@
 {
   "slug": "guide/templates/control-flow",
-  "title": "Cấu trúc điều khiển (Built-in Control Flow)",
-  "description": "Điều khiển render luồng giao diện có điều kiện với các block @if, @for và @switch.",
+  "title": "Control flow",
+  "description": "Các khối control flow tích hợp trong Angular template cho phép hiển thị, ẩn và lặp qua các phần tử HTML một cách linh hoạt với hiệu năng cao.",
   "source": "https://angular.dev/guide/templates/control-flow",
   "status": "reviewed",
   "blocks": [
     {
       "type": "paragraph",
-      "text": "Built-in control flow là cú pháp mới tích hợp trực tiếp vào Angular template compiler, mang lại hiệu năng cao và type checking mạnh mẽ."
+      "text": "Angular template hỗ trợ các khối control flow (luồng điều khiển) tích hợp cú pháp @ giúp bạn hiển thị có điều kiện, ẩn hoặc lặp các phần tử HTML mà không cần phải dùng directive (*ngIf, *ngFor) như trước đây."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "if-blocks",
-      "text": "Khối @if"
+      "id": "conditionally-display-content-with-if-else-if-and-else",
+      "text": "Hiển thị có điều kiện với @if, @else if và @else"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khối @if hiển thị nội dung bên trong khi biểu thức điều kiện của nó là truthy:"
     },
     {
       "type": "code",
-      "file": "user-status.component.html",
+      "file": "example.component.html",
       "lang": "html",
       "code": [
-        "@if (isLoggedIn()) {",
-        "  <p>Chào mừng bạn quay trở lại!</p>",
-        "} @else {",
-        "  <p>Vui lòng đăng nhập.</p>",
+        "@if (a > b) {",
+        "  <p>{{ a }} lớn hơn {{ b }}</p>",
         "}"
       ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể chỉ định các khối rẽ nhánh phụ với nhiều @else if và một khối @else cuối cùng:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@if (a > b) {",
+        "  {{ a }} lớn hơn {{ b }}",
+        "} @else if (b > a) {",
+        "  {{ a }} nhỏ hơn {{ b }}",
+        "} @else {",
+        "  {{ a }} bằng {{ b }}",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "referencing-the-conditional-expressions-result",
+      "text": "Lưu kết quả biểu thức điều kiện vào biến (as variable)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khối @if hỗ trợ lưu kết quả của biểu thức điều kiện vào một biến thông qua từ khoá as để tái sử dụng bên trong khối:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@if (user.profile.settings.startDate; as startDate) {",
+        "  <p>Ngày bắt đầu: {{ startDate }}</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "repeat-content-with-the-for-block",
+      "text": "Lặp nội dung với khối @for"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khối @for lặp qua một tập hợp và render lặp lại nội dung. Tập hợp có thể là bất kỳ JavaScript iterable nào, và Angular có cơ chế tối ưu hiệu năng đặc biệt cho mảng Array:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@for (item of items; track item.id) {",
+        "  <div>{{ item.name }}</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Khối @for không hỗ trợ các lệnh thay đổi luồng vòng lặp như continue hoặc break trong JavaScript."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "why-is-track-in-for-blocks-important",
+      "text": "Tại sao biểu thức track trong @for lại quan trọng?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Biểu thức track là bắt buộc và cho phép Angular duy trì mối liên kết giữa dữ liệu trong mã và các DOM node trên giao diện. Điều này giúp Angular tối ưu hiệu năng tối đa bằng cách chỉ thực thi các thao tác DOM tối thiểu khi dữ liệu thay đổi."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Nên chọn một thuộc tính định danh duy nhất (unique key) như id hoặc uuid: track item.id.",
+        "Đối với danh sách tĩnh không thay đổi thứ tự hay số lượng, bạn có thể dùng biến chỉ số: track $index.",
+        "Tránh dùng trực tiếp track item (so sánh theo tham chiếu ===) trừ khi không còn lựa chọn nào khác, vì điều này có thể làm giảm hiệu năng cập nhật DOM."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "contextual-variables-in-for-blocks",
+      "text": "Các biến ngữ cảnh ngầm định trong @for"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bên trong khối @for, các biến ngữ cảnh ngầm định sau luôn sẵn sàng để sử dụng:"
+    },
+    {
+      "type": "table",
+      "headers": ["Tên biến", "Ý nghĩa"],
+      "rows": [
+        ["$count", "Tổng số phần tử trong tập hợp đang lặp"],
+        ["$index", "Chỉ số index của hàng hiện tại (bắt đầu từ 0)"],
+        ["$first", "Boolean: Cho biết đây có phải phần tử đầu tiên không"],
+        ["$last", "Boolean: Cho biết đây có phải phần tử cuối cùng không"],
+        ["$even", "Boolean: Cho biết chỉ số hàng hiện tại là chẵn"],
+        ["$odd", "Boolean: Cho biết chỉ số hàng hiện tại là lẻ"]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể đặt bí danh (alias) cho các biến này bằng cú pháp let:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@for (item of items; track item.id; let idx = $index, e = $even) {",
+        "  <p>Mục #{{ idx }} (Chẵn: {{ e }}): {{ item.name }}</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "providing-a-fallback-for-for-blocks-with-the-empty-block",
+      "text": "Khối hiển thị khi danh sách rỗng: @empty"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể đính kèm một khối @empty ngay sau @for. Nội dung trong @empty sẽ hiển thị khi danh sách không có phần tử nào:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@for (item of items; track item.name) {",
+        "  <li>{{ item.name }}</li>",
+        "} @empty {",
+        "  <li>Không có dữ liệu hiển thị.</li>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "conditionally-display-content-with-the-switch-block",
+      "text": "Hiển thị có điều kiện với khối @switch"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khối @switch cung cấp cú pháp rẽ nhánh trực quan tương tự switch statement của JavaScript:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@switch (userPermissions) {",
+        "  @case ('admin') {",
+        "    <app-admin-dashboard />",
+        "  }",
+        "  @case ('reviewer')",
+        "  @case ('editor') {",
+        "    <app-editor-dashboard />",
+        "  }",
+        "  @default {",
+        "    <app-viewer-dashboard />",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "list",
+      "items": [
+        "Biểu thức so sánh sử dụng toán tử ba dấu bằng (===).",
+        "@switch không có cơ chế fallthrough (chạy lọt sang case dưới), do đó bạn không cần dùng câu lệnh break.",
+        "Có thể xếp các @case liên tiếp để dùng chung một khối xử lý."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "exhaustive-type-checking",
+      "text": "Kiểm tra kiểu dữ liệu toàn diện (Exhaustive type checking)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bằng cách khai báo @default never;, bạn xác nhận rõ ràng rằng tất cả các trường hợp của một Union type đã được xử lý hết. Nếu sau này kiểu dữ liệu được bổ sung thêm giá trị mới mà chưa có @case tương ứng, trình biên dịch Angular sẽ báo lỗi ngay khi build:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    @switch (state) {",
+        "      @case ('loggedOut') { <button>Login</button> }",
+        "      @case ('loggedIn') { <p>Chào mừng trở lại!</p> }",
+        "      @default never; <!-- Báo lỗi biên dịch vì thiếu @case ('loading') -->",
+        "    }",
+        "  `,",
+        "})",
+        "export class AppComponent {",
+        "  state: 'loggedOut' | 'loading' | 'loggedIn' = 'loggedOut';",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Cơ chế exhaustiveness checking dựa vào khả năng type narrowing của TypeScript. Khi switch một signal, hãy gán nó cho biến @let trước: @let myState = state(); @switch (myState) { ... }."
     }
   ]
 }

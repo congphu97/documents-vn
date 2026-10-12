@@ -1,43 +1,73 @@
 {
   "slug": "guide/forms/template-driven-forms",
-  "title": "Template-driven Forms",
-  "description": "Documentation guide for Template-driven Forms in Angular.",
+  "title": "Template-driven forms",
+  "description": "Learn how to build template-driven forms in Angular: two-way data binding with ngModel, ngForm, and template validation.",
   "source": "https://angular.dev/guide/forms/template-driven-forms",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Official documentation from [angular.dev/guide/forms/template-driven-forms](https://angular.dev/guide/forms/template-driven-forms)."
-    },
-    {
       "type": "paragraph",
-      "text": "Template-driven Forms is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+      "text": "Template-driven forms rely on directives in the template to create and manipulate the underlying object model. They are suitable for simple scenarios and are easy to add to an application."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Overview and Concepts"
+      "id": "building-a-template-driven-form",
+      "text": "Building a template-driven form"
     },
     {
       "type": "paragraph",
-      "text": "To master Template-driven Forms, explore the core mechanisms and design patterns provided by Angular."
+      "text": "To create a template-driven form, import <code>FormsModule</code> in your component and bind your form inputs with <code>[(ngModel)]</code>:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "hero-form.component.ts",
       "lang": "ts",
       "code": [
-        "// Example demonstration for Template-driven Forms",
-        "import { Component } from \"@angular/core\";",
+        "import { Component } from '@angular/core';",
+        "import { FormsModule } from '@angular/forms';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
+        "  selector: 'app-hero-form',",
         "  standalone: true,",
-        "  template: `<h1>Template-driven Forms</h1>`",
+        "  imports: [FormsModule],",
+        "  templateUrl: './hero-form.component.html',",
         "})",
-        "export class ExampleComponent {}"
+        "export class HeroFormComponent {",
+        "  powers = ['Really Smart', 'Super Flexible', 'Super Hot', 'Weather Changer'];",
+        "  model = { id: 18, name: 'Dr. IQ', power: 'Really Smart', alterEgo: 'Chuck Overstreet' };",
+        "  submitted = false;",
+        "",
+        "  onSubmit() { this.submitted = true; }",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "hero-form.component.html",
+      "lang": "html",
+      "code": [
+        "<form (ngSubmit)=\"onSubmit()\" #heroForm=\"ngForm\">",
+        "  <div class=\"form-group\">",
+        "    <label for=\"name\">Name</label>",
+        "    <input",
+        "      type=\"text\"",
+        "      class=\"form-control\"",
+        "      id=\"name\"",
+        "      required",
+        "      [(ngModel)]=\"model.name\"",
+        "      name=\"name\"",
+        "      #name=\"ngModel\"",
+        "    />",
+        "    @if (name.invalid && (name.dirty || name.touched)) {",
+        "      <div class=\"alert alert-danger\">Name is required</div>",
+        "    }",
+        "  </div>",
+        "",
+        "  <button type=\"submit\" class=\"btn btn-success\" [disabled]=\"!heroForm.form.valid\">",
+        "    Submit",
+        "  </button>",
+        "</form>"
       ]
     }
   ]

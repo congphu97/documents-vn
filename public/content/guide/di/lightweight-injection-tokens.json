@@ -1,0 +1,179 @@
+{
+  "slug": "guide/di/lightweight-injection-tokens",
+  "title": "Tối ưu dung lượng ứng dụng với Lightweight Injection Tokens",
+  "description": "Tìm hiểu mô hình thiết kế Lightweight Injection Token giúp tối ưu hóa kích thước bundle và hỗ trợ Tree-shaking triệt để cho các thư viện component trong Angular.",
+  "source": "https://angular.dev/guide/di/lightweight-injection-tokens",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Trang này cung cấp một cái nhìn tổng quan về kỹ thuật Dependency Injection được khuyến nghị dành riêng cho các nhà phát triển thư viện (library authors). Việc thiết kế thư viện của bạn với các lightweight injection token giúp tối ưu hóa đáng kể kích thước bundle của ứng dụng client sử dụng thư viện đó."
+    },
+    {
+      "type": "paragraph",
+      "text": "Mô hình này đảm bảo rằng khi một ứng dụng chỉ sử dụng một vài tính năng trong thư viện của bạn, những component và code không sử dụng tới sẽ được loại bỏ hoàn toàn (tree-shaken) khỏi bundle ứng dụng thành phẩm."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-tokens-are-retained",
+      "text": "Thời điểm token bị giữ lại trong bundle (When tokens are retained)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để hiểu rõ hơn về tình huống token bị giữ lại ngoài ý muốn, hãy xét một thư viện cung cấp component thẻ `<lib-card>`. Component này chứa phần thân và có thể chứa một tiêu đề tùy chọn `<lib-header>`:"
+    },
+    {
+      "type": "code",
+      "file": "card-usage.html",
+      "lang": "html",
+      "code": [
+        "<lib-card>",
+        "  <lib-header>...</lib-header>",
+        "</lib-card>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong cách triển khai thông thường, component `<lib-card>` sử dụng `contentChild` để truy vấn `<lib-header>`:"
+    },
+    {
+      "type": "code",
+      "file": "lib-card.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component, contentChild } from '@angular/core';",
+        "",
+        "@Component({ selector: 'lib-header', /* ... */ })",
+        "class LibHeader {}",
+        "",
+        "@Component({ selector: 'lib-card', /* ... */ })",
+        "class LibCard {",
+        "  readonly header = contentChild(LibHeader);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Vì `<lib-header>` là tùy chọn nên người dùng có thể chỉ viết `<lib-card />`. Trong trường hợp này, `<lib-header>` không hề được sử dụng và lập trình viên kỳ vọng nó sẽ được Tree-shake loại bỏ, nhưng điều đó KHÔNG xảy ra. Lý do là vì LibCard chứa LibHeader ở hai vị trí:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Vị trí Kiểu dữ liệu (Type position): LibHeader làm kiểu TypeScript (readonly header: Signal<LibHeader | undefined>). Vị trí này bị xóa bỏ hoàn toàn sau khi biên dịch sang JavaScript và không ảnh hưởng đến Tree-shaking.",
+        "Vị trí Giá trị (Value position): LibHeader được truyền làm đối số giá trị vào hàm contentChild(LibHeader). Compiler bắt buộc phải giữ lại tham chiếu này tại runtime, ngăn không cho LibHeader bị loại bỏ khỏi bundle."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-to-use-the-lightweight-injection-token-pattern",
+      "text": "Khi nào nên sử dụng mô hình Lightweight Injection Token"
+    },
+    {
+      "type": "paragraph",
+      "text": "Vấn đề Tree-shaking xuất hiện bất cứ khi nào một component được dùng làm injection token trong hai tình huống:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Token được sử dụng ở vị trí giá trị trong một truy vấn content query (contentChild, contentChildren).",
+        "Token được sử dụng làm tham số trong hàm inject(MyComponent)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-lightweight-injection-tokens",
+      "text": "Sử dụng Lightweight Injection Tokens (Using lightweight injection tokens)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mô hình thiết kế Lightweight Injection Token bao gồm việc sử dụng một `abstract class` siêu nhỏ làm injection token, và cung cấp triển khai thực tế ở một giai đoạn sau. Abstract class này vẫn được giữ lại trong bundle, nhưng nó cực kỳ nhẹ (chỉ là khai báo rỗng) và hoàn toàn không làm tăng kích thước bundle của ứng dụng:"
+    },
+    {
+      "type": "code",
+      "file": "lightweight-token.ts",
+      "lang": "typescript",
+      "code": [
+        "// 1. Tạo abstract class siêu nhẹ làm token",
+        "abstract class LibHeaderToken {}",
+        "",
+        "// 2. Component thực tế implements abstract class và cung cấp useExisting",
+        "@Component({",
+        "  selector: 'lib-header',",
+        "  providers: [{ provide: LibHeaderToken, useExisting: LibHeader }],",
+        "})",
+        "class LibHeader extends LibHeaderToken {}",
+        "",
+        "// 3. Component cha truy vấn thông qua LibHeaderToken thay vì LibHeader",
+        "@Component({ selector: 'lib-card' })",
+        "class LibCard {",
+        "  readonly header = contentChild(LibHeaderToken);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ này, `LibCard` không còn tham chiếu tới `LibHeader` ở cả vị trí Type hay Value. Nhờ đó, nếu người dùng ứng dụng không dùng đến thẻ `<lib-header>`, mã nguồn, CSS và template của `LibHeader` sẽ được Tree-shaking loại bỏ hoàn toàn."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "use-the-lightweight-injection-token-for-api-definition",
+      "text": "Sử dụng token để định nghĩa API trừu tượng"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu component cha cần gọi một phương thức trên component con được inject, bạn chỉ cần khai báo phương thức trừu tượng (abstract method) bên trong abstract class token. Toàn bộ logic triển khai phức tạp và cồng kềnh sẽ nằm trong component con có thể bị tree-shaken:"
+    },
+    {
+      "type": "code",
+      "file": "api-definition.ts",
+      "lang": "typescript",
+      "code": [
+        "abstract class LibHeaderToken {",
+        "  abstract doSomething(): void;",
+        "}",
+        "",
+        "@Component({",
+        "  selector: 'lib-header',",
+        "  providers: [{ provide: LibHeaderToken, useExisting: LibHeader }],",
+        "})",
+        "class LibHeader extends LibHeaderToken {",
+        "  doSomething(): void {",
+        "    console.log('Xử lý logic chi tiết tại đây');",
+        "  }",
+        "}",
+        "",
+        "@Component({ selector: 'lib-card' })",
+        "class LibCard implements AfterContentInit {",
+        "  readonly header = contentChild(LibHeaderToken);",
+        "",
+        "  ngAfterContentInit(): void {",
+        "    if (this.header() !== undefined) {",
+        "      this.header()!.doSomething();",
+        "    }",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "naming-your-lightweight-injection-token",
+      "text": "Quy ước đặt tên cho Lightweight Injection Token"
+    },
+    {
+      "type": "paragraph",
+      "text": "Theo Angular Style Guide, tên component không nên có hậu tố Component (ví dụ `LibHeader`). Bạn nên giữ mối liên hệ giữa component và token của nó bằng cách lấy tên cơ sở của component kết hợp với hậu tố `Token`:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Tên Component: LibHeader",
+        "Tên Lightweight Token: LibHeaderToken"
+      ]
+    }
+  ]
+}

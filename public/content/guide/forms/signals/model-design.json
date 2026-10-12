@@ -1,0 +1,451 @@
+{
+  "slug": "guide/forms/signals/model-design",
+  "title": "Thiết kế Form Model (Designing your form model)",
+  "description": "Thực hành tốt nhất khi thiết kế Form Models trong Signal Forms: phân biệt form model và domain model, kiểu dữ liệu phù hợp với UI controls, tránh cấu trúc động và chuyển đổi dữ liệu với linkedSignal.",
+  "source": "https://angular.dev/guide/forms/signals/model-design",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<strong>Signal Forms</strong> sử dụng phương pháp tiếp cận hướng mô hình (model-driven approach), tự động suy ra trạng thái và cấu trúc của form trực tiếp từ model bạn cung cấp. Vì model đóng vai trò là nền móng cho toàn bộ biểu mẫu, việc bắt đầu với một form model được thiết kế bài bản là vô cùng quan trọng. Hướng dẫn này chia sẻ các thực hành tốt nhất (best practices) để thiết kế form models."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "form-model-vs-domain-model",
+      "text": "Form Model so với Domain Model (Form model vs domain model)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Biểu mẫu được dùng để thu thập dữ liệu người dùng nhập vào. Ứng dụng của bạn thường có một <strong>Domain Model</strong> đại diện cho dữ liệu theo cách tối ưu hóa cho nghiệp vụ (business logic) hoặc lưu trữ cơ sở dữ liệu. Tuy nhiên, cách biểu diễn này thường khác với cách chúng ta muốn mô hình hóa dữ liệu trên giao diện biểu mẫu."
+    },
+    {
+      "type": "paragraph",
+      "text": "<strong>Form model</strong> đại diện cho dữ liệu đầu vào thô của người dùng khi xuất hiện trên UI. Ví dụ: trong một biểu mẫu hẹn lịch, bạn có thể yêu cầu người dùng chọn ngày và chọn khung giờ bằng hai trường riêng biệt, cho dù Domain model bên dưới chỉ lưu trữ một đối tượng JavaScript <code>Date</code> duy nhất:"
+    },
+    {
+      "type": "code",
+      "file": "appointment-models.ts",
+      "lang": "ts",
+      "code": [
+        "// Form Model: Được tùy biến theo trải nghiệm nhập liệu UI",
+        "interface AppointmentFormModel {",
+        "  name: string; // Tên người đặt lịch",
+        "  date: Date;   // Ngày hẹn (chỉ mang thông tin ngày, phần giờ không sử dụng)",
+        "  time: string; // Giờ đã chọn dưới dạng chuỗi '09:30'",
+        "}",
+        "",
+        "// Domain Model: Tối ưu cho logic nghiệp vụ & backend",
+        "interface AppointmentDomainModel {",
+        "  name: string; // Tên người đặt lịch",
+        "  time: Date;   // Thời gian hẹn (chứa cả thông tin ngày và giờ)",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Biểu mẫu nên sử dụng form model được may đo riêng cho trải nghiệm nhập liệu (input experience), thay vì cố gắng tái sử dụng trực tiếp domain model."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "form-model-best-practices",
+      "text": "Các thực hành tốt nhất cho Form Model (Form model best practices)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "use-specific-types",
+      "text": "1. Sử dụng kiểu dữ liệu cụ thể (Use specific types)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Luôn định nghĩa các interface hoặc type rõ ràng cho model của bạn. Kiểu dữ liệu tường minh mang lại gợi ý mã (IntelliSense) tốt hơn, bắt lỗi ngay trong thời gian biên dịch (compile time) và đóng vai trò như tài liệu mô tả chính xác những dữ liệu mà form chứa đựng."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "initialize-all-fields",
+      "text": "2. Khởi tạo đầy đủ tất cả các trường (Initialize all fields)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cung cấp giá trị khởi tạo cho mọi trường trong model của bạn:"
+    },
+    {
+      "type": "code",
+      "file": "task-init.ts",
+      "lang": "ts",
+      "code": [
+        "// NÊN: Tất cả các trường được khởi tạo giá trị",
+        "const taskModel = signal({",
+        "  title: '',",
+        "  description: '',",
+        "  priority: 'medium',",
+        "  completed: false,",
+        "});",
+        "",
+        "// TRÁNH: Khởi tạo thiếu trường",
+        "const taskModel = signal({",
+        "  title: '',",
+        "  // Thiếu description, priority, completed -> Sẽ không xuất hiện trong field tree!",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Các trường thiếu giá trị khởi tạo sẽ không tồn tại trong cây trường dữ liệu (field tree), khiến người dùng không thể tương tác hoặc liên kết được với chúng trong form."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "keep-models-focused",
+      "text": "3. Giữ model tập trung vào một mục đích duy nhất (Keep models focused)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi model chỉ nên đại diện cho một biểu mẫu hoặc một tập hợp dữ liệu liên quan chặt chẽ:"
+    },
+    {
+      "type": "code",
+      "file": "focused-model.ts",
+      "lang": "ts",
+      "code": [
+        "// NÊN: Tập trung vào mục đích duy nhất (Single purpose)",
+        "const loginModel = signal({",
+        "  email: '',",
+        "  password: '',",
+        "});",
+        "",
+        "// TRÁNH: Pha trộn nhiều mối bận tâm không liên quan",
+        "const appModel = signal({",
+        "  // Dữ liệu đăng nhập",
+        "  email: '',",
+        "  password: '',",
+        "  // Tuỳ chọn cá nhân",
+        "  theme: 'light',",
+        "  language: 'en',",
+        "  // Giỏ hàng",
+        "  cartItems: [],",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Tách biệt các model cho từng mục đích giúp form dễ hiểu, dễ quản lý và dễ tái sử dụng hơn. Hãy tạo nhiều form độc lập nếu bạn đang quản lý các tập dữ liệu khác nhau."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "consider-validation-requirements",
+      "text": "4. Tính toán trước yêu cầu kiểm thực (Consider validation requirements)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Thiết kế model có tính đến logic kiểm thực dữ liệu. Hãy nhóm các trường thường xuyên phải kiểm tra chéo cùng nhau:"
+    },
+    {
+      "type": "code",
+      "file": "password-change.ts",
+      "lang": "ts",
+      "code": [
+        "// Nhóm các trường mật khẩu lại để dễ so sánh chéo (cross-field validation)",
+        "interface PasswordChangeData {",
+        "  currentPassword: string;",
+        "  newPassword: string;",
+        "  confirmPassword: string;",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Cấu trúc này giúp việc kiểm tra chéo (ví dụ: xác minh <code>newPassword</code> khớp với <code>confirmPassword</code>) trở nên tự nhiên và dễ khai báo schema hơn."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "match-data-types-to-ui-controls",
+      "text": "5. Khớp kiểu dữ liệu với các điều khiển giao diện UI (Match data types to UI controls)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các thuộc tính trên form model phải khớp với kiểu dữ liệu mà UI controls mong đợi."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ: một form đặt đồ uống có trường chọn kích cỡ quy cách (lốc 6, 12, hoặc 24 lon) và trường số lượng. UI sử dụng menu chọn dropdown (<code>&lt;select&gt;</code>) cho kích cỡ và ô nhập số (<code>&lt;input type=\"number\"&gt;</code>) cho số lượng. Mặc dù các tùy chọn kích cỡ trông như số, thẻ <code>&lt;select&gt;</code> lại làm việc với các giá trị chuỗi (string), do đó kích cỡ nên được mô hình hóa là <code>string</code>. Ngược lại, <code>&lt;input type=\"number\"&gt;</code> làm việc trực tiếp với số, nên số lượng được mô hình hóa là <code>number</code>:"
+    },
+    {
+      "type": "code",
+      "file": "beverage-order.ts",
+      "lang": "ts",
+      "code": [
+        "interface BeverageOrderFormModel {",
+        "  size: string;     // Gắn với: <select> (giá trị option: \"6\", \"12\", \"24\")",
+        "  quantity: number; // Gắn với: <input type=\"number\">",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "avoid-undefined",
+      "text": "6. Tránh sử dụng undefined (Avoid undefined)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một form model <strong>không được phép chứa các giá trị hoặc thuộc tính undefined</strong>. Trong Signal Forms, cấu trúc của biểu mẫu được suy ra trực tiếp từ cấu trúc của model, và <code>undefined</code> biểu thị sự vắng mặt của một trường thay vì một trường có giá trị rỗng. Điều này cũng có nghĩa bạn cần tránh các thuộc tính tùy chọn (ví dụ: <code>{ property?: string }</code>) vì chúng ngầm cho phép <code>undefined</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Để đại diện cho một trường rỗng trong form model, hãy dùng giá trị mà control giao diện hiểu là \"rỗng\" (ví dụ: chuỗi rỗng <code>''</code> đối với thẻ <code>&lt;input type=\"text\"&gt;</code>). Nếu bạn tự viết custom control, giá trị <code>null</code> thường là lựa chọn lý tưởng để biểu thị trạng thái \"trống\":"
+    },
+    {
+      "type": "code",
+      "file": "user-model-empty.ts",
+      "lang": "ts",
+      "code": [
+        "interface UserFormModel {",
+        "  name: string;           // Gắn với <input type=\"text\">",
+        "  birthday: Date | null;  // Gắn với <input type=\"date\">",
+        "}",
+        "",
+        "// Khởi tạo form với các giá trị rỗng phù hợp:",
+        "const userForm = form(signal<UserFormModel>({",
+        "  name: '',",
+        "  birthday: null,",
+        "}));"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "avoid-models-with-dynamic-structure",
+      "text": "Tránh các model có cấu trúc động (Avoid models with dynamic structure)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một form model có cấu trúc động (dynamic structure) khi hình dạng của nó (các thuộc tính trên object) thay đổi tùy theo giá trị của nó. Điều này thường xảy ra khi kiểu của model cho phép các giá trị có hình dạng khác nhau, ví dụ như kiểu hợp (union) của các object types có thuộc tính khác nhau, hoặc union giữa một object và một primitive. Dưới đây là các tình huống điển hình:"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "empty-value-for-a-complex-object",
+      "text": "Giá trị rỗng cho một đối tượng phức tạp"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi tạo biểu mẫu đăng ký tài khoản mới:"
+    },
+    {
+      "type": "code",
+      "file": "account-model.ts",
+      "lang": "ts",
+      "code": [
+        "interface CreateAccountFormModel {",
+        "  name: {",
+        "    first: string;",
+        "    last: string;",
+        "  };",
+        "  username: string;",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể bị thôi thúc khởi tạo với <code>null</code> dạng <code>form<CreateAccountFormModel | null>(signal(null))</code> vì người dùng chưa nhập gì. <strong>Tuy nhiên</strong>, nếu model là <code>null</code>, nó sẽ không có thuộc tính <code>name</code> hay <code>username</code>, dẫn đến cây field tree cũng hoàn toàn không có các trường này để bạn bind trong template! Cách đúng là khởi tạo đối tượng với đầy đủ cấu trúc và các trường lá mang giá trị rỗng:"
+    },
+    {
+      "type": "code",
+      "file": "account-form-init.ts",
+      "lang": "ts",
+      "code": [
+        "// NÊN: Giữ nguyên hình dạng và gán giá trị rỗng cho các trường con",
+        "const createAccountForm = form<CreateAccountFormModel>(",
+        "  signal({",
+        "    name: {",
+        "      first: '',",
+        "      last: '',",
+        "    },",
+        "    username: '',",
+        "  })",
+        ");"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "fields-that-are-conditionally-hidden-or-unavailable",
+      "text": "Các trường bị ẩn hoặc vô hiệu hóa theo điều kiện"
+    },
+    {
+      "type": "paragraph",
+      "text": "Xem xét form thanh toán nơi người dùng chọn hình thức Thẻ tín dụng (Credit Card) hoặc Tài khoản ngân hàng (Bank Account). Cách tiếp cận đúng là sử dụng <strong>cấu trúc model tĩnh (static structure)</strong> chứa đầy đủ các trường cho mọi phương thức thanh toán, rồi dùng schema để ẩn/hiện:"
+    },
+    {
+      "type": "code",
+      "file": "bill-pay-static.ts",
+      "lang": "ts",
+      "code": [
+        "interface BillPayFormModel {",
+        "  name: string;",
+        "  method: {",
+        "    type: string;",
+        "    card: {",
+        "      cardNumber: string;",
+        "      securityCode: string;",
+        "      expiration: string;",
+        "    };",
+        "    bank: {",
+        "      accountNumber: string;",
+        "      routingNumber: string;",
+        "    };",
+        "  };",
+        "}",
+        "",
+        "const billPaySchema = schema<BillPayFormModel>((billPay) => {",
+        "  // Ẩn chi tiết thẻ khi chọn phương thức khác thẻ",
+        "  hidden(billPay.method.card, {",
+        "    when: ({ valueOf }) => valueOf(billPay.method.type) !== 'card',",
+        "  });",
+        "",
+        "  // Ẩn chi tiết ngân hàng khi chọn phương thức khác ngân hàng",
+        "  hidden(billPay.method.bank, {",
+        "    when: ({ valueOf }) => valueOf(billPay.method.type) !== 'bank',",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "<strong>Tại sao không dùng Discriminated Union ({ type: 'card', ... } | { type: 'bank', ... })?</strong><br>Nếu dùng cấu trúc động, khi người dùng nhập thông tin thẻ, sau đó chuyển qua ngân hàng rồi đổi ý quay lại thẻ, toàn bộ dữ liệu họ vừa nhập trước đó sẽ bị xóa sạch (data loss). Cấu trúc tĩnh giữ nguyên trạng thái dữ liệu trong bộ nhớ kể cả khi trường bị ẩn trên UI."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "exceptions",
+      "text": "Các trường hợp ngoại lệ (Exceptions)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc dù cấu trúc tĩnh được khuyến khích mạnh mẽ, có 2 trường hợp ngoại lệ được hỗ trợ:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Mảng (Arrays):</strong> Thường xuyên cần thu thập số lượng phần tử thay đổi (ví dụ: danh sách email, danh sách item đơn hàng). Mặc dù độ dài mảng là động, hình dạng của từng phần tử bên trong mảng phải luôn nhất quán.",
+        "<strong>Các trường được xử lý nguyên tử bởi UI control (Atomic fields):</strong> Khi một custom control xử lý một object phức tạp như một giá trị nguyên tử duy nhất (ví dụ: widget bản đồ chọn toạ độ <code>location: { lat: number; lng: number } | null</code>). Control này thay thế toàn bộ object một lần chứ không bind vào từng trường <code>lat</code> hay <code>lng</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "translating-between-form-model-and-domain-model",
+      "text": "Chuyển đổi giữa Form Model và Domain Model"
+    },
+    {
+      "type": "paragraph",
+      "text": "Vì form model và domain model đại diện cho cùng một khái niệm theo hai góc nhìn khác nhau, chúng ta cần các hàm chuyển đổi hai chiều giữa chúng:"
+    },
+    {
+      "type": "code",
+      "file": "transforms.ts",
+      "lang": "ts",
+      "code": [
+        "function domainModelToFormModel(domainModel: MyDomainModel): MyFormModel { ... }",
+        "function formModelToDomainModel(formModel: MyFormModel): MyDomainModel { ... }"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "domain-model-to-form-model",
+      "text": "Từ Domain Model sang Form Model"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi nhận domain model từ một <code>input()</code> của component hoặc từ một tài nguyên backend (như <code>httpResource</code>), <code>linkedSignal</code> là công cụ lý tưởng để tạo writable form model tự động đồng bộ theo dữ liệu nguồn:"
+    },
+    {
+      "type": "code",
+      "file": "linked-signal-transform.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({ ... })",
+        "class MyForm {",
+        "  // Domain model nhận từ component cha",
+        "  readonly domainModel = input<MyDomainModel>();",
+        "",
+        "  // linkedSignal đồng bộ và chuyển đổi thành form model",
+        "  private readonly formModel = linkedSignal({",
+        "    source: this.domainModel,",
+        "    computation: (domain) =>",
+        "      domain ? domainModelToFormModel(domain) : EMPTY_MY_FORM_MODEL,",
+        "  });",
+        "",
+        "  protected readonly myForm = form(this.formModel);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trường hợp tải từ backend bằng Resource API, bạn có thể vô hiệu hóa form trong khi dữ liệu đang tải:"
+    },
+    {
+      "type": "code",
+      "file": "resource-form.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({ ... })",
+        "class MyForm {",
+        "  readonly domainModelResource = httpResource<MyDomainModel>(...);",
+        "",
+        "  private readonly formModel = linkedSignal({",
+        "    source: this.domainModelResource.value,",
+        "    computation: (domain) =>",
+        "      domain ? domainModelToFormModel(domain) : EMPTY_MY_FORM_MODEL,",
+        "  });",
+        "",
+        "  protected readonly myForm = form(this.formModel, (root) => {",
+        "    // Vô hiệu hóa toàn bộ form khi resource đang loading",
+        "    disabled(root, { when: () => this.domainModelResource.isLoading() });",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "form-model-to-domain-model",
+      "text": "Từ Form Model sang Domain Model"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi người dùng nhấn submit hoặc trong tính năng tự động lưu (auto-saving):"
+    },
+    {
+      "type": "code",
+      "file": "save-transforms.ts",
+      "lang": "ts",
+      "code": [
+        "// 1. Chuyển đổi khi submit:",
+        "handleSubmit() {",
+        "  submit(this.myForm, async () => {",
+        "    const domainData = formModelToDomainModel(this.myForm().value());",
+        "    await this.myDataService.update(domainData);",
+        "  });",
+        "}",
+        "",
+        "// 2. Tự động lưu qua effect():",
+        "constructor() {",
+        "  effect(() => {",
+        "    if (this.myForm().valid()) {",
+        "      this.domainModel.set(formModelToDomainModel(this.myForm().value()));",
+        "    }",
+        "  });",
+        "}"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "slug": "guide/http/testing",
+  "title": "Kiểm thử HTTP Requests (Testing HTTP requests)",
+  "description": "Hướng dẫn kiểm thử HttpClient trong Angular với @angular/common/http/testing: sử dụng provideHttpClientTesting, HttpTestingController, expectOne, match, flush dữ liệu giả lập, kiểm thử lỗi backend và network error, và kiểm thử Interceptor.",
+  "source": "https://angular.dev/guide/http/testing",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Tương tự như bất kỳ phụ thuộc bên ngoài nào khác, bạn cần giả lập (mock) HTTP backend để các bài kiểm thử có thể mô phỏng tương tác với máy chủ từ xa mà không cần gửi request thật ra mạng. Thư viện <code>@angular/common/http/testing</code> cung cấp các công cụ chuyên dụng để đón bắt các request do ứng dụng tạo ra, kiểm tra khẳng định (assertions) trên các request đó, và phản hồi lại bằng dữ liệu giả lập."
+    },
+    {
+      "type": "paragraph",
+      "text": "Quy trình kiểm thử HTTP tuân theo mẫu: Ứng dụng thực thi mã và gửi request trước ➔ Bài test kiểm tra sự tồn tại của request (<code>expectOne</code>) ➔ Trả lời request bằng cách đẩy dữ liệu giả lập (<code>flush</code>) ➔ Xác minh không có request ngoài ý muốn nào khác còn sót lại (<code>verify</code>)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setup-for-testing",
+      "text": "Thiết lập môi trường kiểm thử"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong cấu hình <code>TestBed</code>, thêm <code>provideHttpClientTesting()</code> vào danh sách providers. Hàm này sẽ thay thế backend mạng thật bằng backend kiểm thử và cung cấp dịch vụ <code>HttpTestingController</code>:"
+    },
+    {
+      "type": "code",
+      "file": "http-test-setup.spec.ts",
+      "lang": "ts",
+      "code": [
+        "import { TestBed } from '@angular/core/testing';",
+        "import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';",
+        "",
+        "TestBed.configureTestingModule({",
+        "  providers: [",
+        "    provideHttpClientTesting(),",
+        "  ],",
+        "});",
+        "",
+        "const httpTesting = TestBed.inject(HttpTestingController);"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configuring-httpclient-in-tests",
+      "text": "Cấu hình HttpClient trong bài kiểm thử (với Interceptors)"
+    },
+    {
+      "type": "callout",
+      "calloutType": "important",
+      "title": "Thứ tự khai báo Providers",
+      "text": "Luôn khai báo <code>provideHttpClient()</code> TRƯỚC <code>provideHttpClientTesting()</code>. <code>provideHttpClientTesting()</code> sẽ ghi đè các phần xử lý mạng của <code>provideHttpClient()</code> để chuyển hướng sang backend kiểm thử. Nếu khai báo ngược lại, bài test có thể bị lỗi."
+    },
+    {
+      "type": "code",
+      "file": "test-with-interceptors.spec.ts",
+      "lang": "ts",
+      "code": [
+        "TestBed.configureTestingModule({",
+        "  providers: [",
+        "    provideHttpClient(withInterceptors([authInterceptor])),",
+        "    provideHttpClientTesting(), // Khai báo sau để ghi đè mạng thật",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "expecting-and-answering-requests",
+      "text": "Đón bắt và phản hồi Request (expectOne & flush)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ kiểm thử một dịch vụ <code>ConfigService</code> gửi yêu cầu GET và nhận phản hồi cấu hình:"
+    },
+    {
+      "type": "code",
+      "file": "config.service.spec.ts",
+      "lang": "ts",
+      "code": [
+        "import { TestBed } from '@angular/core/testing';",
+        "import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';",
+        "import { firstValueFrom } from 'rxjs';",
+        "import { ConfigService, Config } from './config.service';",
+        "",
+        "const DEFAULT_CONFIG: Config = { apiUrl: 'https://api.example.com', retries: 3 };",
+        "",
+        "TestBed.configureTestingModule({",
+        "  providers: [ConfigService, provideHttpClientTesting()],",
+        "});",
+        "",
+        "const httpTesting = TestBed.inject(HttpTestingController);",
+        "const service = TestBed.inject(ConfigService);",
+        "",
+        "// 1. Kích hoạt request qua Observable",
+        "const configPromise = firstValueFrom(service.getConfig());",
+        "",
+        "// 2. Đón bắt request đang chờ xử lý",
+        "const req = httpTesting.expectOne('/api/config', 'Yêu cầu tải cấu hình');",
+        "expect(req.request.method).toBe('GET');",
+        "",
+        "// 3. Phản hồi dữ liệu giả lập",
+        "req.flush(DEFAULT_CONFIG);",
+        "",
+        "// 4. Kiểm tra dữ liệu dịch vụ nhận được",
+        "expect(await configPromise).toEqual(DEFAULT_CONFIG);",
+        "",
+        "// 5. Xác minh không còn request nào ngoài ý muốn",
+        "httpTesting.verify();"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "tip",
+      "title": "Tự động xác minh với afterEach",
+      "text": "Bạn nên đưa lời gọi <code>httpTesting.verify()</code> vào hook <code>afterEach()</code> để tự động đảm bảo mọi bài test đều không phát sinh request thừa thãi."
+    },
+    {
+      "type": "code",
+      "file": "after-each-verify.spec.ts",
+      "lang": "ts",
+      "code": [
+        "afterEach(() => {",
+        "  TestBed.inject(HttpTestingController).verify();",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "handling-more-than-one-request-at-once",
+      "text": "Xử lý nhiều Request trùng lặp cùng lúc với match()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu mã nguồn phát ra nhiều request trùng khớp, <code>expectOne()</code> sẽ ném lỗi. Trong trường hợp đó, sử dụng phương thức <code>match()</code> để nhận về một mảng các request và phản hồi cho từng request một:"
+    },
+    {
+      "type": "code",
+      "file": "match-multiple-requests.ts",
+      "lang": "ts",
+      "code": [
+        "const allGetRequests = httpTesting.match({ method: 'GET' });",
+        "for (const req of allGetRequests) {",
+        "  req.flush(DEFAULT_CONFIG);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "advanced-matching",
+      "text": "Khớp Request nâng cao bằng hàm Predicate"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể truyền một hàm điều kiện (predicate) để lọc các request theo tiêu chí phức tạp:"
+    },
+    {
+      "type": "code",
+      "file": "predicate-matching.ts",
+      "lang": "ts",
+      "code": [
+        "// Tìm request có body không rỗng",
+        "const reqWithBody = httpTesting.expectOne((req) => req.body !== null);",
+        "",
+        "// Khẳng định không có bất kỳ request nào khác ngoài GET",
+        "httpTesting.expectNone((req) => req.method !== 'GET');"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "testing-error-handling",
+      "text": "Kiểm thử xử lý lỗi (Testing error handling)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "backend-errors",
+      "text": "1. Lỗi từ Server Backend (4xx, 5xx)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng <code>req.flush()</code> kèm mã lỗi HTTP và thông báo lỗi tương ứng:"
+    },
+    {
+      "type": "code",
+      "file": "backend-error.spec.ts",
+      "lang": "ts",
+      "code": [
+        "const req = httpTesting.expectOne('/api/config');",
+        "// Trả về lỗi 500 Internal Server Error",
+        "req.flush('Máy chủ gặp sự cố', { status: 500, statusText: 'Internal Server Error' });"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "network-errors",
+      "text": "2. Lỗi mạng (Network Error / ProgressEvent)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mô phỏng sự cố đứt kết nối mạng hoặc CORS bằng phương thức <code>req.error()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "network-error.spec.ts",
+      "lang": "ts",
+      "code": [
+        "const req = httpTesting.expectOne('/api/config');",
+        "req.error(new ProgressEvent('Lỗi mất kết nối mạng!'));"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "testing-an-interceptor",
+      "text": "Kiểm thử Interceptor"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để kiểm thử một interceptor (ví dụ tự động gắn token xác thực <code>X-Authentication-Token</code>), bạn cấu hình interceptor đó trong <code>TestBed</code> và kiểm tra đối tượng request thu được từ <code>HttpTestingController</code>:"
+    },
+    {
+      "type": "code",
+      "file": "auth-interceptor.spec.ts",
+      "lang": "ts",
+      "code": [
+        "import { TestBed } from '@angular/core/testing';",
+        "import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';",
+        "import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';",
+        "import { firstValueFrom } from 'rxjs';",
+        "import { AuthService } from './auth.service';",
+        "import { authInterceptor } from './auth.interceptor';",
+        "",
+        "TestBed.configureTestingModule({",
+        "  providers: [",
+        "    AuthService,",
+        "    provideHttpClient(withInterceptors([authInterceptor])),",
+        "    provideHttpClientTesting(),",
+        "  ],",
+        "});",
+        "",
+        "const authService = TestBed.inject(AuthService);",
+        "const http = TestBed.inject(HttpClient);",
+        "const httpTesting = TestBed.inject(HttpTestingController);",
+        "",
+        "// Kích hoạt request",
+        "firstValueFrom(http.get('/api/profile'));",
+        "",
+        "// Kiểm tra request đã được interceptor bổ sung header mong muốn",
+        "const req = httpTesting.expectOne('/api/profile');",
+        "expect(req.request.headers.get('X-Authentication-Token')).toEqual(authService.getAuthToken());"
+      ]
+    }
+  ]
+}

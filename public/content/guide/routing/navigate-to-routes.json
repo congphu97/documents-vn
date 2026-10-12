@@ -1,0 +1,340 @@
+{
+  "slug": "guide/routing/navigate-to-routes",
+  "title": "Điều hướng đến các tuyến đường (Navigate to routes)",
+  "description": "Tìm hiểu cách điều hướng khai báo bằng chỉ thị RouterLink và điều hướng lập trình bằng Router.navigate(), Router.navigateByUrl(), cùng cách tùy biến URL hiển thị trên thanh địa chỉ với browserUrl.",
+  "source": "https://angular.dev/guide/routing/navigate-to-routes",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Chỉ thị <code>RouterLink</code> là phương pháp điều hướng mang tính khai báo (declarative) của Angular. Nó cho phép bạn sử dụng các thẻ liên kết tiêu chuẩn (<code>&lt;a&gt;</code>) được tích hợp liền mạch với hệ thống định tuyến của Angular."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-to-use-routerlink",
+      "text": "Cách sử dụng RouterLink (How to use RouterLink)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Thay vì sử dụng các thẻ <code>&lt;a&gt;</code> thông thường với thuộc tính <code>href</code> (vốn sẽ kích hoạt tải lại toàn trang), bạn thêm chỉ thị <code>RouterLink</code> với đường dẫn tương ứng để tận dụng sức mạnh của Angular Router:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { RouterLink } from '@angular/router';",
+        "",
+        "@Component({",
+        "  template: `",
+        "    <nav>",
+        "      <a routerLink=\"/user-profile\">User profile</a>",
+        "      <a routerLink=\"/settings\">Settings</a>",
+        "    </nav>",
+        "  `,",
+        "  imports: [RouterLink],",
+        "})",
+        "export class App {}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-absolute-or-relative-links",
+      "text": "Sử dụng liên kết Tuyệt đối hoặc Tương đối (Using absolute or relative links)"
+    },
+    {
+      "type": "paragraph",
+      "text": "URL tương đối (Relative URLs) trong Angular Router cho phép bạn định nghĩa các đường dẫn điều hướng tương đối so với vị trí route hiện tại. Điều này trái ngược với URL tuyệt đối (Absolute URLs) - vốn chứa toàn bộ đường dẫn bao gồm giao thức (ví dụ: <code>https://</code>) và tên miền gốc."
+    },
+    {
+      "type": "code",
+      "file": "example.html",
+      "lang": "html",
+      "code": [
+        "<!-- Tuyệt đối: kèm giao thức và domain -->",
+        "<a href=\"https://www.angular.dev/essentials\">Angular Essentials Guide</a>",
+        "",
+        "<!-- Tương đối: hoạt động trong cùng domain -->",
+        "<a href=\"/essentials\">Angular Essentials Guide</a>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nói chung, URL tương đối thường được ưu tiên hơn vì chúng dễ bảo trì hơn, không phụ thuộc vào tên miền máy chủ hay vị trí tuyệt đối trong hệ thống phân cấp điều hướng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-relative-urls-work",
+      "text": "Cách URL tương đối hoạt động (How relative URLs work)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular Routing cung cấp hai cú pháp để định nghĩa URL: dạng chuỗi (strings) và dạng mảng (arrays)."
+    },
+    {
+      "type": "code",
+      "file": "example.html",
+      "lang": "html",
+      "code": [
+        "<!-- Cả hai cách đều điều hướng tới /dashboard -->",
+        "<a routerLink=\"dashboard\">Dashboard</a>",
+        "<a [routerLink]=\"['dashboard']\">Dashboard</a>"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Truyền trực tiếp chuỗi ký tự là cách phổ biến và tiện lợi nhất để định nghĩa các URL tương đối đơn giản."
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn cần truyền các tham số động vào URL tương đối, hãy sử dụng cú pháp mảng:"
+    },
+    {
+      "type": "code",
+      "file": "example.html",
+      "lang": "html",
+      "code": [
+        "<a [routerLink]=\"['user', currentUserId]\">Current User</a>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ngoài ra, bạn có thể chỉ định đường dẫn tương đối so với URL hiện tại hay tương đối so với domain gốc tùy thuộc vào việc đường dẫn có bắt đầu bằng dấu gạch chéo (<code>/</code>) hay không. Ví dụ: khi người dùng đang ở <code>example.com/settings</code>:"
+    },
+    {
+      "type": "code",
+      "file": "navigation-scenarios.html",
+      "lang": "html",
+      "code": [
+        "<!-- Điều hướng đến /settings/notifications (tương đối theo route hiện tại) -->",
+        "<a routerLink=\"notifications\">Notifications</a>",
+        "",
+        "<!-- Điều hướng đến /settings/notifications (tuyệt đối từ gốc) -->",
+        "<a routerLink=\"/settings/notifications\">Notifications</a>",
+        "",
+        "<!-- Điều hướng tới /team/:teamId/user/:userId -->",
+        "<a routerLink=\"/team/123/user/456\">User 456</a>",
+        "<a [routerLink]=\"['/team', teamId, 'user', userId]\">Current User</a>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "programmatic-navigation-to-routes",
+      "text": "Điều hướng theo lập trình (Programmatic navigation to routes)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong khi <code>RouterLink</code> xử lý điều hướng mang tính khai báo trong template, Angular cung cấp khả năng điều hướng theo lập trình (programmatic navigation) cho các tình huống bạn cần chuyển trang dựa trên logic nghiệp vụ, hành động của người dùng (như sau khi submit form thành công), hoặc trạng thái ứng dụng. Bằng cách inject service <code>Router</code>, bạn có thể chủ động chuyển route ngay trong mã TypeScript."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "routernavigate",
+      "text": "router.navigate()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức <code>router.navigate()</code> cho phép bạn điều hướng theo lập trình thông qua một mảng các phân đoạn đường dẫn (commands array):"
+    },
+    {
+      "type": "code",
+      "file": "dashboard.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { Router } from '@angular/router';",
+        "",
+        "@Component({",
+        "  selector: 'app-dashboard',",
+        "  template: `",
+        "    <button (click)=\"navigateToProfile()\">View Profile</button>",
+        "  `,",
+        "})",
+        "export class AppDashboard {",
+        "  private router = inject(Router);",
+        "  userId = 42;",
+        "",
+        "  navigateToProfile() {",
+        "    // Điều hướng cơ bản",
+        "    this.router.navigate(['/profile']);",
+        "",
+        "    // Kèm tham số đường dẫn động",
+        "    this.router.navigate(['/users', this.userId]);",
+        "",
+        "    // Kèm Query Parameters (?category=books&sort=price)",
+        "    this.router.navigate(['/search'], {",
+        "      queryParams: { category: 'books', sort: 'price' },",
+        "    });",
+        "",
+        "    // Kèm Matrix Parameters (/products;featured=true;onSale=true)",
+        "    this.router.navigate(['/products', { featured: true, onSale: true }]);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể xây dựng đường dẫn điều hướng động tương đối so với vị trí component hiện tại trong cây định tuyến bằng tùy chọn <code>relativeTo</code>:"
+    },
+    {
+      "type": "code",
+      "file": "user-detail.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { Router, ActivatedRoute } from '@angular/router';",
+        "",
+        "@Component({",
+        "  selector: 'app-user-detail',",
+        "  template: `",
+        "    <button (click)=\"navigateToEdit()\">Edit User</button>",
+        "    <button (click)=\"navigateToParent()\">Back to List</button>",
+        "  `,",
+        "})",
+        "export class UserDetail {",
+        "  private route = inject(ActivatedRoute);",
+        "  private router = inject(Router);",
+        "",
+        "  // Điều hướng tới route anh em/con tương đối: Từ /users/123 -> /users/123/edit",
+        "  navigateToEdit() {",
+        "    this.router.navigate(['edit'], { relativeTo: this.route });",
+        "  }",
+        "",
+        "  // Điều hướng ngược về cha: Từ /users/123 -> /users",
+        "  navigateToParent() {",
+        "    this.router.navigate(['..'], { relativeTo: this.route });",
+        "  }",
+        "",
+        "  // Điều hướng sang nhánh anh em: Từ /users/123 -> /users/list",
+        "  navigateToList() {",
+        "    this.router.navigate(['..', 'list'], { relativeTo: this.route });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "Khi điều hướng ngược lên nhiều cấp, tất cả các phân đoạn <code>..</code> phải nằm trong phần tử đầu tiên của mảng commands (ví dụ: <code>['../../settings']</code>). Router chỉ phân tích cú pháp <code>..</code> ở phần tử đầu tiên, các phần tử tiếp theo sẽ được hiểu là tên đường dẫn theo nghĩa đen."
+    },
+    {
+      "type": "callout",
+      "kind": "caution",
+      "text": "Khi sử dụng tùy chọn <code>relativeTo</code>, tuyệt đối không đặt dấu <code>/</code> ở đầu command đầu tiên. Dấu <code>/</code> ở đầu sẽ biến việc điều hướng thành tuyệt đối và hoàn toàn bỏ qua tùy chọn <code>relativeTo</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "routernavigatebyurl",
+      "text": "router.navigateByUrl()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức <code>router.navigateByUrl()</code> cung cấp một cách điều hướng trực tiếp bằng chuỗi đường dẫn URL hoàn chỉnh thay vì chia nhỏ thành mảng các segment. Phương thức này lý tưởng khi bạn đã có sẵn toàn bộ chuỗi URL (ví dụ: deep link từ server hoặc URL chuyển tiếp):"
+    },
+    {
+      "type": "code",
+      "file": "navigate-by-url-examples.ts",
+      "lang": "ts",
+      "code": [
+        "// Điều hướng cơ bản",
+        "router.navigateByUrl('/products');",
+        "",
+        "// Tuyến đường lồng nhau",
+        "router.navigateByUrl('/products/featured');",
+        "",
+        "// URL đầy đủ với query parameter và fragment",
+        "router.navigateByUrl('/products/123?view=details#reviews');",
+        "",
+        "// Thay thế URL hiện tại trong lịch sử trình duyệt (không tạo thêm bước Back)",
+        "router.navigateByUrl('/checkout', { replaceUrl: true });"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "display-a-different-url-in-the-address-bar",
+      "text": "Hiển thị URL khác trên thanh địa chỉ (Display a different URL in the address bar)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể truyền tùy chọn <code>browserUrl</code> vào <code>navigateByUrl</code> để hiển thị một URL khác trên thanh địa chỉ của trình duyệt so với URL thực tế được sử dụng để khớp route trong Angular. Điều này rất hữu ích khi bạn muốn chuyển hướng người dùng đến một route khác (chẳng hạn trang lỗi 404) mà vẫn giữ nguyên URL ban đầu mà người dùng cố gắng truy cập:"
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "router.navigateByUrl('/not-found', { browserUrl: '/products/missing-item' });"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular sẽ điều hướng và render route <code>/not-found</code>, nhưng thanh địa chỉ trình duyệt vẫn hiển thị <code>/products/missing-item</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "customizing-the-browser-url-with-routerlink",
+      "text": "Tùy biến Browser URL với RouterLink (Customizing the browser URL with RouterLink)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Chỉ thị <code>RouterLink</code> cũng hỗ trợ thuộc tính đầu vào <code>browserUrl</code>, cho phép bạn kiểm soát URL xuất hiện trên thanh địa chỉ khi nhấp chuột vào liên kết, độc lập với route mà Angular thực sự điều hướng tới:"
+    },
+    {
+      "type": "code",
+      "file": "example.html",
+      "lang": "html",
+      "code": [
+        "<!-- Điều hướng tới /dashboard, nhưng thanh địa chỉ hiển thị /home -->",
+        "<a [routerLink]=\"['/dashboard']\" [browserUrl]=\"'/home'\">Go to Dashboard</a>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể liên kết một đối tượng <code>UrlTree</code> cho các trường hợp động phức tạp hơn:"
+    },
+    {
+      "type": "code",
+      "file": "product-list.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { Router, RouterLink, UrlTree } from '@angular/router';",
+        "",
+        "@Component({",
+        "  template: `",
+        "    <a [routerLink]=\"['/products', product.id]\" [browserUrl]=\"displayUrl\">",
+        "      {{ product.name }}",
+        "    </a>",
+        "  `,",
+        "  imports: [RouterLink],",
+        "})",
+        "export class ProductList {",
+        "  private router = inject(Router);",
+        "  product = { id: 42, name: 'Widget' };",
+        "",
+        "  // Tạo một UrlTree tùy biến để hiển thị trên thanh địa chỉ",
+        "  displayUrl: UrlTree = this.router.createUrlTree(['/products', 'widget']);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tìm hiểu cách [Đọc trạng thái tuyến đường (Read route state)](/docs/guide/routing/read-route-state) để xây dựng các component phản ứng linh hoạt theo dữ liệu và tham số của URL."
+    }
+  ]
+}

@@ -1,0 +1,313 @@
+{
+  "slug": "guide/forms/typed-forms",
+  "title": "Biểu mẫu có định kiểu (Typed Forms)",
+  "description": "Hướng dẫn chi tiết về Typed Forms trong Angular: cơ chế an toàn kiểu (type safety), xử lý nullability, nonNullable, Partial Values, getRawValue, FormArray đồng nhất, FormRecord cho key động và NonNullableFormBuilder.",
+  "source": "https://angular.dev/guide/forms/typed-forms",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Kể từ Angular 14, <strong>Reactive Forms</strong> đã được định kiểu nghiêm ngặt theo mặc định (strictly typed by default). Tính năng này mang lại độ an toàn kiểu (type safety) tối đa, gợi ý mã (autocomplete) thông minh và ngăn ngừa các lỗi sai sót cấu trúc ngay tại thời điểm biên dịch."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "overview-of-typed-forms",
+      "text": "Tổng quan về Typed Forms (Overview of Typed Forms)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Với Reactive Forms trong Angular, bạn chỉ định mô hình form một cách tường minh. Xét ví dụ biểu mẫu đăng nhập cơ bản sau:"
+    },
+    {
+      "type": "code",
+      "file": "login-form.ts",
+      "lang": "ts",
+      "code": [
+        "const login = new FormGroup({",
+        "  email: new FormControl(''),",
+        "  password: new FormControl(''),",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular cung cấp nhiều API để tương tác với <code>FormGroup</code> này như <code>login.value</code>, <code>login.controls</code>, <code>login.patchValue</code>... Trong các phiên bản Angular trước đây, hầu hết các API này trả về kiểu <code>any</code>, dẫn đến việc thiếu an toàn kiểu khi truy cập dữ liệu hoặc cấu trúc control:"
+    },
+    {
+      "type": "code",
+      "file": "type-check-error.ts",
+      "lang": "ts",
+      "code": [
+        "// Trước đây: Cho phép biên dịch và sinh lỗi tại runtime!",
+        "// Hiện tại: Báo lỗi biên dịch ngay lập tức vì 'email' không có thuộc tính 'domain'!",
+        "const emailDomain = login.value.email.domain; // Compile Error!"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Với Typed Forms, trình biên dịch TypeScript sẽ bảo vệ bạn khỏi các lỗi truy cập sai thuộc tính, tự động gợi ý chính xác tên control và kiểu dữ liệu tương ứng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "untyped-forms",
+      "text": "Biểu mẫu không định kiểu (Untyped Forms)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Biểu mẫu không định kiểu (Untyped Forms) vẫn được hỗ trợ đầy đủ để đảm bảo tính tương thích ngược cho các dự án cũ. Bạn có thể sử dụng các tiền tố <code>Untyped</code> từ <code>@angular/forms</code>:"
+    },
+    {
+      "type": "code",
+      "file": "untyped-form.ts",
+      "lang": "ts",
+      "code": [
+        "import { UntypedFormGroup, UntypedFormControl } from '@angular/forms';",
+        "",
+        "const login = new UntypedFormGroup({",
+        "  email: new UntypedFormControl(''),",
+        "  password: new UntypedFormControl(''),",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi biểu tượng <code>Untyped*</code> có ngữ nghĩa giống hệt các phiên bản Angular cũ. Khi sẵn sàng, bạn chỉ cần bỏ tiền tố <code>Untyped</code> để kích hoạt kiểm tra kiểu dữ liệu một cách tuần tự."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "formcontrol-getting-started",
+      "text": "Bắt đầu với FormControl và Khả năng rỗng (Nullability)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Xét một control đơn lẻ được khởi tạo:"
+    },
+    {
+      "type": "code",
+      "file": "form-control-inference.ts",
+      "lang": "ts",
+      "code": [
+        "const email = new FormControl('angularrox@gmail.com');"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Control này được TypeScript tự động suy luận kiểu thành <code>FormControl&lt;string | null&gt;</code>. Tại sao kiểu lại bao gồm cả <code>null</code>? Bởi vì bất cứ lúc nào khi bạn gọi phương thức <code>email.reset()</code>, giá trị của control sẽ trở về <code>null</code> theo mặc định:"
+    },
+    {
+      "type": "code",
+      "file": "nullability-reset.ts",
+      "lang": "ts",
+      "code": [
+        "const email = new FormControl('angularrox@gmail.com');",
+        "email.reset();",
+        "console.log(email.value); // null"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "nonnullable-controls",
+      "text": "Tạo Control không nhận giá trị Null (nonNullable: true)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu muốn đảm bảo control không bao giờ có giá trị <code>null</code>, bạn thêm tùy chọn <code>{ nonNullable: true }</code>. Khi đó, gọi <code>reset()</code> sẽ đưa giá trị về lại <strong>giá trị khởi tạo ban đầu</strong> thay vì <code>null</code>:"
+    },
+    {
+      "type": "code",
+      "file": "non-nullable.ts",
+      "lang": "ts",
+      "code": [
+        "const email = new FormControl('angularrox@gmail.com', { nonNullable: true });",
+        "email.reset();",
+        "console.log(email.value); // 'angularrox@gmail.com' (không bao giờ null)"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "specifying-an-explicit-type",
+      "text": "Khai báo kiểu dữ liệu tường minh (Explicit Type)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi khởi tạo control với giá trị ban đầu là <code>null</code>, TypeScript sẽ tự động suy diễn kiểu là <code>FormControl&lt;null&gt;</code>. Điều này ngăn cản bạn gán chuỗi string sau đó. Để khắc phục, hãy chỉ định kiểu dữ liệu generic rõ ràng:"
+    },
+    {
+      "type": "code",
+      "file": "explicit-type.ts",
+      "lang": "ts",
+      "code": [
+        "// LỖI: new FormControl(null) suy diễn kiểu là FormControl<null>",
+        "// email.setValue('angularrox@gmail.com'); // Error: Argument of type 'string' is not assignable to 'null'",
+        "",
+        "// ĐÚNG: Khai báo generic rõ ràng",
+        "const email = new FormControl<string | null>(null);",
+        "email.setValue('angularrox@gmail.com'); // Hoàn toàn hợp lệ!"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "formarray-dynamic-homogenous-collections",
+      "text": "FormArray: Tập hợp phần tử đồng nhất động"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>FormArray</code> quản lý một danh sách các control có kiểu dữ liệu đồng nhất (homogeneous). Tham số kiểu đại diện cho kiểu của từng phần tử control bên trong:"
+    },
+    {
+      "type": "code",
+      "file": "form-array-typed.ts",
+      "lang": "ts",
+      "code": [
+        "const names = new FormArray([new FormControl('Alex')]);",
+        "names.push(new FormControl('Jess'));",
+        "",
+        "// Thêm nhiều control cùng lúc",
+        "const aliases = new FormArray([new FormControl('ng')]);",
+        "aliases.push([new FormControl('ngDev'), new FormControl('ngAwesome')]);",
+        "",
+        "// Xóa toàn bộ control với clear()",
+        "aliases.clear();",
+        "console.log(aliases.length); // 0"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "note",
+      "title": "Mảng dị thể (Heterogeneous Array)",
+      "text": "Nếu muốn lưu trữ nhiều control có kiểu dữ liệu khác nhau trong cùng một mảng, bạn phải dùng <code>UntypedFormArray</code>, vì TypeScript không thể suy luận chính xác kiểu dữ liệu ở từng vị trí chỉ mục động."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "formgroup-and-partial-values",
+      "text": "FormGroup, Giá trị bộ phận (Partial Values) và getRawValue()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong bất kỳ <code>FormGroup</code> nào, bạn đều có thể vô hiệu hóa control (<code>disable()</code>). Khi một control bị vô hiệu hóa, giá trị của nó sẽ <strong>không xuất hiện</strong> trong <code>login.value</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Do đó, kiểu dữ liệu của <code>login.value</code> luôn là một kiểu bộ phận <code>Partial&lt;{ email: string, password: string }&gt;</code>. Điều này nghĩa là kiểu của từng trường có thể là <code>string | undefined</code>, và TypeScript sẽ bắt buộc bạn phải kiểm tra giá trị <code>undefined</code>:"
+    },
+    {
+      "type": "code",
+      "file": "partial-values.ts",
+      "lang": "ts",
+      "code": [
+        "const login = new FormGroup({",
+        "  email: new FormControl('', { nonNullable: true }),",
+        "  password: new FormControl('', { nonNullable: true }),",
+        "});",
+        "",
+        "// login.value có kiểu Partial<{ email: string, password: string }>",
+        "// login.value.email có kiểu: string | undefined",
+        "",
+        "// Nếu muốn lấy toàn bộ giá trị (bao gồm cả các control bị disabled) mà không bị undefined:",
+        "const raw = login.getRawValue();",
+        "// raw có kiểu: { email: string, password: string }"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "optional-controls-and-dynamic-groups",
+      "text": "Control tùy chọn trong FormGroup (Optional Controls)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với các form có control được thêm/xóa động tại runtime nhưng danh sách khóa đã biết trước, bạn có thể mô tả chúng bằng một interface chứa các trường tùy chọn (optional properties với dấu <code>?</code>):"
+    },
+    {
+      "type": "code",
+      "file": "optional-controls.ts",
+      "lang": "ts",
+      "code": [
+        "interface LoginForm {",
+        "  email: FormControl<string>;",
+        "  password?: FormControl<string>; // Trường tùy chọn có thể thêm hoặc xóa",
+        "}",
+        "",
+        "const login = new FormGroup<LoginForm>({",
+        "  email: new FormControl('', { nonNullable: true }),",
+        "  password: new FormControl('', { nonNullable: true }),",
+        "});",
+        "",
+        "// TypeScript cho phép xóa hoặc thêm lại các control được định nghĩa là optional:",
+        "login.removeControl('password');"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "formrecord",
+      "text": "FormRecord: Gom nhóm với khóa động (Dynamic Keys)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn cần một nhóm control mà <strong>tên các khóa (keys) không thể biết trước</strong> (ví dụ: danh sách cài đặt do người dùng định nghĩa, danh sách địa chỉ với khóa là tên người nhận), hãy sử dụng <code>FormRecord</code>:"
+    },
+    {
+      "type": "code",
+      "file": "form-record-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { FormRecord, FormControl } from '@angular/forms';",
+        "",
+        "// FormRecord cho phép thêm control với khóa bất kỳ có cùng kiểu",
+        "const addresses = new FormRecord<FormControl<string | null>>({});",
+        "",
+        "addresses.addControl('Andrew', new FormControl('2340 Folsom St'));",
+        "addresses.addControl('Nancy', new FormControl('123 Drew St'));"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn cần một form vừa có khóa động vừa có kiểu control hỗn hợp khác nhau (heterogeneous), hãy sử dụng <code>UntypedFormGroup</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "formbuilder-and-nonnullableformbuilder",
+      "text": "FormBuilder và NonNullableFormBuilder"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dịch vụ <code>FormBuilder</code> cũng hỗ trợ đầy đủ các kiểu Typed Forms. Đặc biệt, Angular cung cấp <code>NonNullableFormBuilder</code> giúp loại bỏ hoàn toàn việc phải khai báo lặp đi lặp lại <code>{ nonNullable: true }</code> trên từng control:"
+    },
+    {
+      "type": "code",
+      "file": "non-nullable-form-builder.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { FormBuilder, NonNullableFormBuilder } from '@angular/forms';",
+        "",
+        "@Component({ /* ... */ })",
+        "export class LoginEditorComponent {",
+        "  private fb = inject(FormBuilder);",
+        "",
+        "  // Cách 1: Sử dụng fb.nonNullable",
+        "  login = this.fb.nonNullable.group({",
+        "    email: '',",
+        "    password: '',",
+        "  });",
+        "  // Cả email và password đều tự động có kiểu FormControl<string> không null!",
+        "",
+        "  // Cách 2: Tiêm trực tiếp dịch vụ NonNullableFormBuilder",
+        "  private nnfb = inject(NonNullableFormBuilder);",
+        "  profile = this.nnfb.group({",
+        "    username: '',",
+        "  });",
+        "}"
+      ]
+    }
+  ]
+}

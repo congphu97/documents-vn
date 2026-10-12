@@ -1,0 +1,305 @@
+{
+  "slug": "guide/forms/signals/field-metadata",
+  "title": "Siêu dữ liệu của trường (Field metadata)",
+  "description": "Hướng dẫn chuyên sâu về hệ thống Field Metadata trong Signal Forms: cơ chế đóng góp dữ liệu phản ứng cho trường, các reducer tích hợp và tùy chỉnh, kết hợp nhiều quy tắc, và gắn các đối tượng nhận biết vòng đời với managed metadata.",
+  "source": "https://angular.dev/guide/forms/signals/field-metadata",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<strong>Field metadata (Siêu dữ liệu của trường)</strong> là các dữ liệu phản ứng (reactive data) mà bạn có thể đính kèm vào từng trường riêng biệt trong biểu mẫu. Các validator ràng buộc tích hợp sẵn của Angular như <code>required()</code> và <code>min()</code> đều sử dụng hệ thống này bên dưới. Nói cách khác, mỗi khi bạn gọi một validator, bạn đang đóng góp một giá trị vào một khóa siêu dữ liệu (metadata key) cho trường đó."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "you-have-already-been-using-metadata",
+      "text": "Bạn đã và đang sử dụng metadata mà không nhận ra"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn gọi <code>required()</code> trong schema và đọc thuộc tính <code>.required()</code> trên trường ở template, bạn đang trực tiếp tương tác với hệ thống metadata. Getter tiện ích này trả về giá trị hiện tại của khóa metadata tích hợp <code>REQUIRED</code>:"
+    },
+    {
+      "type": "code",
+      "file": "required-metadata.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal } from '@angular/core';",
+        "import { form, required, FormField } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  selector: 'app-registration',",
+        "  imports: [FormField],",
+        "  template: `",
+        "    <form>",
+        "      <label>",
+        "        Tên người dùng",
+        "        @if (registrationForm.username().required()) {",
+        "          <span class=\"required-marker\" aria-hidden=\"true\">*</span>",
+        "        }",
+        "        <input [formField]=\"registrationForm.username\" />",
+        "      </label>",
+        "    </form>",
+        "  `,",
+        "})",
+        "export class Registration {",
+        "  registrationModel = signal({ username: '' });",
+        "  registrationForm = form(this.registrationModel, (path) => {",
+        "    required(path.username);",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Các validator tích hợp và các khóa metadata tương ứng:"
+    },
+    {
+      "type": "table",
+      "headers": ["Validator", "Metadata key", "Kiểu dữ liệu", "Getter trên FieldState"],
+      "rows": [
+        ["<code>required()</code>", "<code>REQUIRED</code>", "<code>boolean</code>", "<code>required</code>"],
+        ["<code>min()</code>", "<code>MIN</code> (trỏ đến <code>MIN_NUMBER</code>)", "<code>number | undefined</code>", "<code>min</code>"],
+        ["<code>max()</code>", "<code>MAX</code> (trỏ đến <code>MAX_NUMBER</code>)", "<code>number | undefined</code>", "<code>max</code>"],
+        ["<code>minDate()</code>", "<code>MIN</code> (trỏ đến <code>MIN_DATE</code>)", "<code>Date | undefined</code>", "<code>min</code>"],
+        ["<code>maxDate()</code>", "<code>MAX</code> (trỏ đến <code>MAX_DATE</code>)", "<code>Date | undefined</code>", "<code>max</code>"],
+        ["<code>minLength()</code>", "<code>MIN_LENGTH</code>", "<code>number | undefined</code>", "<code>minLength</code>"],
+        ["<code>maxLength()</code>", "<code>MAX_LENGTH</code>", "<code>number | undefined</code>", "<code>maxLength</code>"],
+        ["<code>pattern()</code>", "<code>PATTERN</code>", "<code>RegExp[]</code>", "<code>pattern</code>"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-to-use-custom-metadata",
+      "text": "Khi nào nên sử dụng Metadata tùy chỉnh?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hãy tạo khóa metadata tùy chỉnh khi bạn cần gắn thông tin phản ứng vào một trường mà các signal mặc định (<code>valid</code>, <code>disabled</code>, <code>touched</code>) chưa đáp ứng:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Cấu hình cho schema trường tái sử dụng:</strong> Biểu tượng tiền tệ (currency symbol) trên ô nhập giá tiền để các template hoặc custom control hiển thị đúng.",
+        "<strong>Dữ liệu đã chuẩn hóa dùng chung giữa các quy tắc:</strong> Chuẩn hóa số điện thoại sang định dạng E.164 một lần duy nhất để cả validator định dạng lẫn validator kiểm tra trùng lặp đọc cùng một nguồn canonical mà không phải parse lại.",
+        "<strong>Gợi ý hiển thị ngữ cảnh:</strong> Cấp độ cảnh báo (<code>'info' | 'warning' | 'error'</code>) để hiển thị icon hoặc badge phù hợp, hoặc các thông điệp trợ giúp thay đổi linh hoạt theo nội dung đang gõ."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-a-metadata-key",
+      "text": "Tạo khóa Metadata với createMetadataKey()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để tạo một khóa mới, gọi hàm <code>createMetadataKey&lt;TWrite&gt;()</code> ở cấp module scope:"
+    },
+    {
+      "type": "code",
+      "file": "metadata-keys.ts",
+      "lang": "ts",
+      "code": [
+        "import { createMetadataKey } from '@angular/forms/signals';",
+        "",
+        "// Khởi tạo khóa metadata cho trợ giúp tên người dùng:",
+        "export const USERNAME_HELP = createMetadataKey<string>();"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setting-values-from-a-schema",
+      "text": "Đăng ký giá trị metadata trong Schema"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng hàm <code>metadata(path, key, logic)</code> bên trong hàm schema. Hàm logic nhận đối tượng <code>FieldContext</code> và mọi signal nó đọc sẽ trở thành reactive dependency:"
+    },
+    {
+      "type": "code",
+      "file": "help-text-metadata.ts",
+      "lang": "ts",
+      "code": [
+        "registrationForm = form(this.registrationModel, (path) => {",
+        "  metadata(path.username, USERNAME_HELP, ({ value }) => {",
+        "    const username = value();",
+        "    if (username.length === 0) return 'Vui lòng chọn tên người dùng từ 3 đến 20 ký tự.';",
+        "    if (username.length < 3) return 'Tiếp tục gõ, tên người dùng phải có ít nhất 3 ký tự.';",
+        "    if (username.length > 20) return 'Tên người dùng tối đa 20 ký tự.';",
+        "    return 'Tên người dùng hợp lệ.';",
+        "  });",
+        "});",
+        "",
+        "// Đọc giá trị qua computed:",
+        "usernameHelp = computed(() => this.registrationForm.username().metadata(USERNAME_HELP)?.() ?? '');"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reading-metadata-from-a-field",
+      "text": "Đọc siêu dữ liệu từ trường (Reading metadata)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>field().hasMetadata(key)</code>: Trả về <code>true</code> nếu có bất kỳ quy tắc nào đăng ký khóa này trên trường.",
+        "<code>field().metadata(key)</code>: Trả về <code>undefined</code> nếu khóa chưa được đăng ký; ngược lại trả về một signal chứa giá trị đã tích lũy (reduced value)."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "read-metadata.html",
+      "lang": "html",
+      "code": [
+        "@if (registrationForm.username().hasMetadata(USERNAME_HELP)) {",
+        "  <p class=\"help\">{{ registrationForm.username().metadata(USERNAME_HELP)!() }}</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "combining-contributions-with-reducers",
+      "text": "Gộp nhiều đóng góp với Reducer (Combining contributions)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, khi không có reducer, cơ chế \"ghi đè\" (override) được áp dụng (đóng góp sau ghi đè đóng góp trước). Nhưng khi kết hợp nhiều schema hoặc nhiều quy tắc cùng gắn thông tin trợ giúp, bạn muốn gộp chúng lại. Hãy truyền một <code>MetadataReducer</code> vào hàm khởi tạo key:"
+    },
+    {
+      "type": "code",
+      "file": "list-reducer.ts",
+      "lang": "ts",
+      "code": [
+        "import { createMetadataKey, MetadataReducer } from '@angular/forms/signals';",
+        "",
+        "// Mỗi quy tắc đóng góp một string, kết quả đọc về là string[]:",
+        "const HELP = createMetadataKey<string, string[]>(MetadataReducer.list());",
+        "",
+        "form(model, (path) => {",
+        "  metadata(path.username, HELP, () => 'Phải là tên duy nhất trên hệ thống.');",
+        "  metadata(path.username, HELP, () => 'Độ dài từ 3 đến 20 ký tự.');",
+        "});",
+        "",
+        "// Kết quả: state.metadata(HELP)!() === ['Phải là tên duy nhất...', 'Độ dài từ 3 đến 20...']"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "built-in-reducers",
+      "text": "Các Reducer tích hợp sẵn (MetadataReducer)"
+    },
+    {
+      "type": "table",
+      "headers": ["Reducer", "Kiểu tích lũy", "Hành vi", "Giá trị ban đầu"],
+      "rows": [
+        ["<code>list<T>()</code>", "<code>T[]</code>", "Nối các phần tử không undefined vào danh sách", "<code>[]</code>"],
+        ["<code>or()</code>", "<code>boolean</code>", "<code>true</code> nếu có bất kỳ đóng góp nào là true", "<code>false</code>"],
+        ["<code>and()</code>", "<code>boolean</code>", "<code>true</code> chỉ khi mọi đóng góp đều là true", "<code>true</code>"],
+        ["<code>min()</code>", "<code>number | undefined</code>", "Giữ lại số nhỏ nhất được đóng góp", "<code>undefined</code>"],
+        ["<code>max()</code>", "<code>number | undefined</code>", "Giữ lại số lớn nhất được đóng góp", "<code>undefined</code>"],
+        ["<code>override()</code>", "<code>T | undefined</code>", "Đóng góp cuối cùng thay thế đóng góp trước (mặc định)", "<code>undefined</code>"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "writing-a-custom-reducer",
+      "text": "Tự viết Reducer tùy chỉnh"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể triển khai đối tượng khớp với interface <code>MetadataReducer&lt;TAcc, TItem&gt;</code>:"
+    },
+    {
+      "type": "code",
+      "file": "custom-severity-reducer.ts",
+      "lang": "ts",
+      "code": [
+        "type Severity = 'info' | 'warning' | 'error';",
+        "const SEVERITY_RANK: Record<Severity, number> = { info: 0, warning: 1, error: 2 };",
+        "",
+        "const maxSeverity: MetadataReducer<Severity | undefined, Severity> = {",
+        "  reduce(acc, item) {",
+        "    if (acc === undefined) return item;",
+        "    return SEVERITY_RANK[item] > SEVERITY_RANK[acc] ? item : acc;",
+        "  },",
+        "  getInitial: () => undefined,",
+        "};",
+        "",
+        "export const SEVERITY = createMetadataKey<Severity, Severity | undefined>(maxSeverity);"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "attaching-lifecycle-aware-objects-with-managed-metadata",
+      "text": "Gắn đối tượng nhận biết vòng đời với Managed Metadata"
+    },
+    {
+      "type": "paragraph",
+      "text": "<strong>Managed Metadata</strong> lưu trữ một đối tượng có vòng đời (lifecycle-aware object) trực tiếp trên trường thay vì một giá trị phản ứng đơn thuần. Điều này cực kỳ hữu ích cho các đối tượng như <code>httpResource()</code> để fetch dữ liệu ngoài, một <code>effect()</code> đồng bộ hệ thống, hoặc một service handle gắn với một ô nhập liệu cụ thể."
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng hàm <code>createManagedMetadataKey()</code> để khởi tạo khóa. Hàm <code>create</code> chạy một lần khi trường được tạo, nằm ngay trong Injection Context của trường đó:"
+    },
+    {
+      "type": "code",
+      "file": "url-preview-managed.ts",
+      "lang": "ts",
+      "code": [
+        "import { Signal } from '@angular/core';",
+        "import { httpResource } from '@angular/common/http';",
+        "import { createManagedMetadataKey } from '@angular/forms/signals';",
+        "",
+        "export interface UrlPreview {",
+        "  title: string;",
+        "  description?: string;",
+        "}",
+        "",
+        "export const URL_PREVIEW = createManagedMetadataKey((_state, url: Signal<string | undefined>) => {",
+        "  // httpResource sẽ tự động hủy (clean up) khi trường biểu mẫu này bị hủy:",
+        "  return httpResource<UrlPreview>(() => {",
+        "    const currentUrl = url();",
+        "    return currentUrl ? { url: '/api/url-preview', params: { url: currentUrl } } : undefined;",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "link-editor.component.ts",
+      "lang": "ts",
+      "code": [
+        "linksForm = form(this.linksModel, (path) => {",
+        "  applyEach(path.links, (itemPath) => {",
+        "    metadata(itemPath.url, URL_PREVIEW, ({ value }) => value());",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi người dùng thêm một liên kết mới vào mảng, một resource xem trước mới được tạo tự động. Khi liên kết bị xóa khỏi mảng, Angular sẽ hủy bỏ Injection Context của trường đó, giúp giải phóng hoàn toàn tài nguyên mà không lo rò rỉ bộ nhớ."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/form-logic\">Thêm logic vào Biểu mẫu (Adding form logic)</a>",
+        "<a href=\"/docs/guide/forms/signals/field-state-management\">Quản lý trạng thái trường (Field state management)</a>",
+        "<a href=\"/docs/guide/forms/signals/custom-controls\">Xây dựng điều khiển tùy chỉnh (Custom Controls)</a>"
+      ]
+    }
+  ]
+}

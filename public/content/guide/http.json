@@ -1,43 +1,100 @@
 {
   "slug": "guide/http",
-  "title": "Overview",
-  "description": "Tài liệu hướng dẫn về Overview trong Angular.",
+  "title": "Giao tiếp với dịch vụ Backend qua HTTP (HTTP Client Overview)",
+  "description": "Tổng quan về dịch vụ HttpClient trong Angular (@angular/common/http): kết nối và giao tiếp với server backend, lấy dữ liệu có định kiểu (typed responses), xử lý lỗi, bộ chặn (interceptors) và công cụ kiểm thử mạnh mẽ.",
   "source": "https://angular.dev/guide/http",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/http](https://angular.dev/guide/http)."
-    },
-    {
       "type": "paragraph",
-      "text": "Overview là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Hầu hết các ứng dụng front-end hiện đại đều cần giao tiếp với máy chủ thông qua giao thức HTTP để tải xuống hoặc tải lên dữ liệu và truy cập các dịch vụ back-end khác. Angular cung cấp API HTTP client toàn diện cho ứng dụng thông qua lớp dịch vụ <code>HttpClient</code> trong gói <code>@angular/common/http</code>."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "http-client-service-features",
+      "text": "Các tính năng chính của dịch vụ HTTP Client"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Overview, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Dịch vụ <code>HttpClient</code> mang đến các khả năng mạnh mẽ giúp đơn giản hóa việc tương tác qua mạng:"
+    },
+    {
+      "type": "table",
+      "headers": ["Tính năng chính", "Mô tả & Lợi ích mang lại"],
+      "rows": [
+        ["<strong>Phản hồi có định kiểu (Typed response values)</strong>", "Hỗ trợ khai báo kiểu generic (ví dụ <code>http.get&lt;User[]&gt;('/api/users')</code>) giúp kiểm soát kiểu dữ liệu chặt chẽ tại thời điểm biên dịch."],
+        ["<strong>Xử lý lỗi tinh gọn (Streamlined error handling)</strong>", "Tích hợp liền mạch với toán tử RxJS (<code>catchError</code>) và cung cấp đối tượng <code>HttpErrorResponse</code> chứa thông tin lỗi chi tiết."],
+        ["<strong>Bộ chặn yêu cầu & phản hồi (Interceptors)</strong>", "Cho phép can thiệp vào trước khi gửi request (gắn Auth Token, Header) hoặc sau khi nhận response (bắt mã lỗi 401, log dữ liệu) thông qua các functional interceptor."],
+        ["<strong>Công cụ kiểm thử mạnh mẽ (Robust testing utilities)</strong>", "Hỗ trợ <code>HttpTestingController</code> từ <code>@angular/common/http/testing</code> giúp giả lập (mock) các request và phản hồi HTTP một cách dễ dàng mà không cần gửi request thật."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setup-and-usage",
+      "text": "Cách cấu hình và sử dụng cơ bản"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ứng dụng Angular hiện đại (Standalone API), bạn kích hoạt <code>HttpClient</code> bằng cách thêm hàm <code>provideHttpClient()</code> vào danh sách providers trong <code>app.config.ts</code>:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "app.config.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Overview",
-        "import { Component } from \"@angular/core\";",
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideHttpClient, withFetch } from '@angular/common/http';",
         "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Overview</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    // Kích hoạt HttpClient, tùy chọn sử dụng fetch API hiện đại",
+        "    provideHttpClient(withFetch()),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau đó, bạn có thể tiêm (inject) <code>HttpClient</code> vào service hoặc component để thực hiện cuộc gọi API:"
+    },
+    {
+      "type": "code",
+      "file": "user.service.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable, inject } from '@angular/core';",
+        "import { HttpClient } from '@angular/common/http';",
+        "import { Observable } from 'rxjs';",
+        "",
+        "export interface User {",
+        "  id: number;",
+        "  name: string;",
+        "  email: string;",
+        "}",
+        "",
+        "@Injectable({ providedIn: 'root' })",
+        "export class UserService {",
+        "  private http = inject(HttpClient);",
+        "",
+        "  getUsers(): Observable<User[]> {",
+        "    return this.http.get<User[]>('/api/users');",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "whats-next",
+      "text": "Các bước tiếp theo (What's next)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Gửi yêu cầu HTTP (Making Requests):</strong> Khám phá cách thực hiện các thao tác GET, POST, PUT, DELETE, truyền params và cấu hình headers.",
+        "<strong>Bộ chặn HTTP (Interceptors):</strong> Thiết lập cơ chế tự động gắn JWT Token, retry khi mất mạng, và ghi log tập trung."
       ]
     }
   ]

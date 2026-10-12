@@ -1,0 +1,239 @@
+{
+  "slug": "guide/incremental-hydration",
+  "title": "Incremental Hydration",
+  "description": "Learn about incremental hydration in Angular with @defer blocks: triggers (idle, viewport, interaction, hover, immediate, timer, when, never) and performance benefits.",
+  "source": "https://angular.dev/guide/incremental-hydration",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<strong>Incremental hydration</strong> is an advanced type of <a href=\"/docs/guide/hydration\">hydration</a> that can leave sections of your application dehydrated and incrementally trigger hydration of those sections as they are needed."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Incremental hydration builds on top of full-application hydration, deferrable views (<code>@defer</code>), and event replay."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "why-use-incremental-hydration",
+      "text": "Why use incremental hydration?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Incremental hydration provides substantial performance improvements:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Smaller initial bundles:</strong> Produces smaller initial JavaScript bundles while providing an experience comparable to full application hydration.",
+        "<strong>Better Core Web Vitals:</strong> Improves initial load times, reducing First Input Delay (FID / INP) and Cumulative Layout Shift (CLS).",
+        "<strong>Above-the-fold deferrable views:</strong> You can now use <code>@defer</code> blocks above the fold without layout shift because the main template renders directly on the server without placeholder swapping on the client."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-do-you-enable-incremental-hydration-in-angular",
+      "text": "How do you enable incremental hydration in Angular?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Incremental hydration is <strong>enabled by default</strong> when you use <code>provideClientHydration()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { bootstrapApplication } from '@angular/platform-browser';",
+        "import { provideClientHydration } from '@angular/platform-browser';",
+        "import { AppComponent } from './app/app.component';",
+        "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideClientHydration()",
+        "  ]",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Incremental Hydration depends on and enables event replay automatically. If you already have <code>withEventReplay()</code> in your list, you can safely remove it."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "opting-out",
+      "text": "Opting out of incremental hydration"
+    },
+    {
+      "type": "paragraph",
+      "text": "To opt out of incremental hydration, use <code>withNoIncrementalHydration()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { bootstrapApplication } from '@angular/platform-browser';",
+        "import { provideClientHydration, withNoIncrementalHydration } from '@angular/platform-browser';",
+        "import { AppComponent } from './app/app.component';",
+        "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideClientHydration(",
+        "      withNoIncrementalHydration()",
+        "    )",
+        "  ]",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-does-incremental-hydration-work",
+      "text": "How does incremental hydration work?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Adding a hydrate trigger to a defer block tells Angular to load dependencies during SSR and render the main template rather than the <code>@placeholder</code>. On client-side initial load, dependencies remain deferred and the defer block content stays dehydrated until its hydrate trigger fires. Browser events triggered prior to hydration are queued and replayed upon completion."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "controlling-hydration-of-content-with-triggers",
+      "text": "Controlling hydration of content with triggers"
+    },
+    {
+      "type": "paragraph",
+      "text": "There are three types of hydrate triggers: <code>hydrate on</code>, <code>hydrate when</code>, and <code>hydrate never</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "hydrate-on",
+      "text": "hydrate on"
+    },
+    {
+      "type": "table",
+      "headers": ["Trigger", "Description"],
+      "rows": [
+        ["hydrate on idle", "Triggers when the browser is idle. Supports an optional timeout."],
+        ["hydrate on viewport", "Triggers when specified content enters the viewport."],
+        ["hydrate on interaction", "Triggers when the user interacts with specified element."],
+        ["hydrate on hover", "Triggers when the mouse hovers over specified area."],
+        ["hydrate on immediate", "Triggers immediately after non-deferred content has finished rendering."],
+        ["hydrate on timer", "Triggers after a specific duration."]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "hydrate-on.html",
+      "lang": "html",
+      "code": [
+        "@defer (hydrate on idle(500)) {",
+        "  <large-cmp />",
+        "} @placeholder {",
+        "  <div>Placeholder</div>",
+        "}",
+        "",
+        "@defer (hydrate on viewport) {",
+        "  <large-cmp />",
+        "}",
+        "",
+        "@defer (hydrate on interaction) {",
+        "  <large-cmp />",
+        "}",
+        "",
+        "@defer (hydrate on timer(500ms)) {",
+        "  <large-cmp />",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "hydrate-when",
+      "text": "hydrate when"
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>hydrate when</code> trigger accepts a custom conditional expression and hydrates when the condition becomes truthy."
+    },
+    {
+      "type": "code",
+      "file": "hydrate-when.html",
+      "lang": "html",
+      "code": [
+        "@defer (hydrate when condition) {",
+        "  <large-cmp />",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "hydrate-never",
+      "text": "hydrate never"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>hydrate never</code> specifies that the content in the defer block should remain dehydrated indefinitely on initial load, effectively becoming static content."
+    },
+    {
+      "type": "code",
+      "file": "hydrate-never.html",
+      "lang": "html",
+      "code": [
+        "@defer (on viewport; hydrate never) {",
+        "  <large-cmp />",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "hydrate-triggers-alongside-regular-triggers",
+      "text": "Hydrate triggers alongside regular triggers"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hydration is an initial load optimization, meaning hydrate triggers apply to the initial load, while subsequent client-side renders use regular triggers:"
+    },
+    {
+      "type": "code",
+      "file": "combo-triggers.html",
+      "lang": "html",
+      "code": [
+        "@defer (on idle; hydrate on interaction) {",
+        "  <example-cmp />",
+        "} @placeholder {",
+        "  <div>Example Placeholder</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "nested-defer-blocks",
+      "text": "Nested @defer blocks"
+    },
+    {
+      "type": "paragraph",
+      "text": "Because Angular's component architecture is hierarchical, hydrating any component requires all of its parents also be hydrated. Hydration is triggered from the top-most dehydrated <code>@defer</code> block down to the triggered child."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "placeholder-blocks",
+      "text": "Do I still need to specify @placeholder blocks?"
+    },
+    {
+      "type": "paragraph",
+      "text": "<strong>Yes.</strong> While <code>@placeholder</code> content is not used for incremental hydration during initial SSR load, it is still necessary for subsequent client-side navigation renders."
+    }
+  ]
+}

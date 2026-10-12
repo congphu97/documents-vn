@@ -1,44 +1,293 @@
 {
   "slug": "guide/forms",
-  "title": "Overview",
-  "description": "Tài liệu hướng dẫn về Overview trong Angular.",
+  "title": "Biểu mẫu trong Angular (Forms in Angular)",
+  "description": "Tổng quan về xử lý biểu mẫu trong Angular: so sánh chi tiết giữa Reactive Forms và Template-driven Forms, luồng dữ liệu hai chiều, tính bất biến, xác thực dữ liệu và chiến lược kiểm thử.",
   "source": "https://angular.dev/guide/forms",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/forms](https://angular.dev/guide/forms)."
+      "type": "paragraph",
+      "text": "Xử lý dữ liệu nhập từ người dùng thông qua biểu mẫu (forms) là nền tảng cốt lõi của rất nhiều ứng dụng web. Các ứng dụng sử dụng biểu mẫu để cho phép người dùng đăng nhập, cập nhật hồ sơ, nhập thông tin thanh toán nhạy cảm và thực hiện nhiều tác vụ nhập liệu khác."
     },
     {
       "type": "paragraph",
-      "text": "Overview là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Angular cung cấp hai phương pháp tiếp cận khác nhau để xử lý biểu mẫu: <strong>Reactive Forms (Biểu mẫu phản ứng)</strong> và <strong>Template-driven Forms (Biểu mẫu dựa trên mẫu)</strong>. Cả hai phương pháp đều thu thập sự kiện nhập liệu từ giao diện (view), kiểm tra tính hợp lệ (validate), tạo mô hình dữ liệu (form data model) và cung cấp cách thức theo dõi các thay đổi."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Nếu bạn quan tâm đến giải pháp biểu mẫu mới dựa trên Signals, hãy tham khảo tài liệu [Signal Forms](https://angular.dev/essentials/signal-forms) của Angular!"
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "choosing-an-approach",
+      "text": "Lựa chọn phương pháp tiếp cận (Choosing an approach)"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Overview, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Mỗi phương pháp tiếp cận xử lý và quản lý dữ liệu biểu mẫu theo cách thức riêng với các ưu điểm cụ thể:"
+    },
+    {
+      "type": "table",
+      "headers": ["Phương pháp (Forms)", "Chi tiết (Details)"],
+      "rows": [
+        ["<strong>Reactive forms</strong>", "Cung cấp quyền truy cập trực tiếp, tường minh vào mô hình đối tượng biểu mẫu bên dưới. Phương pháp này mạnh mẽ, có khả năng mở rộng cao (scalable), dễ tái sử dụng và kiểm thử (testable). Nếu biểu mẫu là phần trọng tâm của ứng dụng hoặc bạn đã quen với lập trình phản ứng (reactive programming), hãy chọn Reactive forms."],
+        ["<strong>Template-driven forms</strong>", "Dựa vào các chỉ thị (directives) trong template HTML để tạo và thao tác với mô hình bên dưới. Rất phù hợp khi thêm các biểu mẫu đơn giản (như form đăng ký nhận email). Dễ triển khai nhưng khó mở rộng hơn so với Reactive forms. Phù hợp với các yêu cầu biểu mẫu cơ bản có thể quản lý trọn vẹn trong template."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "key-differences",
+      "text": "Những điểm khác biệt then chốt (Key differences)"
+    },
+    {
+      "type": "table",
+      "headers": ["Đặc điểm", "Reactive Forms", "Template-driven Forms"],
+      "rows": [
+        ["<strong>Thiết lập Form model</strong>", "Tường minh (Explicit), khởi tạo trong TypeScript component", "Ngầm định (Implicit), khởi tạo bởi các chỉ thị trong HTML"],
+        ["<strong>Mô hình dữ liệu (Data model)</strong>", "Có cấu trúc rõ ràng và bất biến (Immutable)", "Không cấu trúc và có thể biến đổi (Mutable)"],
+        ["<strong>Luồng dữ liệu (Data flow)</strong>", "Đồng bộ (Synchronous)", "Bất đồng bộ (Asynchronous)"],
+        ["<strong>Xác thực (Validation)</strong>", "Các hàm thuần túy (Functions)", "Các chỉ thị (Directives)"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "scalability",
+      "text": "Khả năng mở rộng (Scalability)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu biểu mẫu là một phần trung tâm của ứng dụng, khả năng mở rộng là yếu tố tối quan trọng. Khả năng tái sử dụng mô hình form giữa các component là vô cùng cần thiết:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Reactive forms:</strong> Khả năng mở rộng vượt trội. Cho phép truy cập trực tiếp vào API của form, sử dụng luồng dữ liệu đồng bộ giữa giao diện và mô hình dữ liệu, giúp xây dựng các biểu mẫu quy mô lớn dễ dàng. Thiết lập kiểm thử đơn giản, không phụ thuộc vào cơ chế phát hiện thay đổi (change detection).",
+        "<strong>Template-driven forms:</strong> Tập trung vào các kịch bản đơn giản, ít khả năng tái sử dụng. Chúng trừu tượng hóa các API bên dưới và sử dụng luồng dữ liệu bất đồng bộ. Việc kiểm thử phức tạp hơn do phụ thuộc vào nhiều chu kỳ change detection."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setting-up-the-form-model",
+      "text": "Thiết lập Form Model (Setting up the form model)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "common-form-foundation-classes",
+      "text": "Các lớp nền tảng dùng chung (Foundation classes)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cả hai cách tiếp cận đều được xây dựng dựa trên các lớp cơ sở chung của Angular Forms:"
+    },
+    {
+      "type": "table",
+      "headers": ["Lớp (Base class)", "Chi tiết (Details)"],
+      "rows": [
+        ["<code>FormControl</code>", "Theo dõi giá trị và trạng thái kiểm thực (validation status) của một ô nhập liệu đơn lẻ."],
+        ["<code>FormGroup</code>", "Theo dõi giá trị và trạng thái kiểm thực cho một tập hợp các form controls."],
+        ["<code>FormArray</code>", "Theo dõi giá trị và trạng thái kiểm thực cho một mảng các form controls có thể thêm/bớt động."],
+        ["<code>ControlValueAccessor</code>", "Cầu nối giữa các thể hiện <code>FormControl</code> của Angular và các phần tử DOM bản địa (input, select, textarea)."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "setup-in-reactive-forms",
+      "text": "Thiết lập trong Reactive Forms"
+    },
+    {
+      "type": "paragraph",
+      "text": "Với Reactive forms, bạn định nghĩa form model trực tiếp trong component class. Chỉ thị <code>[formControl]</code> liên kết thể hiện <code>FormControl</code> được tạo tường minh với phần tử input trong view:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "favorite-color-reactive.component.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Overview",
-        "import { Component } from \"@angular/core\";",
+        "import { Component } from '@angular/core';",
+        "import { FormControl, ReactiveFormsModule } from '@angular/forms';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Overview</h1>`",
+        "  selector: 'app-reactive-favorite-color',",
+        "  imports: [ReactiveFormsModule],",
+        "  template: `",
+        "    Màu yêu thích:",
+        "    <input type=\"text\" [formControl]=\"favoriteColorControl\" />",
+        "  `,",
         "})",
-        "export class ExampleComponent {}"
+        "export class FavoriteColorReactive {",
+        "  // Form model được khởi tạo trực tiếp trong component",
+        "  favoriteColorControl = new FormControl('');",
+        "}"
       ]
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "Trong Reactive forms, chính Form Model là 'nguồn chân lý duy nhất' (source of truth); nó cung cấp giá trị và trạng thái của phần tử biểu mẫu tại bất kỳ thời điểm nào."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "setup-in-template-driven-forms",
+      "text": "Thiết lập trong Template-driven Forms"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong Template-driven forms, form model được tạo ngầm định. Chỉ thị <code>ngModel</code> tự động tạo và quản lý một thể hiện <code>FormControl</code> cho phần tử tương ứng:"
+    },
+    {
+      "type": "code",
+      "file": "favorite-color-template.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal } from '@angular/core';",
+        "import { FormsModule } from '@angular/forms';",
+        "",
+        "@Component({",
+        "  selector: 'app-template-favorite-color',",
+        "  imports: [FormsModule],",
+        "  template: `",
+        "    Màu yêu thích:",
+        "    <input type=\"text\" [(ngModel)]=\"favoriteColor\" />",
+        "  `,",
+        "})",
+        "export class FavoriteColorTemplate {",
+        "  favoriteColor = signal('');",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "Trong Template-driven forms, chính Template HTML mới là nguồn chân lý duy nhất. Chỉ thị NgModel tự động quản lý thể hiện FormControl dưới nền cho bạn."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "data-flow-in-forms",
+      "text": "Luồng dữ liệu trong biểu mẫu (Data flow in forms)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "data-flow-in-reactive-forms",
+      "text": "Luồng dữ liệu trong Reactive Forms (Đồng bộ)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong Reactive forms, các bản cập nhật giữa view và model là <strong>đồng bộ (synchronous)</strong> và không phụ thuộc vào chu kỳ render của giao diện:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Từ View sang Model:</strong> Người dùng nhập 'Xanh' ➔ Phần tử <code>&lt;input&gt;</code> phát sự kiện 'input' ➔ <code>ControlValueAccessor</code> chuyển tiếp giá trị tới <code>FormControl</code> ➔ <code>FormControl</code> phát giá trị mới qua Observable <code>valueChanges</code>.",
+        "<strong>Từ Model sang View:</strong> Lập trình viên gọi <code>favoriteColorControl.setValue('Đỏ')</code> ➔ <code>FormControl</code> phát giá trị mới qua <code>valueChanges</code> ➔ <code>ControlValueAccessor</code> cập nhật giá trị mới lên phần tử <code>&lt;input&gt;</code> trên màn hình."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "data-flow-in-template-driven-forms",
+      "text": "Luồng dữ liệu trong Template-driven Forms (Bất đồng bộ)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong Template-driven forms, luồng dữ liệu diễn ra <strong>bất đồng bộ (asynchronous)</strong> thông qua cơ chế ràng buộc hai chiều (two-way data binding):"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Từ View sang Model:</strong> Người dùng gõ dữ liệu ➔ Phát sự kiện 'input' ➔ <code>ControlValueAccessor</code> gọi <code>setValue()</code> trên <code>FormControl</code> ngầm định ➔ <code>NgModel.viewToModelUpdate()</code> phát sự kiện <code>ngModelChange</code> ➔ Thuộc tính component được cập nhật.",
+        "<strong>Từ Model sang View:</strong> Biến trong component thay đổi ➔ Change detection kích hoạt ➔ Hook <code>ngOnChanges</code> của <code>NgModel</code> đưa tác vụ đặt giá trị vào hàng đợi bất đồng bộ (async queue) ➔ Change detection vòng 1 hoàn tất ➔ Vòng tick tiếp theo thực thi gán giá trị cho <code>FormControl</code> và kích hoạt Change detection lần 2 để tránh lỗi <code>ExpressionChangedAfterItHasBeenCheckedError</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "mutability-of-the-data-model",
+      "text": "Tính bất biến của mô hình dữ liệu (Mutability of data model)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức theo dõi thay đổi quyết định hiệu năng của ứng dụng:"
+    },
+    {
+      "type": "table",
+      "headers": ["Đặc điểm", "Reactive Forms", "Template-driven Forms"],
+      "rows": [
+        ["<strong>Mô hình dữ liệu</strong>", "Cung cấp cấu trúc dữ liệu bất biến (immutable). Mỗi khi có thay đổi, <code>FormControl</code> trả về một tham chiếu dữ liệu mới thay vì sửa đổi đối tượng cũ. Giúp Change detection hoạt động cực kỳ hiệu quả và tích hợp hoàn hảo với các toán tử RxJS.", "Dựa vào tính biến đổi (mutability) với two-way binding. Việc sửa đổi trực tiếp thuộc tính khiến cơ chế change detection khó xác định chính xác thời điểm cần cập nhật, làm giảm hiệu năng."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "form-validation",
+      "text": "Kiểm thực biểu mẫu (Form validation)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Reactive forms:</strong> Định nghĩa validators tùy biến dưới dạng các <strong>hàm (functions)</strong> nhận vào một control và trả về đối tượng lỗi hoặc null.",
+        "<strong>Template-driven forms:</strong> Gắn liền với các <strong>chỉ thị template (directives)</strong>, bắt buộc phải viết custom validator directives bọc quanh hàm kiểm tra."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "testing",
+      "text": "Chiến lược kiểm thử (Testing)"
+    },
+    {
+      "type": "paragraph",
+      "text": "<strong>Kiểm thử Reactive Forms:</strong> Cực kỳ đơn giản vì có thể truy cập đồng bộ trực tiếp vào dữ liệu mà không cần render UI hay đợi chu kỳ Change Detection:"
+    },
+    {
+      "type": "code",
+      "file": "reactive-test.spec.ts",
+      "lang": "ts",
+      "code": [
+        "it('nên cập nhật giá trị trong control', () => {",
+        "  // Cập nhật và kiểm tra trực tiếp mà không cần change detection",
+        "  component.favoriteColorControl.setValue('Blue');",
+        "  const input = fixture.nativeElement.querySelector('input');",
+        "  expect(input.value).toBe('Blue');",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "<strong>Kiểm thử Template-driven Forms:</strong> Đòi hỏi phải hiểu rõ quy trình Change Detection và phải gọi <code>await fixture.whenStable()</code> để chờ các tác vụ bất đồng bộ hoàn tất:"
+    },
+    {
+      "type": "code",
+      "file": "template-test.spec.ts",
+      "lang": "ts",
+      "code": [
+        "it('nên cập nhật màu yêu thích trên input', async () => {",
+        "  component.favoriteColor.set('Blue');",
+        "  // Bắt buộc phải chờ ổn định bất đồng bộ",
+        "  await fixture.whenStable();",
+        "  const input = fixture.nativeElement.querySelector('input');",
+        "  expect(input.value).toBe('Blue');",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tìm hiểu sâu hơn về [Reactive Forms](/docs/guide/forms/reactive-forms), [Template-driven Forms](/docs/guide/forms/template-driven-forms) và kỹ thuật [Kiểm thực biểu mẫu (Form Validation)](/docs/guide/forms/form-validation)."
     }
   ]
 }

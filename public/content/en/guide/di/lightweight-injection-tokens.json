@@ -1,0 +1,46 @@
+{
+  "slug": "guide/di/lightweight-injection-tokens",
+  "title": "Optimizing injection tokens",
+  "description": "Learn how lightweight injection tokens help Angular tree-shake unused component and service implementations in production builds.",
+  "source": "https://angular.dev/guide/di/lightweight-injection-tokens",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "When you use a component class as an injection token, the compiler retains a reference to that class implementation. This prevents the tree-shaker from dropping unused component definitions from production bundles. <strong>Lightweight injection tokens</strong> solve this problem."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-abstract-classes-as-tokens",
+      "text": "Using abstract classes as lightweight tokens"
+    },
+    {
+      "type": "paragraph",
+      "text": "Define a lightweight abstract class with no implementation to serve as the token, and provide the real component implementation via <code>useExisting</code>:"
+    },
+    {
+      "type": "code",
+      "file": "card-token.ts",
+      "lang": "ts",
+      "code": [
+        "// Lightweight token (no implementation, pure abstract definition)",
+        "export abstract class CardHeaderToken {",
+        "  abstract title: string;",
+        "}",
+        "",
+        "@Component({",
+        "  selector: 'card-header',",
+        "  standalone: true,",
+        "  providers: [",
+        "    { provide: CardHeaderToken, useExisting: CardHeaderComponent }",
+        "  ],",
+        "  template: `<h2>{{ title }}</h2>`",
+        "})",
+        "export class CardHeaderComponent implements CardHeaderToken {",
+        "  title = 'Card Header';",
+        "}"
+      ]
+    }
+  ]
+}

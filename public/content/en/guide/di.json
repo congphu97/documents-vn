@@ -1,43 +1,91 @@
 {
   "slug": "guide/di",
-  "title": "Overview",
-  "description": "Documentation guide for Overview in Angular.",
+  "title": "Dependency Injection in Angular",
+  "description": "Learn how Angular dependency injection (DI) works: injectors, tokens, providers, hierarchical resolution, and modern inject() function.",
   "source": "https://angular.dev/guide/di",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Official documentation from [angular.dev/guide/di](https://angular.dev/guide/di)."
-    },
-    {
       "type": "paragraph",
-      "text": "Overview is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+      "text": "<strong>Dependency Injection (DI)</strong> is a design pattern and architectural mechanism in which classes receive their dependencies from an external source rather than creating them directly. In Angular, DI is baked into the framework's core, making applications flexible, modular, and easy to test."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Overview and Concepts"
+      "id": "understanding-di",
+      "text": "Understanding Dependency Injection"
     },
     {
       "type": "paragraph",
-      "text": "To master Overview, explore the core mechanisms and design patterns provided by Angular."
+      "text": "In Angular, dependencies are typically services. When a component declares that it needs a service, Angular's injector automatically finds or creates the requested instance and delivers it to the component:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "hero.service.ts",
       "lang": "ts",
       "code": [
-        "// Example demonstration for Overview",
-        "import { Component } from \"@angular/core\";",
+        "import { Injectable } from '@angular/core';",
+        "",
+        "@Injectable({",
+        "  providedIn: 'root', // Singleton provided application-wide",
+        "})",
+        "export class HeroService {",
+        "  getHeroes() {",
+        "    return ['Windstorm', 'Bombasto', 'Magneta'];",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-inject-function",
+      "text": "Using the inject() function"
+    },
+    {
+      "type": "paragraph",
+      "text": "Modern Angular recommends using the <code>inject()</code> function over constructor injection for cleaner, more flexible code:"
+    },
+    {
+      "type": "code",
+      "file": "hero-list.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { HeroService } from './hero.service';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
+        "  selector: 'app-hero-list',",
         "  standalone: true,",
-        "  template: `<h1>Overview</h1>`",
+        "  template: `",
+        "    <ul>",
+        "      @for (hero of heroes; track hero) {",
+        "        <li>{{ hero }}</li>",
+        "      }",
+        "    </ul>",
+        "  `",
         "})",
-        "export class ExampleComponent {}"
+        "export class HeroListComponent {",
+        "  private heroService = inject(HeroService);",
+        "  heroes = this.heroService.getHeroes();",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "di-topics",
+      "text": "Dependency Injection Topics"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/di/creating-and-using-services\">Creating and using services</a>",
+        "<a href=\"/docs/guide/di/defining-dependency-providers\">Defining dependency providers</a>",
+        "<a href=\"/docs/guide/di/hierarchical-dependency-injection\">Hierarchical injectors</a>",
+        "<a href=\"/docs/guide/di/dependency-injection-context\">Injection context</a>",
+        "<a href=\"/docs/guide/di/lazy-loading-services\">Lazy loading services</a>",
+        "<a href=\"/docs/guide/di/lightweight-injection-tokens\">Optimizing injection tokens</a>"
       ]
     }
   ]

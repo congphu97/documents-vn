@@ -1,0 +1,266 @@
+{
+  "slug": "guide/forms/signals/cross-field-logic",
+  "title": "Logic tương tác giữa nhiều trường (Cross-field logic)",
+  "description": "Hướng dẫn xây dựng logic và kiểm thực chéo giữa nhiều trường trong Signal Forms bằng FieldContext API: sử dụng valueOf, stateOf, fieldTreeOf và kiểm thực nhóm với validateTree.",
+  "source": "https://angular.dev/guide/forms/signals/cross-field-logic",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<strong>Logic tương tác giữa nhiều trường (Cross-field logic)</strong> là điều cần thiết khi bất kỳ quy tắc, điều kiện kiểm thực hoặc hành vi của một trường phụ thuộc vào giá trị hoặc trạng thái của trường khác trong cùng biểu mẫu. Signal Forms cung cấp đối tượng <strong>Field Context</strong> cho mọi hàm quy tắc, cho phép đọc giá trị thô với <code>valueOf()</code>, trạng thái phản ứng với <code>stateOf()</code> và cây phân cấp với <code>fieldTreeOf()</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "understanding-the-field-context",
+      "text": "Tìm hiểu về Field Context (Understanding the field context)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi hàm quy tắc trong Signal Forms đều nhận một tham số là ngữ cảnh trường (<code>FieldContext</code>). Đối tượng này mô tả trường hiện tại và mở ra cổng kết nối đến phần còn lại của form."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ba thuộc tính truy cập cho trường hiện tại:"
+    },
+    {
+      "type": "table",
+      "headers": ["Thuộc tính", "Kiểu dữ liệu", "Mô tả"],
+      "rows": [
+        ["<code>value</code>", "<code>Signal&lt;TValue&gt;</code>", "Signal chứa giá trị hiện tại của trường"],
+        ["<code>state</code>", "<code>FieldState&lt;TValue&gt;</code>", "Trạng thái của trường (valid, invalid, errors, touched, dirty, ...)"],
+        ["<code>fieldTree</code>", "<code>FieldTree&lt;TValue&gt;</code>", "Cây trường hiện tại để truy cập lập trình vào các trường con"]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ba phương thức phục vụ logic tương tác chéo (cross-field):"
+    },
+    {
+      "type": "table",
+      "headers": ["Phương thức", "Kiểu dữ liệu", "Mô tả"],
+      "rows": [
+        ["<code>valueOf(path)</code>", "<code>(path) => PValue</code>", "Phổ biến nhất. Dùng khi bạn cần giá trị thô của trường khác để so sánh hoặc tính toán."],
+        ["<code>stateOf(path)</code>", "<code>(path) => FieldState&lt;PValue&gt;</code>", "Dùng khi logic phụ thuộc vào trạng thái trường khác (ví dụ: trường kia đã touched hay hợp lệ chưa)."],
+        ["<code>fieldTreeOf(path)</code>", "<code>(path) => FieldTree&lt;PModel&gt;</code>", "Dùng khi cần truy cập cây đối tượng của trường khác, ví dụ gán lỗi trực tiếp vào trường con với <code>validateTree</code>."]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "date-range.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal } from '@angular/core';",
+        "import { form, validate } from '@angular/forms/signals';",
+        "",
+        "@Component({ ... })",
+        "export class EventForm {",
+        "  eventModel = signal({",
+        "    startDate: new Date('2026-06-01'),",
+        "    endDate: new Date('2026-06-05'),",
+        "  });",
+        "",
+        "  eventForm = form(this.eventModel, (schemaPath) => {",
+        "    validate(schemaPath.endDate, ({ value, valueOf }) => {",
+        "      // So sánh ngày kết thúc với ngày bắt đầu:",
+        "      if (value() <= valueOf(schemaPath.startDate)) {",
+        "        return {",
+        "          kind: 'invalidDateRange',",
+        "          message: 'Ngày kết thúc phải diễn ra sau ngày bắt đầu',",
+        "        };",
+        "      }",
+        "      return null;",
+        "    });",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "cross-field-validation-patterns",
+      "text": "Các mẫu kiểm thực chéo (Cross-field validation patterns)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ khoảng ngày ở trên, vì quy tắc đọc <code>valueOf(schemaPath.startDate)</code>, nó sẽ tự động tính toán lại mỗi khi <em>bất kỳ</em> ngày nào trong hai ngày thay đổi. Tuy nhiên, lỗi sẽ chỉ xuất hiện trên ô <code>endDate</code>. Nếu bạn muốn cả hai trường đều hiển thị lỗi khi khoảng ngày không hợp lệ, hãy khai báo quy tắc đối xứng trên cả hai trường:"
+    },
+    {
+      "type": "code",
+      "file": "bidirectional-rules.ts",
+      "lang": "ts",
+      "code": [
+        "eventForm = form(this.eventModel, (schemaPath) => {",
+        "  // Báo lỗi trên startDate:",
+        "  validate(schemaPath.startDate, ({ value, valueOf }) => {",
+        "    if (value() >= valueOf(schemaPath.endDate)) {",
+        "      return {",
+        "        kind: 'invalidDateRange',",
+        "        message: 'Ngày bắt đầu phải trước ngày kết thúc',",
+        "      };",
+        "    }",
+        "    return null;",
+        "  });",
+        "",
+        "  // Báo lỗi trên endDate:",
+        "  validate(schemaPath.endDate, ({ value, valueOf }) => {",
+        "    if (value() <= valueOf(schemaPath.startDate)) {",
+        "      return {",
+        "        kind: 'invalidDateRange',",
+        "        message: 'Ngày kết thúc phải sau ngày bắt đầu',",
+        "      };",
+        "    }",
+        "    return null;",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Khi một quy tắc liên quan đến nhiều trường, hãy cân nhắc đặt lỗi ở vị trí mà người dùng có xu hướng muốn sửa chữa nhất."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "conditional-requirements",
+      "text": "Ràng buộc bắt buộc có điều kiện (Conditional requirements)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong nhiều form, một trường chỉ bắt buộc nhập dựa vào lựa chọn ở trường khác. Ví dụ: tên công ty chỉ bắt buộc khi loại tài khoản là tài khoản doanh nghiệp ('business'):"
+    },
+    {
+      "type": "code",
+      "file": "conditional-required.ts",
+      "lang": "ts",
+      "code": [
+        "registrationForm = form(this.registrationModel, (schemaPath) => {",
+        "  required(schemaPath.companyName, {",
+        "    when: ({ valueOf }) => valueOf(schemaPath.accountType) === 'business',",
+        "    message: 'Tên công ty là bắt buộc đối với tài khoản doanh nghiệp',",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi người dùng chuyển lại loại tài khoản sang cá nhân ('personal'), điều kiện tự động tính toán lại và xóa bỏ lỗi ngay lập tức. Sử dụng <code>required()</code> với tuỳ chọn <code>when</code> cũng tự động cập nhật cờ metadata phục vụ khả năng tiếp cận (Accessibility)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "validating-based-on-another-fields-state",
+      "text": "Kiểm thực dựa trên trạng thái của trường khác (stateOf)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đôi khi logic kiểm thực cần dựa vào <em>trạng thái</em> của trường khác (chẳng hạn như đã được chạm vào <code>touched()</code> chưa). Ví dụ: ô xác nhận mật khẩu chỉ nên hiển thị lỗi không khớp sau khi người dùng đã thực sự tương tác với ô mật khẩu chính:"
+    },
+    {
+      "type": "code",
+      "file": "confirm-password-touched.ts",
+      "lang": "ts",
+      "code": [
+        "validate(schemaPath.confirmPassword, ({ value, valueOf, stateOf }) => {",
+        "  // Nếu người dùng chưa từng tương tác với ô password chính, không vội báo lỗi",
+        "  if (!stateOf(schemaPath.password).touched()) {",
+        "    return null;",
+        "  }",
+        "",
+        "  if (value() !== valueOf(schemaPath.password)) {",
+        "    return {",
+        "      kind: 'passwordMismatch',",
+        "      message: 'Mật khẩu xác nhận không khớp',",
+        "    };",
+        "  }",
+        "  return null;",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "<strong>LƯU Ý QUAN TRỌNG:</strong> Tuyệt đối tránh đọc trạng thái có sự phụ thuộc ngược lại vào chính kiểm thực của trường đó, vì sẽ tạo ra vòng lặp vô hạn (circular dependency). Ví dụ: validator của một trường không nên đọc <code>stateOf().valid()</code> của form cha vì form cha hợp lệ hay không lại phụ thuộc vào chính trường này!"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-validatetree",
+      "text": "Kiểm thực nhóm với validateTree"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi logic kiểm thực bản chất thuộc về một <strong>nhóm các trường</strong> và bạn muốn phân phối lỗi đến đích danh từng trường con cụ thể, hàm <code>validateTree()</code> là giải pháp hoàn hảo."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ: Trong một hàng Sudoku, mỗi hàng không được phép chứa các số trùng nhau. Quy tắc này áp dụng cho toàn bộ hàng và gán lỗi vào chính xác các ô bị trùng lặp:"
+    },
+    {
+      "type": "code",
+      "file": "sudoku-validate-tree.ts",
+      "lang": "ts",
+      "code": [
+        "export class SudokuRow {",
+        "  rowModel = signal({ cell1: 1, cell2: 3, cell3: 1, cell4: 4 });",
+        "",
+        "  rowForm = form(this.rowModel, (schemaPath) => {",
+        "    validateTree(schemaPath, ({ value, fieldTreeOf }) => {",
+        "      const row = value();",
+        "      const entries = [",
+        "        { val: row.cell1, fieldTree: fieldTreeOf(schemaPath.cell1) },",
+        "        { val: row.cell2, fieldTree: fieldTreeOf(schemaPath.cell2) },",
+        "        { val: row.cell3, fieldTree: fieldTreeOf(schemaPath.cell3) },",
+        "        { val: row.cell4, fieldTree: fieldTreeOf(schemaPath.cell4) },",
+        "      ];",
+        "",
+        "      const counts = new Map<number, number>();",
+        "      for (const { val } of entries) {",
+        "        if (val !== 0) counts.set(val, (counts.get(val) ?? 0) + 1);",
+        "      }",
+        "",
+        "      // Trả về danh sách lỗi trỏ chính xác đến từng cell bị trùng số:",
+        "      const errors = entries",
+        "        .filter(({ val }) => val !== 0 && (counts.get(val) ?? 0) > 1)",
+        "        .map(({ val, fieldTree }) => ({",
+        "          kind: 'duplicateInRow',",
+        "          message: `Số ${val} đã xuất hiện trong hàng này`,",
+        "          fieldTree,",
+        "        }));",
+        "",
+        "      return errors.length > 0 ? errors : null;",
+        "    });",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-to-use-validatetree-vs-validate",
+      "text": "Khi nào nên dùng validateTree so với validate?"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Dùng validate() + valueOf():</strong> Khi lỗi kiểm thực thuộc về chính trường đang được kiểm tra (cho dù quy tắc có đọc thêm giá trị từ trường khác).",
+        "<strong>Dùng validateTree():</strong> Khi logic kiểm thực thuộc về toàn bộ một nhóm nhiều trường, và validator cần trả về đồng thời nhiều lỗi chỉ định đến các trường con khác nhau thông qua thuộc tính <code>fieldTree</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/validation\">Kiểm thực dữ liệu trong Signal Forms (Validation)</a>",
+        "<a href=\"/docs/guide/forms/signals/field-state-management\">Quản lý trạng thái trường (Field state management)</a>",
+        "<a href=\"/docs/guide/forms/signals/form-logic\">Thêm logic vào Biểu mẫu (Adding form logic)</a>"
+      ]
+    }
+  ]
+}

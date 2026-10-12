@@ -1,0 +1,310 @@
+{
+  "slug": "guide/image-optimization",
+  "title": "Bắt đầu với NgOptimizedImage (Getting started with NgOptimizedImage)",
+  "description": "Chỉ thị NgOptimizedImage giúp bạn dễ dàng áp dụng các phương pháp tối ưu hóa hiệu năng tốt nhất khi tải hình ảnh.",
+  "source": "https://angular.dev/guide/image-optimization",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Chỉ thị NgOptimizedImage giúp bạn dễ dàng áp dụng các phương pháp tối ưu hóa hiệu năng tốt nhất khi tải hình ảnh trong Angular."
+    },
+    {
+      "type": "paragraph",
+      "text": "Chỉ thị này đảm bảo rằng việc tải hình ảnh LCP (Largest Contentful Paint) luôn được ưu tiên hàng đầu thông qua các cơ chế:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Tự động thiết lập thuộc tính fetchpriority=\"high\" trên thẻ <img>",
+        "Mặc định tự động lazy load cho tất cả các hình ảnh khác",
+        "Tự động sinh thẻ link preconnect trong phần <head> của tài liệu",
+        "Tự động tạo thuộc tính srcset tương thích với thiết bị",
+        "Tạo gợi ý preload hint nếu ứng dụng đang sử dụng SSR (Server-Side Rendering)"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ngoài việc tối ưu hóa tải ảnh LCP, NgOptimizedImage còn thực thi hàng loạt các tiêu chuẩn hình ảnh tốt nhất:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sử dụng URL Image CDN để áp dụng các tối ưu hóa nén và kích thước ảnh",
+        "Ngăn ngừa hiện tượng giật layout (layout shift) bằng cách bắt buộc khai báo width và height",
+        "Cảnh báo nếu width hoặc height được thiết lập sai tỷ lệ",
+        "Cảnh báo nếu hình ảnh có nguy cơ bị méo (distorted) khi hiển thị trên giao diện"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "NgOptimizedImage là tính năng chính thức (stable) từ phiên bản Angular 15, đồng thời đã được backport khả dụng ổn định trên phiên bản 13.4.0 và 14.3.0."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "getting-started",
+      "text": "Bắt đầu sử dụng (Getting Started)"
+    },
+    {
+      "type": "paragraph",
+      "text": "1. Import chỉ thị NgOptimizedImage từ `@angular/common`:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { NgOptimizedImage } from '@angular/common';",
+        "",
+        "@Component({",
+        "  // ...",
+        "  imports: [NgOptimizedImage],",
+        "})",
+        "export class AppComponent {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "2. Kích hoạt chỉ thị: Thay thế thuộc tính `src` thông thường trên thẻ `<img>` bằng `ngSrc`:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<img ngSrc=\"cat.jpg\" width=\"400\" height=\"200\" />"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Nếu sử dụng built-in third-party loader, hãy lược bỏ đường dẫn base URL khỏi ngSrc vì loader sẽ tự động ghép tiền tố đó vào."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "mark-images-as-priority",
+      "text": "Đánh dấu hình ảnh ưu tiên (Mark images as priority)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Luôn đánh dấu hình ảnh LCP trên trang của bạn bằng thuộc tính `priority` để ưu tiên tải nó lên hàng đầu:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<img ngSrc=\"cat.jpg\" width=\"400\" height=\"200\" priority />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi đánh dấu `priority`, các tối ưu hóa sau sẽ được áp dụng tự động:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Thiết lập fetchpriority=\"high\"",
+        "Thiết lập loading=\"eager\"",
+        "Tự động sinh thẻ <link rel=\"preload\"> nếu render từ phía server (SSR)"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "include-width-and-height",
+      "text": "Khai báo Width và Height"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để ngăn ngừa hiện tượng dịch chuyển bố cục (CLS - Cumulative Layout Shift), NgOptimizedImage yêu cầu bạn phải cung cấp giá trị `width` và `height` cho ảnh:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<img ngSrc=\"cat.jpg\" width=\"400\" height=\"200\" />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với ảnh responsive (co giãn theo viewport), width và height nên là kích thước gốc thực tế của file ảnh (intrinsic size). Đối với ảnh cố định, width và height phải phản ánh kích thước hiển thị mong muốn."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-fill-mode",
+      "text": "Sử dụng chế độ Fill Mode (Using fill mode)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong trường hợp bạn muốn hình ảnh lấp đầy phần tử cha (đặc biệt khi mô phỏng hành vi của background-image), hãy sử dụng thuộc tính `fill`. Khi dùng `fill`, bạn KHÔNG cần và KHÔNG ĐƯỢC khai báo width/height:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<div style=\"position: relative; width: 100%; height: 400px;\">",
+        "  <img ngSrc=\"cat.jpg\" fill style=\"object-fit: cover;\" />",
+        "</div>"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Để hình ảnh fill hiển thị chính xác, phần tử cha bao bọc nó bắt buộc phải có thuộc tính CSS position: relative, position: fixed hoặc position: absolute."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-to-migrate-your-background-image",
+      "text": "Cách chuyển đổi từ CSS background-image sang NgOptimizedImage"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Xóa bỏ thuộc tính background-image khỏi phần tử cha.",
+        "Đảm bảo phần tử cha có position: relative, fixed hoặc absolute.",
+        "Thêm thẻ <img> làm con của phần tử đó với ngSrc.",
+        "Thêm thuộc tính fill cho thẻ <img> (không thêm width và height).",
+        "Nếu đây là hình ảnh LCP, thêm thuộc tính priority."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-placeholders",
+      "text": "Sử dụng ảnh giữ chỗ (Using placeholders)"
+    },
+    {
+      "type": "paragraph",
+      "text": "NgOptimizedImage có thể hiển thị ảnh giữ chỗ độ phân giải thấp mờ (blurred low-resolution placeholder) tự động nếu bạn sử dụng CDN hỗ trợ resize. Chỉ cần thêm thuộc tính `placeholder`:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<img ngSrc=\"cat.jpg\" width=\"400\" height=\"200\" placeholder />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể cung cấp Data URL base64 trực tiếp hoặc tắt hiệu ứng blur bằng thuộc tính `[placeholderConfig]=\"{blur: false}\"`."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "performance-features",
+      "text": "Các tính năng hiệu năng chuyên sâu (Performance Features)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Chỉ thị tự động cấu hình và tối ưu mạnh mẽ quy trình phân phối ảnh:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Tự động thêm preconnect hint đến domain CDN của ảnh.",
+        "Tự động sinh thuộc tính srcset dựa trên thuộc tính sizes cho màn hình Retina hoặc Responsive.",
+        "Hỗ trợ vô hiệu hóa tự động sinh srcset bằng disableOptimizedSrcset.",
+        "Điều khiển cơ chế giải mã ảnh với decoding=\"auto\" (mặc định), decoding=\"sync\" (cho priority) hoặc decoding=\"async\"."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "responsive-example.html",
+      "lang": "html",
+      "code": [
+        "<img ngSrc=\"cat.jpg\" width=\"400\" height=\"200\" sizes=\"(max-width: 768px) 100vw, 50vw\" />"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configuring-an-image-loader-for-ngoptimizedimage",
+      "text": "Cấu hình Image Loader cho NgOptimizedImage"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một \"loader\" là một hàm tạo URL biến đổi hình ảnh (image transformation URL). Angular cung cấp sẵn các loader factory cho các dịch vụ CDN phổ biến:"
+    },
+    {
+      "type": "table",
+      "headers": ["Dịch vụ CDN", "Angular API", "Cách khai báo provider"],
+      "rows": [
+        ["Cloudflare", "provideCloudflareLoader", "provideCloudflareLoader('https://my.base.url/')"],
+        ["Cloudinary", "provideCloudinaryLoader", "provideCloudinaryLoader('https://res.cloudinary.com/mysite/')"],
+        ["ImageKit", "provideImageKitLoader", "provideImageKitLoader('https://ik.imagekit.io/mysite/')"],
+        ["Imgix", "provideImgixLoader", "provideImgixLoader('https://my.imgix.net/')"],
+        ["Netlify", "provideNetlifyLoader", "provideNetlifyLoader('https://my.netlify.site/')"]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ cấu hình loader trong `app.config.ts`:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "typescript",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideImgixLoader } from '@angular/common';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideImgixLoader('https://my.imgix.net/')",
+        "  ]",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "custom-loaders",
+      "text": "Tự viết Custom Loader"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu dịch vụ của bạn không nằm trong danh sách hỗ trợ sẵn, bạn có thể tự viết custom loader bằng injection token `IMAGE_LOADER`:"
+    },
+    {
+      "type": "code",
+      "file": "custom-loader.config.ts",
+      "lang": "typescript",
+      "code": [
+        "import { IMAGE_LOADER, ImageLoaderConfig } from '@angular/common';",
+        "",
+        "providers: [",
+        "  {",
+        "    provide: IMAGE_LOADER,",
+        "    useValue: (config: ImageLoaderConfig) => {",
+        "      return `https://example.com/images?src=${config.src}&width=${config.width}`",
+        "    },",
+        "  },",
+        "]"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "frequently-asked-questions",
+      "text": "Các câu hỏi thường gặp (Frequently Asked Questions)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "NgOptimizedImage có hỗ trợ thuộc tính CSS background-image không? Không trực tiếp, nhưng chế độ fill mode được thiết kế hoàn hảo để thay thế background-image.",
+        "Tại sao không thể dùng thuộc tính src thông thường? Vì trình duyệt tải trước thẻ src trước khi Angular kịp gán các can thiệp lazy loading vào, do đó ngSrc là bắt buộc.",
+        "Có dùng được với thẻ <picture> không? Hiện tại chưa hỗ trợ, nhóm Angular đang phát triển tính năng này.",
+        "Làm sao để tìm ảnh LCP trên Chrome DevTools? Mở tab Performance, click nút Record & Reload, sau đó kiểm tra phần Timings -> LCP."
+      ]
+    }
+  ]
+}

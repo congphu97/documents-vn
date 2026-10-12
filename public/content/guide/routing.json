@@ -1,44 +1,75 @@
 {
   "slug": "guide/routing",
-  "title": "Overview",
-  "description": "Tài liệu hướng dẫn về Overview trong Angular.",
+  "title": "Điều hướng trong Angular (Angular Routing)",
+  "description": "Tìm hiểu cách Angular Router quản lý điều hướng, tải component theo URL và cung cấp trải nghiệm mượt mà cho ứng dụng Single-Page Application (SPA).",
   "source": "https://angular.dev/guide/routing",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/routing](https://angular.dev/guide/routing)."
+      "type": "paragraph",
+      "text": "Định tuyến (Routing) giúp bạn thay đổi những gì người dùng nhìn thấy trong một ứng dụng trang đơn (single-page app - SPA)."
     },
     {
       "type": "paragraph",
-      "text": "Overview là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Angular Router (<code>@angular/router</code>) là thư viện chính thức để quản lý điều hướng trong các ứng dụng Angular và là một phần cốt lõi của framework. Thư viện này được bao gồm mặc định trong tất cả các dự án được tạo bởi Angular CLI."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "why-is-routing-necessary-in-a-spa",
+      "text": "Tại sao cần định tuyến trong một ứng dụng SPA? (Why is routing necessary in a SPA?)"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Overview, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Khi bạn điều hướng đến một URL trong trình duyệt web thông thường, trình duyệt sẽ gửi một yêu cầu mạng (network request) đến web server và hiển thị trang HTML được trả về. Khi bạn chuyển sang một URL khác (chẳng hạn như nhấp vào liên kết), trình duyệt lại gửi một yêu cầu mạng khác và thay thế toàn bộ trang bằng một trang mới (full-page reload)."
     },
     {
-      "type": "code",
-      "file": "example.ts",
-      "lang": "ts",
-      "code": [
-        "// Ví dụ minh họa cho Overview",
-        "import { Component } from \"@angular/core\";",
-        "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Overview</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+      "type": "paragraph",
+      "text": "Một ứng dụng trang đơn (Single-Page Application - SPA) khác biệt ở chỗ trình duyệt chỉ gửi yêu cầu đến web server cho trang đầu tiên duy nhất: <code>index.html</code>. Sau đó, bộ định tuyến phía máy khách (client-side router) sẽ tiếp quản quyền điều khiển, quyết định nội dung nào sẽ hiển thị dựa trên URL. Khi người dùng điều hướng sang URL khác, router cập nhật nội dung trang ngay tại chỗ mà không kích hoạt tải lại toàn bộ trang."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-angular-manages-routing",
+      "text": "Cách Angular quản lý định tuyến (How Angular manages routing)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Định tuyến trong Angular bao gồm ba thành phần cơ bản chính:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Routes (Tuyến đường):</strong> Định nghĩa component nào sẽ được hiển thị khi người dùng truy cập vào một URL cụ thể.",
+        "<strong>Outlets (Điểm gắn nội dung):</strong> Các vị trí giữ chỗ (placeholders) trong template của bạn (<code>&lt;router-outlet&gt;</code>) để tải và render component một cách linh hoạt dựa trên route đang hoạt động.",
+        "<strong>Links (Liên kết):</strong> Cung cấp cách để người dùng điều hướng giữa các route khác nhau trong ứng dụng mà không kích hoạt tải lại toàn trang (thông qua directive <code>routerLink</code>)."
       ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ngoài ra, thư viện Angular Routing còn cung cấp nhiều tính năng mở rộng mạnh mẽ như:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Nested routes (Tuyến đường lồng nhau):</strong> Hỗ trợ phân cấp các trang con và layout con lồng vào nhau.",
+        "<strong>Programmatic navigation:</strong> Điều hướng theo lập trình thông qua <code>Router.navigate()</code> hoặc <code>Router.navigateByUrl()</code>.",
+        "<strong>Route params, queries và wildcards:</strong> Xử lý tham số đường dẫn động, query parameters và bắt đường dẫn không khớp (404/wildcard <code>**</code>).",
+        "<strong>Activated route information:</strong> Lấy thông tin về route hiện tại thông qua <code>ActivatedRoute</code>.",
+        "<strong>Data fetching with route resources and resolvers:</strong> Tải trước dữ liệu cần thiết trước khi component hiển thị.",
+        "<strong>View transition effects:</strong> Tích hợp hiệu ứng chuyển cảnh mượt mà giữa các view với View Transitions API.",
+        "<strong>Navigation guards:</strong> Bảo vệ và kiểm soát quyền truy cập các tuyến đường (chẳng hạn kiểm tra xác thực đăng nhập trước khi cho phép vào route)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tìm hiểu chi tiết về cách bạn có thể định nghĩa các tuyến đường bằng Angular Router trong bài hướng dẫn [Định nghĩa tuyến đường (Define routes)](/docs/guide/routing/common-router-tasks)."
     }
   ]
 }

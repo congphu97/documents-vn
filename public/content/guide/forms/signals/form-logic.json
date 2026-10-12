@@ -1,0 +1,343 @@
+{
+  "slug": "guide/forms/signals/form-logic",
+  "title": "Thêm logic vào Biểu mẫu (Adding form logic)",
+  "description": "Hướng dẫn thêm logic vào Signal Forms thông qua schema: kiểm soát tính khả dụng với disabled, hidden, readonly, trì hoãn cập nhật dữ liệu với debounce, gán siêu dữ liệu với metadata và áp dụng logic có điều kiện qua applyWhen.",
+  "source": "https://angular.dev/guide/forms/signals/form-logic",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<strong>Signal Forms</strong> cho phép bạn thêm các logic phức tạp vào biểu mẫu thông qua hàm schema. Bên cạnh các quy tắc kiểm thực (validation), schema còn cung cấp nhiều quy tắc quan trọng khác: vô hiệu hóa trường có điều kiện (<code>disabled</code>), ẩn trường dựa trên giá trị trường khác (<code>hidden</code>), đặt chế độ chỉ đọc (<code>readonly</code>), trì hoãn cập nhật nhập liệu (<code>debounce</code>) và đính kèm siêu dữ liệu (<code>metadata</code>) cho các điều khiển giao diện tùy chỉnh."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-to-add-form-logic",
+      "text": "Khi nào nên thêm Form Logic? (When to add form logic)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hãy sử dụng các quy tắc (rules) khi hành vi của một trường phụ thuộc vào giá trị của các trường khác hoặc cần cập nhật một cách phản ứng (reactively). Ví dụ:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Ô nhập mã giảm giá bị vô hiệu hóa (disabled) khi tổng giá trị đơn hàng chưa đạt mức tối thiểu.",
+        "Ô nhập địa chỉ giao hàng bị ẩn (hidden) trừ khi người dùng chọn yêu cầu giao hàng tận nơi.",
+        "Ô tìm kiếm được trì hoãn (debounce) để tránh việc gọi API liên tục khi người dùng đang gõ phím nhanh."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-rules-work",
+      "text": "Cách thức hoạt động của các quy tắc (How rules work)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các quy tắc liên kết logic phản ứng với các trường cụ thể trong form. Hầu hết các quy tắc có điều kiện đều nhận một đối tượng tùy chọn chứa hàm <code>when</code>. Hàm <code>when</code> này hoạt động tương tự như một signal <code>computed()</code> — nó sẽ tự động tính toán lại mỗi khi bất kỳ signal nào mà nó tham chiếu thay đổi giá trị:"
+    },
+    {
+      "type": "code",
+      "file": "order-rules.ts",
+      "lang": "ts",
+      "code": [
+        "const orderForm = form(this.orderModel, (schemaPath) => {",
+        "  disabled(schemaPath.couponCode, {",
+        "    when: ({ valueOf }) => valueOf(schemaPath.total) < 50,",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm logic phản ứng nhận đối tượng <code>FieldContext</code>, cung cấp các hàm tiện ích như <code>valueOf()</code> và <code>stateOf()</code> để truy cập giá trị và trạng thái của các trường khác trong form."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "prevent-field-updates-with-disabled",
+      "text": "Ngăn cập nhật trường với disabled()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Quy tắc <code>disabled()</code> thiết lập trạng thái vô hiệu hóa của trường. Directive <code>[formField]</code> tự động gắn thuộc tính HTML <code>disabled</code> lên phần tử tương ứng trong DOM, bạn không cần phải tự bind thủ công trong template. Các trường disabled sẽ <strong>bỏ qua kiểm thực</strong> (không làm ảnh hưởng tính hợp lệ của form)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "always-disabled",
+      "text": "1. Luôn vô hiệu hóa (Always disabled)"
+    },
+    {
+      "type": "code",
+      "file": "settings.component.ts",
+      "lang": "ts",
+      "code": [
+        "settingsForm = form(this.settingsModel, (schemaPath) => {",
+        "  disabled(schemaPath.systemId); // Vô hiệu hóa vĩnh viễn",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "conditional-disabling",
+      "text": "2. Vô hiệu hóa có điều kiện (Conditional disabling)"
+    },
+    {
+      "type": "code",
+      "file": "conditional-disabled.ts",
+      "lang": "ts",
+      "code": [
+        "orderForm = form(this.orderModel, (schemaPath) => {",
+        "  disabled(schemaPath.couponCode, {",
+        "    when: ({ valueOf }) => valueOf(schemaPath.total) < 50,",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "disabled-reasons",
+      "text": "3. Lý do vô hiệu hóa (Disabled reasons)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể trả về một chuỗi ký tự (string) thay vì <code>true</code> để giải thích cho người dùng lý do trường bị vô hiệu hóa. Chuỗi này được truy xuất qua signal <code>disabledReasons()</code> trên field state:"
+    },
+    {
+      "type": "code",
+      "file": "disabled-reasons.component.ts",
+      "lang": "ts",
+      "code": [
+        "orderForm = form(this.orderModel, (schemaPath) => {",
+        "  disabled(schemaPath.couponCode, {",
+        "    when: ({ valueOf }) =>",
+        "      valueOf(schemaPath.total) < 50",
+        "        ? 'Đơn hàng phải từ 50$ trở lên để áp dụng mã giảm giá'",
+        "        : false, // Lưu ý: bắt buộc trả về false tường minh để kích hoạt lại",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "disabled-reasons.component.html",
+      "lang": "html",
+      "code": [
+        "@if (orderForm.couponCode().disabled()) {",
+        "  <div class=\"info\">",
+        "    @for (reason of orderForm.couponCode().disabledReasons(); track reason) {",
+        "      <p>{{ reason.message }}</p>",
+        "    }",
+        "  </div>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configuring-hidden-state-on-fields",
+      "text": "Thiết lập trạng thái ẩn với hidden()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Quy tắc <code>hidden()</code> cấu hình trạng thái ẩn theo chương trình. <strong>Lưu ý:</strong> Không giống như <code>disabled</code> và <code>readonly</code>, không có thuộc tính DOM nguyên bản nào dành cho hidden mà directive <code>[formField]</code> có thể tự động liên kết. Bạn cần dùng <code>@if</code> hoặc class CSS trong template dựa trên signal <code>hidden()</code> để điều khiển hiển thị:"
+    },
+    {
+      "type": "code",
+      "file": "hidden-example.component.ts",
+      "lang": "ts",
+      "code": [
+        "profileForm = form(this.profileModel, (schemaPath) => {",
+        "  hidden(schemaPath.publicUrl, {",
+        "    when: ({ valueOf }) => !valueOf(schemaPath.isPublic),",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "hidden-example.component.html",
+      "lang": "html",
+      "code": [
+        "<input type=\"checkbox\" [formField]=\"profileForm.isPublic\" /> Công khai hồ sơ",
+        "",
+        "@if (!profileForm.publicUrl().hidden()) {",
+        "  <label>",
+        "    Đường dẫn công khai",
+        "    <input [formField]=\"profileForm.publicUrl\" />",
+        "  </label>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "display-uneditable-fields-with-readonly",
+      "text": "Hiển thị trường không thể chỉnh sửa với readonly()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Quy tắc <code>readonly()</code> ngăn người dùng thay đổi giá trị nhưng vẫn cho phép họ bôi đen, chọn văn bản và sao chép. Directive <code>[formField]</code> tự động gắn thuộc tính HTML <code>readonly</code> lên phần tử:"
+    },
+    {
+      "type": "code",
+      "file": "readonly-example.ts",
+      "lang": "ts",
+      "code": [
+        "// 1. Luôn ở chế độ readonly:",
+        "readonly(schemaPath.username);",
+        "",
+        "// 2. Chế độ readonly có điều kiện:",
+        "readonly(schemaPath.title, {",
+        "  when: ({ valueOf }) => valueOf(schemaPath.isLocked),",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "choose-between-hidden-disabled-and-readonly",
+      "text": "So sánh lựa chọn giữa hidden, disabled và readonly"
+    },
+    {
+      "type": "table",
+      "headers": ["Đặc điểm", "hidden()", "disabled()", "readonly()"],
+      "rows": [
+        ["<strong>Hiển thị trên UI</strong>", "Không (kết hợp với @if)", "Có", "Có"],
+        ["<strong>Người dùng có thể focus/copy</strong>", "Không", "Không", "Có"],
+        ["<strong>Bao gồm trong HTML form submit</strong>", "Không", "Không", "Có"],
+        ["<strong>Tham gia kiểm thực (validation)</strong>", "Bị bỏ qua", "Bị bỏ qua", "Bị bỏ qua"],
+        ["<strong>Trường hợp sử dụng phù hợp</strong>", "Trường không liên quan trong ngữ cảnh hiện tại", "Trường tạm thời không thể thao tác (kèm lý do)", "Dữ liệu chỉ xem nhưng cần sao chép hoặc submit"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "delay-input-operations-with-debounce",
+      "text": "Trì hoãn cập nhật dữ liệu với debounce()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, mỗi thao tác gõ phím đều lập tức cập nhật form model signal. Điều này có thể gây tốn kém hiệu năng nếu bạn có các signal tính toán nặng (expensive computed) hoặc gọi API tìm kiếm. Quy tắc <code>debounce()</code> trì hoãn việc đồng bộ giá trị từ giao diện vào model cho đến khi người dùng ngừng gõ sau một khoảng thời gian (tính bằng mili-giây):"
+    },
+    {
+      "type": "code",
+      "file": "search-debounce.ts",
+      "lang": "ts",
+      "code": [
+        "searchForm = form(this.searchModel, (schemaPath) => {",
+        "  // Trì hoãn 300ms sau khi người dùng ngừng gõ",
+        "  debounce(schemaPath.query, 300);",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "<strong>Cam kết đồng bộ dữ liệu (Timing guarantees):</strong> Bạn không lo người dùng bị mất dữ liệu khi dùng debounce! Khi người dùng chuyển sang ô khác (blur) hoặc bấm nút submit form, hệ thống sẽ tự động đồng bộ giá trị ngay lập tức và hủy bỏ thời gian chờ debounce đang chạy."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "associate-data-with-a-field-using-metadata",
+      "text": "Đính kèm dữ liệu vào trường với metadata()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Quy tắc <code>metadata()</code> cho phép gắn các thông tin phản ứng vào một trường. Các validator tích hợp sử dụng cơ chế này để công khai các giới hạn: <code>REQUIRED</code>, <code>MIN</code>, <code>MAX</code>, <code>MIN_LENGTH</code>, <code>MAX_LENGTH</code>, <code>PATTERN</code>. Bạn có thể đọc trực tiếp các thông tin này trong template để hiển thị hướng dẫn:"
+    },
+    {
+      "type": "code",
+      "file": "metadata-example.component.html",
+      "lang": "html",
+      "code": [
+        "<label>",
+        "  Tuổi (từ {{ ageForm.age().min?.() }} đến {{ ageForm.age().max?.() }}):",
+        "  <input type=\"number\" [formField]=\"ageForm.age\" />",
+        "</label>",
+        "@if (ageForm.age().required()) {",
+        "  <span class=\"required-star\">*</span>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "combining-rules",
+      "text": "Kết hợp nhiều quy tắc (Combining rules)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "conditional-logic-with-applywhen",
+      "text": "Áp dụng logic có điều kiện với applyWhen()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>applyWhen()</code> cho phép kích hoạt toàn bộ một nhóm các quy tắc khi một điều kiện thoả mãn (ví dụ: chỉ áp dụng quy tắc mã bưu điện US khi quốc gia được chọn là 'US'):"
+    },
+    {
+      "type": "code",
+      "file": "apply-when-example.ts",
+      "lang": "ts",
+      "code": [
+        "addressForm = form(this.addressModel, (schemaPath) => {",
+        "  applyWhen(",
+        "    schemaPath,",
+        "    ({ valueOf }) => valueOf(schemaPath.country) === 'US',",
+        "    (schemaPath) => {",
+        "      // Chỉ chạy khi quốc gia là Hoa Kỳ:",
+        "      required(schemaPath.zipCode);",
+        "      pattern(schemaPath.zipCode, /^\\d{5}(-\\d{4})?$/);",
+        "    }",
+        "  );",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "reusable-schema-functions",
+      "text": "Tái sử dụng các hàm Schema"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể trích xuất các cấu hình trường phổ biến thành các hàm dùng lại trên nhiều form khác nhau trong dự án:"
+    },
+    {
+      "type": "code",
+      "file": "reusable-config.ts",
+      "lang": "ts",
+      "code": [
+        "function emailFieldConfig(path: SchemaPath<string>) {",
+        "  debounce(path, 300);",
+        "  maxLength(path, 255);",
+        "}",
+        "",
+        "// Sử dụng trong nhiều biểu mẫu khác nhau:",
+        "const contactForm = form(contactModel, (p) => {",
+        "  emailFieldConfig(p.email);",
+        "  emailFieldConfig(p.alternateEmail);",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/field-state-management\">Quản lý trạng thái trường (Field State Management)</a>",
+        "<a href=\"/docs/guide/forms/signals/validation\">Kiểm thực dữ liệu trong Signal Forms (Validation)</a>",
+        "<a href=\"/docs/guide/forms/signals/custom-controls\">Xây dựng điều khiển tùy chỉnh (Custom Controls)</a>"
+      ]
+    }
+  ]
+}

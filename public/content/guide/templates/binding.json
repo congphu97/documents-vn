@@ -1,28 +1,368 @@
 {
   "slug": "guide/templates/binding",
-  "title": "Ràng buộc văn bản, thuộc tính động trong Template",
-  "description": "Tìm hiểu cách truyền dữ liệu từ component class vào DOM HTML thông qua interpolation và property binding.",
+  "title": "Binding dynamic text, properties and attributes",
+  "description": "Trong Angular, binding tạo kết nối động giữa template và dữ liệu của component, đảm bảo các thay đổi dữ liệu tự động cập nhật lên giao diện HTML.",
   "source": "https://angular.dev/guide/templates/binding",
   "status": "reviewed",
   "blocks": [
     {
       "type": "paragraph",
-      "text": "Angular hỗ trợ nhiều cơ chế ràng buộc dữ liệu để đồng bộ hoá trạng thái giữa mã TypeScript và giao diện người dùng."
+      "text": "Trong Angular, một binding (liên kết) tạo ra kết nối động giữa template của component và dữ liệu của nó. Kết nối này đảm bảo rằng các thay đổi đối với dữ liệu của component sẽ tự động cập nhật lên template đã render."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "property-binding",
-      "text": "Property Binding `[property]`"
+      "id": "render-dynamic-text-with-text-interpolation",
+      "text": "Hiển thị văn bản động với Text Interpolation"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể liên kết văn bản động trong template bằng cặp dấu ngoặc nhọn kép {{ }}, điều này báo cho Angular biết rằng nó chịu trách nhiệm đánh giá biểu thức bên trong và đảm bảo biểu thức được cập nhật chính xác. Kỹ thuật này được gọi là text interpolation."
     },
     {
       "type": "code",
-      "file": "user-avatar.component.html",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    <p>Sở thích màu sắc của bạn là {{ theme }}.</p>",
+        "  `,",
+        "  ...",
+        "})",
+        "export class App {",
+        "  theme = 'dark';",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ này, khi đoạn mã được render ra trang, Angular sẽ thay thế {{ theme }} bằng dark:"
+    },
+    {
+      "type": "code",
+      "file": "Rendered Output",
       "lang": "html",
       "code": [
-        "<img [src]=\"imageUrl()\" [alt]=\"imageAlt()\" />",
-        "<button [disabled]=\"isLoading()\">Lưu</button>"
+        "<p>Sở thích màu sắc của bạn là dark.</p>"
       ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Các binding có giá trị thay đổi theo thời gian nên đọc dữ liệu từ signals. Angular sẽ theo dõi các signal được đọc trong template và cập nhật trang khi giá trị signal đó thay đổi."
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    <!-- Không nhất thiết cập nhật lại khi `welcomeMessage` thay đổi -->",
+        "    <p>{{ welcomeMessage }}</p>",
+        "",
+        "    <!-- Luôn tự động cập nhật mỗi khi giá trị của signal `theme` thay đổi -->",
+        "    <p>Sở thích màu sắc của bạn là {{ theme() }}.</p>",
+        "  `,",
+        "  ...",
+        "})",
+        "export class App {",
+        "  welcomeMessage = \"Chào mừng, hãy tận hưởng ứng dụng này!\";",
+        "  theme = signal('dark');",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Để tìm hiểu chi tiết hơn, hãy xem hướng dẫn về Signals. Nếu người dùng bấm nút thay đổi signal theme thành 'light', trang sẽ lập tức cập nhật thành: <p>Sở thích màu sắc của bạn là light.</p>"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể sử dụng text interpolation ở bất cứ vị trí nào bạn thường viết văn bản thuần trong HTML. Tất cả giá trị biểu thức đều được chuyển đổi thành chuỗi. Đối tượng (Object) và mảng (Array) được chuyển đổi bằng phương thức toString."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "binding-dynamic-properties-and-attributes",
+      "text": "Binding thuộc tính động (Properties và Attributes)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ binding các giá trị động vào thuộc tính đối tượng (DOM properties) và HTML attributes thông qua dấu ngoặc vuông [ ]. Bạn có thể liên kết vào thuộc tính của một DOM element HTML, một component instance, hoặc một directive instance."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "native-element-properties",
+      "text": "Thuộc tính phần tử DOM nguyên bản (Native element properties)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi phần tử HTML đều có một đối tượng DOM tương ứng (ví dụ: <button> tương ứng với HTMLButtonElement). Trong Angular, bạn dùng cú pháp property binding để gán giá trị trực tiếp vào thuộc tính của đối tượng DOM đó:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Liên kết thuộc tính `disabled` trên đối tượng DOM button -->",
+        "<button [disabled]=\"isFormValid()\">Save</button>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi khi isFormValid thay đổi, Angular sẽ tự động cập nhật thuộc tính disabled của đối tượng HTMLButtonElement."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "component-and-directive-properties",
+      "text": "Thuộc tính Component và Directive"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi phần tử là một Angular Component hoặc Directive, bạn cũng sử dụng cú pháp ngoặc vuông tương tự để truyền dữ liệu vào các input property:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Binding input property `value` của component `MyListbox` -->",
+        "<my-listbox [value]=\"mySelection()\" />",
+        "",
+        "<!-- Binding property `ngSrc` của directive `NgOptimizedImage` -->",
+        "<img [ngSrc]=\"profilePhotoUrl()\" alt=\"Ảnh đại diện của người dùng\" />"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "attributes",
+      "text": "HTML Attributes (attr.)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn cần gán các HTML attributes không có property tương ứng trong DOM (chẳng hạn như các attribute SVG hay ARIA), hãy thêm tiền tố attr. trước tên thuộc tính:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Gán attribute `role` cho thẻ <ul> thông qua setAttribute -->",
+        "<ul [attr.role]=\"listRole()\">"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu giá trị của attribute binding là null, Angular sẽ tự động xóa attribute đó khỏi thẻ thông qua hàm removeAttribute."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "text-interpolation-in-properties-and-attributes",
+      "text": "Text interpolation trong properties và attributes"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể dùng cú pháp dấu ngoặc nhọn kép {{ }} bên trong giá trị thuộc tính thay vì đặt dấu ngoặc vuông xung quanh tên thuộc tính. Angular vẫn xử lý nó như một property binding thông thường:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Gán giá trị vào thuộc tính `alt` của đối tượng DOM ảnh -->",
+        "<img src=\"profile-photo.jpg\" alt=\"Ảnh đại diện của {{ firstName() }}\" />"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "css-class-and-style-property-bindings",
+      "text": "CSS class và style property bindings"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "css-classes",
+      "text": "CSS Classes"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể dùng class binding để thêm hoặc xóa class theo điều kiện truthy/falsy của biểu thức:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Khi `isExpanded` là truthy, tự động thêm class `expanded` -->",
+        "<ul [class.expanded]=\"isExpanded()\">"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể binding trực tiếp vào thuộc tính [class]. Angular hỗ trợ 3 kiểu dữ liệu:"
+    },
+    {
+      "type": "table",
+      "headers": ["Mô tả kiểu giá trị class", "Kiểu dữ liệu TypeScript"],
+      "rows": [
+        ["Chuỗi chứa một hoặc nhiều class cách nhau bởi dấu cách", "string"],
+        ["Một mảng các chuỗi tên class", "string[]"],
+        ["Một đối tượng với key là tên class, value xác định class có được áp dụng hay không (truthy/falsy)", "Record<string, any>"]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    <ul [class]=\"listClasses\"> ... </ul>",
+        "    <section [class]=\"sectionClasses()\"> ... </section>",
+        "    <button [class]=\"buttonClasses()\"> ... </button>",
+        "  `,",
+        "  ...",
+        "})",
+        "export class UserProfile {",
+        "  listClasses = 'full-width outlined';",
+        "  sectionClasses = signal(['expandable', 'elevated']);",
+        "  buttonClasses = signal({",
+        "    highlighted: true,",
+        "    embiggened: false,",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Đoạn code trên sẽ render ra cấu trúc DOM như sau:"
+    },
+    {
+      "type": "code",
+      "file": "Rendered DOM",
+      "lang": "html",
+      "code": [
+        "<ul class=\"full-width outlined\"> ... </ul>",
+        "<section class=\"expandable elevated\"> ... </section>",
+        "<button class=\"highlighted\"> ... </button>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi kết hợp class tĩnh và nhiều class binding, Angular sẽ tự động gộp tất cả các class lại với nhau mà không bị xung đột:"
+    },
+    {
+      "type": "code",
+      "file": "listbox.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  template: `<ul class=\"list\" [class]=\"listType()\" [class.expanded]=\"isExpanded()\"> ...`,",
+        "  ...",
+        "})",
+        "export class Listbox {",
+        "  listType = signal('box');",
+        "  isExpanded = signal(true);",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "Rendered DOM Output",
+      "lang": "html",
+      "code": [
+        "<ul class=\"list box expanded\">"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Class bindings không hỗ trợ các class cách nhau bởi dấu cách trong một key của object. Khi binding class dạng object hoặc array, Angular so sánh tham chiếu (===), do đó bạn cần tạo đối tượng hoặc mảng mới để Angular nhận diện thay đổi."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "css-style-properties",
+      "text": "CSS Style Properties"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể liên kết trực tiếp các thuộc tính style CSS vào phần tử HTML và thậm chí chỉ định đơn vị (như px, rem, %):"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Đặt thuộc tính `display` theo điều kiện -->",
+        "<section [style.display]=\"isExpanded() ? 'block' : 'none'\">",
+        "",
+        "<!-- Đặt chiều cao kèm đơn vị px -->",
+        "<section [style.height.px]=\"sectionHeightInPixels()\">"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể thiết lập nhiều style cùng lúc bằng chuỗi hoặc object:"
+    },
+    {
+      "type": "table",
+      "headers": ["Mô tả kiểu giá trị style", "Kiểu dữ liệu TypeScript"],
+      "rows": [
+        ["Chuỗi khai báo CSS hoàn chỉnh (ví dụ: 'display: flex; margin: 8px')", "string"],
+        ["Một đối tượng với key là tên thuộc tính CSS và value tương ứng", "Record<string, any>"]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    <ul [style]=\"listStyles()\"> ... </ul>",
+        "    <section [style]=\"sectionStyles()\"> ... </section>",
+        "  `,",
+        "  ...",
+        "})",
+        "export class UserProfile {",
+        "  listStyles = signal('display: flex; padding: 8px');",
+        "  sectionStyles = signal({",
+        "    border: '1px solid black',",
+        "    'font-weight': 'bold',",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "aria-attributes",
+      "text": "ARIA attributes"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ ràng buộc giá trị chuỗi vào các thuộc tính ARIA để hỗ trợ khả năng tiếp cận (Accessibility - a11y):"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<button type=\"button\" [aria-label]=\"actionLabel()\">",
+        "  {{ actionLabel() }}",
+        "</button>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular sẽ ghi giá trị chuỗi vào thuộc tính aria-label của element và tự động xoá bỏ thuộc tính này nếu giá trị trả về là null."
     }
   ]
 }

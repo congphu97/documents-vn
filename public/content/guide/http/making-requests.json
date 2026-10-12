@@ -1,43 +1,384 @@
 {
   "slug": "guide/http/making-requests",
-  "title": "Making Requests",
-  "description": "Tài liệu hướng dẫn về Making Requests trong Angular.",
+  "title": "Gửi yêu cầu HTTP (Making HTTP requests)",
+  "description": "Hướng dẫn toàn diện về gửi request với HttpClient trong Angular: lấy dữ liệu JSON, responseType ('blob', 'text', 'arraybuffer'), mutate dữ liệu (POST/PUT/DELETE), cấu hình params & headers, theo dõi sự kiện tiến trình (progress events), xử lý lỗi, timeout, các tùy chọn Fetch nâng cao và best practices.",
   "source": "https://angular.dev/guide/http/making-requests",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/http/making-requests](https://angular.dev/guide/http/making-requests)."
+      "type": "paragraph",
+      "text": "Lớp dịch vụ <code>HttpClient</code> cung cấp các phương thức tương ứng với các HTTP verbs (GET, POST, PUT, DELETE, PATCH...) dùng để lấy dữ liệu hoặc cập nhật trạng thái trên server. Mỗi phương thức trả về một <strong>RxJS Observable</strong>; khi được đăng ký nhận tin (<code>subscribe()</code>), yêu cầu sẽ được gửi đi và phát ra kết quả khi máy chủ phản hồi."
     },
     {
-      "type": "paragraph",
-      "text": "Making Requests là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "type": "callout",
+      "calloutType": "note",
+      "title": "Đặc tính Cold Observable",
+      "text": "Các Observable do <code>HttpClient</code> tạo ra là 'cold' Observables: request sẽ KHÔNG bao giờ được kích hoạt nếu chưa gọi <code>subscribe()</code>. Mỗi lần gọi <code>subscribe()</code> mới sẽ tạo ra một request độc lập lên backend."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "fetching-json-data",
+      "text": "Lấy dữ liệu JSON (Fetching JSON data)"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Making Requests, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Để lấy dữ liệu từ backend, bạn sử dụng phương thức <code>http.get()</code>. Bạn có thể truyền kiểu dữ liệu trả về thông qua tham số generic TypeScript:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "fetch-json.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Making Requests",
-        "import { Component } from \"@angular/core\";",
+        "http.get<Config>('/api/config').subscribe((config) => {",
+        "  // config có kiểu là Config",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "important",
+      "title": "Lưu ý về Type Assertion",
+      "text": "Kiểu generic truyền vào <code>get&lt;T&gt;()</code> là một khẳng định kiểu (type assertion) ở thời điểm biên dịch. <code>HttpClient</code> không tự động kiểm tra cấu trúc runtime của JSON trả về có đúng với interface đó hay không. Với dữ liệu không chắc chắn, hãy cân nhắc sử dụng kiểu <code>unknown</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "fetching-other-types-of-data",
+      "text": "Nhận các định dạng dữ liệu khác với responseType"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, <code>HttpClient</code> mặc định phản hồi trả về là JSON. Để tải về các định dạng khác như văn bản thô, file nhị phân hay hình ảnh, bạn cấu hình tùy chọn <code>responseType</code>:"
+    },
+    {
+      "type": "table",
+      "headers": ["Giá trị responseType", "Kiểu dữ liệu nhận được"],
+      "rows": [
+        ["<code>'json'</code> (mặc định)", "Đối tượng JSON theo kiểu generic đã chỉ định."],
+        ["<code>'text'</code>", "Chuỗi văn bản (string)."],
+        ["<code>'arraybuffer'</code>", "Bộ đệm nhị phân <code>ArrayBuffer</code>."],
+        ["<code>'blob'</code>", "Đối tượng nhị phân <code>Blob</code> (thích hợp tải file, ảnh)."]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "fetch-binary.ts",
+      "lang": "ts",
+      "code": [
+        "// Tải file nhị phân vào ArrayBuffer",
+        "http.get('/images/dog.jpg', { responseType: 'arraybuffer' }).subscribe((buffer) => {",
+        "  console.log('Kích thước ảnh: ' + buffer.byteLength + ' bytes');",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "mutating-server-state",
+      "text": "Thay đổi trạng thái Server (POST, PUT, DELETE, PATCH)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Phương thức <code>http.post()</code> nhận URL endpoint, phần thân <code>body</code> chứa dữ liệu cần gửi và tùy chọn cấu hình:"
+    },
+    {
+      "type": "code",
+      "file": "post-request.ts",
+      "lang": "ts",
+      "code": [
+        "http.post<Config>('/api/config', newConfig).subscribe((config) => {",
+        "  console.log('Đã cập nhật cấu hình:', config);",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>HttpClient</code> tự động tuần tự hóa (serialize) các kiểu dữ liệu của body tương ứng:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>object</code>, <code>array</code>, <code>number</code>, <code>boolean</code>: Tuần tự hóa thành JSON (Header: <code>application/json</code>).",
+        "<code>string</code>: Gửi dưới dạng văn bản thuần.",
+        "<code>FormData</code>: Gửi dưới dạng <code>multipart/form-data</code> (thích hợp upload file).",
+        "<code>HttpParams</code> / <code>URLSearchParams</code>: Gửi dưới dạng <code>application/x-www-form-urlencoded</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setting-url-parameters",
+      "text": "Thiết lập URL Parameters (Query Params)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cách đơn giản nhất để truyền query parameters là sử dụng một object thuần:"
+    },
+    {
+      "type": "code",
+      "file": "query-params.ts",
+      "lang": "ts",
+      "code": [
+        "http.get('/api/config', {",
+        "  params: { filter: 'all', page: '1' },",
+        "}).subscribe();"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hoặc sử dụng <code>HttpParams</code> để có khả năng kiểm soát chi tiết hơn. Lưu ý rằng <code>HttpParams</code> là đối tượng <strong>bất biến (immutable)</strong>, các phương thức như <code>set()</code> hay <code>append()</code> sẽ trả về một thực thể mới:"
+    },
+    {
+      "type": "code",
+      "file": "http-params-immutable.ts",
+      "lang": "ts",
+      "code": [
+        "import { HttpParams } from '@angular/common/http';",
         "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Making Requests</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+        "const params = new HttpParams()",
+        "  .set('filter', 'all')",
+        "  .set('details', 'enabled');",
+        "",
+        "http.get('/api/config', { params }).subscribe();"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "custom-parameter-encoding",
+      "text": "Tùy biến bộ mã hóa tham số (Custom HttpParameterCodec)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu muốn thay đổi cách Angular mã hóa ký tự trong URL params, bạn có thể triển khai giao diện <code>HttpParameterCodec</code>:"
+    },
+    {
+      "type": "code",
+      "file": "custom-encoder.ts",
+      "lang": "ts",
+      "code": [
+        "import { HttpParameterCodec, HttpParams } from '@angular/common/http';",
+        "",
+        "export class CustomHttpParamEncoder implements HttpParameterCodec {",
+        "  encodeKey(key: string): string { return encodeURIComponent(key); }",
+        "  encodeValue(value: string): string { return encodeURIComponent(value); }",
+        "  decodeKey(key: string): string { return decodeURIComponent(key); }",
+        "  decodeValue(value: string): string { return decodeURIComponent(value); }",
+        "}",
+        "",
+        "const params = new HttpParams({ encoder: new CustomHttpParamEncoder() })",
+        "  .set('q', 'a & b? c/d = e');"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setting-request-headers",
+      "text": "Thiết lập Request Headers"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể truyền headers dạng object hoặc dùng lớp <code>HttpHeaders</code> (cũng có tính bất biến):"
+    },
+    {
+      "type": "code",
+      "file": "request-headers.ts",
+      "lang": "ts",
+      "code": [
+        "import { HttpHeaders } from '@angular/common/http';",
+        "",
+        "// Cách 1: Object literal đơn giản",
+        "http.get('/api/config', {",
+        "  headers: { 'X-Debug-Level': 'verbose' },",
+        "});",
+        "",
+        "// Cách 2: Sử dụng HttpHeaders",
+        "const headers = new HttpHeaders()",
+        "  .set('Authorization', 'Bearer token_123')",
+        "  .set('X-Debug-Level', 'verbose');",
+        "",
+        "http.get('/api/config', { headers });"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "interacting-with-the-server-response-events",
+      "text": "Truy cập toàn bộ Response và sự kiện tiến trình (Progress Events)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định Angular chỉ phát ra phần thân dữ liệu (body). Để đọc thêm mã trạng thái HTTP, status code và response headers, đặt tùy chọn <code>observe: 'response'</code>:"
+    },
+    {
+      "type": "code",
+      "file": "observe-response.ts",
+      "lang": "ts",
+      "code": [
+        "http.get<Config>('/api/config', { observe: 'response' }).subscribe((res) => {",
+        "  console.log('Status code:', res.status);",
+        "  console.log('Header Date:', res.headers.get('Date'));",
+        "  console.log('Body:', res.body);",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "receiving-raw-progress-events",
+      "text": "Theo dõi tiến trình tải lên/tải xuống (reportDownloadProgress / reportUploadProgress)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đặt <code>observe: 'events'</code> và <code>reportDownloadProgress: true</code> để nhận luồng sự kiện chi tiết về quá trình tải dữ liệu:"
+    },
+    {
+      "type": "code",
+      "file": "progress-events.ts",
+      "lang": "ts",
+      "code": [
+        "import { HttpEventType } from '@angular/common/http';",
+        "",
+        "http.get('/api/download', {",
+        "  reportDownloadProgress: true,",
+        "  observe: 'events',",
+        "}).subscribe((event) => {",
+        "  switch (event.type) {",
+        "    case HttpEventType.DownloadProgress:",
+        "      console.log(`Đã tải ${event.loaded} / ${event.total} bytes`);",
+        "      break;",
+        "    case HttpEventType.Response:",
+        "      console.log('Tải hoàn tất!', event.body);",
+        "      break;",
+        "  }",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "handling-request-failure",
+      "text": "Xử lý lỗi yêu cầu HTTP (Handling request failure)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mọi lỗi HTTP đều được đóng gói trong đối tượng <code>HttpErrorResponse</code>:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Lỗi mạng hoặc Timeout:</strong> <code>error.status === 0</code>.",
+        "<strong>Lỗi máy chủ (4xx, 5xx):</strong> <code>error.status</code> chứa mã phản hồi tương ứng và <code>error.error</code> chứa dữ liệu trả về từ server."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "error-handling.ts",
+      "lang": "ts",
+      "code": [
+        "import { catchError, retry } from 'rxjs/operators';",
+        "import { throwError } from 'rxjs';",
+        "import { HttpErrorResponse } from '@angular/common/http';",
+        "",
+        "http.get('/api/data').pipe(",
+        "  retry(2), // Tự động thử lại 2 lần trước khi báo lỗi",
+        "  catchError((error: HttpErrorResponse) => {",
+        "    if (error.status === 0) {",
+        "      console.error('Lỗi mạng hoặc kết nối:', error.error);",
+        "    } else {",
+        "      console.error(`Backend trả về mã ${error.status}:`, error.error);",
+        "    }",
+        "    return throwError(() => new Error('Có sự cố xảy ra, vui lòng thử lại sau.'));",
+        "  })",
+        ").subscribe();"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "timeouts",
+      "text": "Cấu hình Thời gian chờ (Timeouts)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể định nghĩa thời gian hết hạn (tính bằng mili-giây) trực tiếp qua tùy chọn <code>timeout</code>. Nếu backend không phản hồi trong thời gian này, request sẽ bị hủy:"
+    },
+    {
+      "type": "code",
+      "file": "timeout-example.ts",
+      "lang": "ts",
+      "code": [
+        "http.get('/api/config', { timeout: 5000 }).subscribe({",
+        "  next: (data) => console.log('Thành công:', data),",
+        "  error: (err) => console.error('Quá thời gian chờ (Timeout):', err),",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "advanced-fetch-options",
+      "text": "Các tùy chọn Fetch API nâng cao"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi sử dụng backend <code>fetch</code> mặc định, Angular hỗ trợ các tùy chọn hiện đại của trình duyệt:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong><code>keepalive: true</code>:</strong> Cho phép request tiếp tục chạy ngay cả khi người dùng đã chuyển trang (lý tưởng cho gửi log / analytics).",
+        "<strong><code>cache</code>:</strong> Điều khiển bộ nhớ đệm trình duyệt (<code>'force-cache'</code>, <code>'no-cache'</code>, <code>'only-if-cached'</code>).",
+        "<strong><code>priority</code>:</strong> Đặt mức độ ưu tiên tải tài nguyên cho Core Web Vitals (<code>'high'</code> cho Largest Contentful Paint, <code>'low'</code> cho tác vụ nền).",
+        "<strong><code>mode</code>:</strong> Chế độ cross-origin (<code>'same-origin'</code>, <code>'cors'</code>, <code>'no-cors'</code>).",
+        "<strong><code>redirect</code>:</strong> Xử lý chuyển hướng HTTP (<code>'follow'</code>, <code>'manual'</code>, <code>'error'</code>).",
+        "<strong><code>credentials</code>:</strong> Điều khiển việc gửi cookie xác thực khi gọi chéo tên miền (<code>'include'</code>, <code>'omit'</code>, <code>'same-origin'</code>).",
+        "<strong><code>integrity</code>:</strong> Khẳng định tính toàn vẹn của nội dung nhận về bằng mã băm SHA-256."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "advanced-fetch-examples.ts",
+      "lang": "ts",
+      "code": [
+        "// Gửi log phân tích với keepalive",
+        "http.post('/api/analytics', payload, { keepalive: true }).subscribe();",
+        "",
+        "// Tải dữ liệu người dùng ưu tiên cao",
+        "http.get('/api/user-profile', { priority: 'high' }).subscribe();",
+        "",
+        "// Gửi kèm cookie xác thực chéo tên miền",
+        "http.get('https://api.external.com/profile', { credentials: 'include' }).subscribe();"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "best-practices",
+      "text": "Thực hành tốt nhất (Best Practices)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Luôn đóng gói các lệnh gọi HTTP bên trong các Service có thể tái sử dụng thay vì gọi trực tiếp từ Component. Trong Component, kết hợp với pipe <code>async</code> hoặc <code>toSignal()</code> để tự động hủy đăng ký (unsubscribe) an toàn khi component bị hủy:"
+    },
+    {
+      "type": "code",
+      "file": "best-practices-service.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable, inject } from '@angular/core';",
+        "import { HttpClient } from '@angular/common/http';",
+        "import { Observable } from 'rxjs';",
+        "",
+        "@Injectable({ providedIn: 'root' })",
+        "export class UserService {",
+        "  private http = inject(HttpClient);",
+        "",
+        "  getUser(id: string): Observable<User> {",
+        "    return this.http.get<User>(`/api/user/${id}`);",
+        "  }",
+        "}"
       ]
     }
   ]

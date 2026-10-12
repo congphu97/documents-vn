@@ -1,0 +1,319 @@
+{
+  "slug": "guide/forms/signals/dynamic-forms-with-json",
+  "title": "Biểu mẫu động từ JSON (Dynamic Forms with JSON)",
+  "description": "Hướng dẫn xây dựng biểu mẫu động trong Signal Forms dựa trên cấu hình JSON khi runtime: tự động tạo model, schema, validation, quy tắc có điều kiện (applyWhen), trường lặp lại mảng (applyEach), kiểm tra tính hợp lệ của config và render động.",
+  "source": "https://angular.dev/guide/forms/signals/dynamic-forms-with-json",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Một số biểu mẫu không thể xác định cấu trúc cố định từ lúc biên dịch (compile time). Các biểu mẫu hướng máy chủ (server-driven forms), trang quản trị (admin panels), ứng dụng đa khách thuê (multi-tenant) và nội dung do CMS quản lý đều cần kết xuất các trường biểu mẫu dựa trên cấu hình được phân phối trong thời gian chạy (runtime), thường dưới định dạng JSON từ backend hoặc công cụ quản trị."
+    },
+    {
+      "type": "paragraph",
+      "text": "Hướng dẫn này chỉ ra cách xây dựng biểu mẫu trong đó <strong>Model, Schema, Validation và Giao diện kết xuất (rendering)</strong> đều được tạo tự động từ một nguồn cấu hình JSON duy nhất."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-to-use-json-driven-forms",
+      "text": "Khi nào nên dùng Biểu mẫu điều khiển bằng JSON?"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Backend quyết định những trường nào sẽ xuất hiện dựa trên vai trò người dùng (user role), cờ tính năng (feature flags) hoặc quy tắc nghiệp vụ.",
+        "Người quản trị không chuyên lập trình cấu hình cấu trúc form thông qua bảng điều khiển CMS/Admin.",
+        "Mỗi khách thuê (tenant) trong ứng dụng multi-tenant sở hữu cấu trúc biểu mẫu riêng được lưu trong cơ sở dữ liệu cài đặt.",
+        "Biểu mẫu cần thay đổi liên tục mà không phải build hoặc triển khai (redeploy) lại mã nguồn frontend."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Nếu cấu trúc biểu mẫu đã được biết trước khi code, hãy dùng biểu mẫu tĩnh truyền thống để tận dụng tối đa khả năng kiểm tra kiểu chặt chẽ của TypeScript."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "defining-a-typed-field-config",
+      "text": "Định nghĩa cấu hình trường có kiểu (Typed Field Config)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bắt đầu bằng một TypeScript Discriminated Union theo thuộc tính <code>kind</code> để mỗi loại trường có thể khai báo các tùy chọn kiểm thực riêng:"
+    },
+    {
+      "type": "code",
+      "file": "field-config.ts",
+      "lang": "ts",
+      "code": [
+        "export type WhenCondition = { field: string; equals: string | number };",
+        "",
+        "export type FieldConfig =",
+        "  | { kind: 'text'; name: string; label: string; required?: boolean; when?: WhenCondition }",
+        "  | { kind: 'number'; name: string; label: string; required?: boolean; min?: number; max?: number; when?: WhenCondition }",
+        "  | { kind: 'array'; name: string; label: string; itemRequired?: boolean; when?: WhenCondition };"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "building-the-model-from-config",
+      "text": "Xây dựng Model từ Config (buildModel)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tạo một hàm trợ giúp duyệt qua danh sách cấu hình và gán giá trị khởi tạo tương ứng. Chú ý rằng các ô số (<code>number</code>) nên được khởi tạo bằng <code>null</code> thay vì <code>0</code> để <code>required()</code> và <code>min()</code> không bị hiểu nhầm là đã có dữ liệu hợp lệ trước khi người dùng nhập:"
+    },
+    {
+      "type": "code",
+      "file": "build-model.ts",
+      "lang": "ts",
+      "code": [
+        "export function buildModel(configs: FieldConfig[]): Record<string, string | number | null | string[]> {",
+        "  const initial: Record<string, string | number | null | string[]> = {};",
+        "  for (const config of configs) {",
+        "    if (config.kind === 'number') initial[config.name] = null;",
+        "    else if (config.kind === 'array') initial[config.name] = [];",
+        "    else initial[config.name] = '';",
+        "  }",
+        "  return initial;",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "building-the-schema-from-config",
+      "text": "Xây dựng Schema từ Config (buildSchema)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm schema cũng được suy diễn tự động từ config. Chúng ta dịch chuyển điều kiện <code>when</code> thành lời gọi <code>applyWhen()</code>, và mảng thành lời gọi <code>applyEach()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "build-schema.ts",
+      "lang": "ts",
+      "code": [
+        "import { applyEach, applyWhen, required, min, max, SchemaFn, SchemaPath } from '@angular/forms/signals';",
+        "import { FieldConfig } from './field-config';",
+        "",
+        "export function buildSchema(",
+        "  configs: FieldConfig[],",
+        "): SchemaFn<Record<string, string | number | null | string[]>> {",
+        "  return (rootPath) => {",
+        "    for (const config of configs) {",
+        "      const applyRules = (path: typeof rootPath) => {",
+        "        const fieldPath = path[config.name];",
+        "",
+        "        // Xử lý trường mảng:",
+        "        if (config.kind === 'array') {",
+        "          const arrayPath = fieldPath as unknown as SchemaPath<string[]>;",
+        "          if (config.itemRequired) {",
+        "            applyEach(arrayPath, (item) => required(item));",
+        "          }",
+        "          return;",
+        "        }",
+        "",
+        "        // Kiểm tra bắt buộc:",
+        "        if (config.required) required(fieldPath);",
+        "",
+        "        // Ràng buộc số học:",
+        "        if (config.kind === 'number') {",
+        "          const numberPath = fieldPath as unknown as SchemaPath<number | null>;",
+        "          if (config.min !== undefined) min(numberPath, config.min);",
+        "          if (config.max !== undefined) max(numberPath, config.max);",
+        "        }",
+        "      };",
+        "",
+        "      // Áp dụng điều kiện nếu có:",
+        "      if (config.when) {",
+        "        const { field, equals } = config.when;",
+        "        applyWhen(rootPath, ({ valueOf }) => valueOf(rootPath[field]) === equals, applyRules);",
+        "      } else {",
+        "        applyRules(rootPath);",
+        "      }",
+        "    }",
+        "  };",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "tracking-item-identity",
+      "text": "Theo dõi danh tính phần tử trong mảng (Item Identity)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal Forms theo dõi từng phần tử trong mảng đối tượng theo danh tính tham chiếu JavaScript (object identity). Khi một tham chiếu trường được giữ lại, nó luôn đi theo đúng đối tượng dữ liệu đó ngay cả khi mảng bị đảo thứ tự (sort/reorder):"
+    },
+    {
+      "type": "code",
+      "file": "identity-tracking.ts",
+      "lang": "ts",
+      "code": [
+        "const contactModel = signal([",
+        "  { name: 'Alice', phone: '555-0001' },",
+        "  { name: 'Bob', phone: '555-0002' },",
+        "]);",
+        "const contactForm = form(contactModel);",
+        "",
+        "// Giữ tham chiếu đến Alice (hiện tại ở index 0):",
+        "const aliceField = contactForm[0];",
+        "",
+        "// Đổi chỗ 2 phần tử:",
+        "contactModel.update(([alice, bob]) => [bob, alice]);",
+        "",
+        "// aliceField vẫn trỏ chuẩn xác vào Alice mặc dù đã chuyển sang index 1:",
+        "console.log(aliceField().value().phone); // '555-0001'",
+        "console.log(contactForm[0]().value().phone); // '555-0002' (Bob)"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "validating-the-config",
+      "text": "Kiểm tra tính hợp lệ của cấu hình (Validating the config)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cấu hình JSON từ máy chủ có thể chứa lỗi (trùng lặp tên trường, điều kiện <code>when</code> trỏ tới trường không tồn tại, hoặc so sánh sai kiểu dữ liệu). Cần kiểm tra tại ranh giới (boundary) trước khi khởi tạo biểu mẫu:"
+    },
+    {
+      "type": "code",
+      "file": "validate-config.ts",
+      "lang": "ts",
+      "code": [
+        "export function validateConfigs(configs: FieldConfig[]): FieldConfig[] {",
+        "  const knownNames = new Set<string>();",
+        "  for (const config of configs) {",
+        "    if (knownNames.has(config.name)) {",
+        "      throw new Error(`Tên trường bị trùng lặp: \"${config.name}\"`);",
+        "    }",
+        "    knownNames.add(config.name);",
+        "  }",
+        "",
+        "  for (const config of configs) {",
+        "    if (!config.when) continue;",
+        "    if (!knownNames.has(config.when.field)) {",
+        "      throw new Error(`Trường \"${config.name}\" tham chiếu tới trường không tồn tại: \"${config.when.field}\"`);",
+        "    }",
+        "  }",
+        "  return configs;",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "rendering-the-form-dynamically",
+      "text": "Kết xuất biểu mẫu động trên giao diện (Rendering the form)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong component, sử dụng <code>@for</code> duyệt qua các config và <code>@switch (config.kind)</code> để chọn control hiển thị phù hợp:"
+    },
+    {
+      "type": "code",
+      "file": "dynamic-form.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal } from '@angular/core';",
+        "import { Field, FieldTree, form, FormField, FormRoot } from '@angular/forms/signals';",
+        "import { FieldConfig } from './field-config';",
+        "import { buildModel } from './build-model';",
+        "import { buildSchema } from './build-schema';",
+        "import { validateConfigs } from './validate-config';",
+        "",
+        "@Component({",
+        "  selector: 'app-dynamic-form',",
+        "  imports: [FormField, FormRoot],",
+        "  template: `",
+        "    <form [formRoot]=\"dynamicForm\">",
+        "      @for (config of configs; track config.name) {",
+        "        @switch (config.kind) {",
+        "          @case ('text') {",
+        "            <label>",
+        "              {{ config.label }}",
+        "              <input type=\"text\" [formField]=\"asTextField(config.name)\" />",
+        "            </label>",
+        "          }",
+        "          @case ('number') {",
+        "            <label>",
+        "              {{ config.label }}",
+        "              <input type=\"number\" [formField]=\"asNumberField(config.name)\" />",
+        "            </label>",
+        "          }",
+        "          @case ('array') {",
+        "            <fieldset>",
+        "              <legend>{{ config.label }}</legend>",
+        "              @for (item of asArrayField(config.name); track item; let i = $index) {",
+        "                <input type=\"text\" [formField]=\"item\" />",
+        "                <button type=\"button\" (click)=\"removeItem(config.name, i)\">Xóa</button>",
+        "              }",
+        "              <button type=\"button\" (click)=\"addItem(config.name)\">Thêm mới</button>",
+        "            </fieldset>",
+        "          }",
+        "        }",
+        "      }",
+        "      <button type=\"submit\">Hoàn tất</button>",
+        "    </form>",
+        "  `,",
+        "})",
+        "export class DynamicForm {",
+        "  configs: FieldConfig[] = validateConfigs([",
+        "    { kind: 'text', name: 'fullName', label: 'Họ và tên', required: true },",
+        "    { kind: 'number', name: 'age', label: 'Tuổi', required: true, min: 18, max: 120 },",
+        "    { kind: 'array', name: 'phoneNumbers', label: 'Số điện thoại', itemRequired: true },",
+        "  ]);",
+        "",
+        "  model = signal(buildModel(this.configs));",
+        "  dynamicForm = form(this.model, buildSchema(this.configs));",
+        "",
+        "  asTextField(name: string): Field<string> {",
+        "    return this.dynamicForm[name] as unknown as Field<string>;",
+        "  }",
+        "",
+        "  asNumberField(name: string): Field<number | null> {",
+        "    return this.dynamicForm[name] as unknown as Field<number | null>;",
+        "  }",
+        "",
+        "  asArrayField(name: string): FieldTree<string[]> {",
+        "    return this.dynamicForm[name] as unknown as FieldTree<string[]>;",
+        "  }",
+        "",
+        "  addItem(name: string) {",
+        "    this.model.update((current) => ({",
+        "      ...current,",
+        "      [name]: [...(current[name] as string[]), ''],",
+        "    }));",
+        "  }",
+        "",
+        "  removeItem(name: string, index: number) {",
+        "    this.model.update((current) => ({",
+        "      ...current,",
+        "      [name]: (current[name] as string[]).filter((_, i) => i !== index),",
+        "    }));",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/schemas\">Lược đồ và Khả năng kết hợp Schema (Schemas and schema composability)</a>",
+        "<a href=\"/docs/guide/forms/signals/validation\">Kiểm thực dữ liệu trong Signal Forms (Validation)</a>",
+        "<a href=\"/docs/guide/forms/signals/form-submission\">Gửi biểu mẫu (Form submission)</a>"
+      ]
+    }
+  ]
+}

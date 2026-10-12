@@ -1,0 +1,33 @@
+{
+  "slug": "guide/di/debugging-di",
+  "title": "Debugging and troubleshooting DI",
+  "description": "Learn how to diagnose and resolve common dependency injection errors in Angular such as NG0200, NG0201, and circular dependencies.",
+  "source": "https://angular.dev/guide/di/debugging-di",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular provides descriptive runtime error codes when dependency injection encounters issues. This guide covers common errors and how to resolve them."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "ng0200-circular-dependency",
+      "text": "NG0200: Circular dependency error"
+    },
+    {
+      "type": "paragraph",
+      "text": "This error occurs when service A depends on service B, and service B simultaneously depends on service A. Break circular dependencies by extracting shared logic into a separate third service or using forward references."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "ng0201-no-provider-found",
+      "text": "NG0201: No provider found for token"
+    },
+    {
+      "type": "paragraph",
+      "text": "This error happens when a component or service requests a token that was never configured in an available injector. Verify that the service includes <code>@Injectable({ providedIn: 'root' })</code> or is listed in the component/application <code>providers</code> array."
+    }
+  ]
+}

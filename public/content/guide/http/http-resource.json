@@ -1,0 +1,254 @@
+{
+  "slug": "guide/http/http-resource",
+  "title": "Lấy dữ liệu phản ứng với httpResource (Reactive data fetching with httpResource)",
+  "description": "Hướng dẫn sử dụng httpResource trong Angular: wrapper phản ứng bọc quanh HttpClient cung cấp trạng thái request và response dưới dạng Signals, hỗ trợ tự động hủy request cũ, parse và validate dữ liệu với Zod/Valibot, theo dõi tiến trình và kiểm thử.",
+  "source": "https://angular.dev/guide/http/http-resource",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<code>httpResource</code> là một lớp vỏ bọc phản ứng (reactive wrapper) quanh <code>HttpClient</code>, cung cấp trạng thái của request và dữ liệu phản hồi trả về trực tiếp dưới dạng <strong>Signals</strong>. Nhờ đó, bạn có thể kết hợp tài nguyên này một cách tự nhiên với các hàm phản ứng như <code>computed</code>, <code>effect</code>, <code>linkedSignal</code> hoặc bất kỳ API Signal nào khác. Được xây dựng trên nền tảng của <code>HttpClient</code>, <code>httpResource</code> thừa hưởng đầy đủ tất cả các tính năng cao cấp như hệ thống interceptors."
+    },
+    {
+      "type": "callout",
+      "calloutType": "tip",
+      "title": "HttpClient toàn cục",
+      "text": "<code>httpResource</code> tự động sử dụng thực thể <code>HttpClient</code> có sẵn trong hệ thống tiêm phụ thuộc. Bạn chỉ cần gọi <code>provideHttpClient(...)</code> khi muốn cấu hình thêm các tính năng nâng cao như interceptors hoặc tùy chọn XSRF."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-httpresource",
+      "text": "Sử dụng httpResource"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cách đơn giản nhất để định nghĩa một HTTP resource là truyền vào một hàm trả về URL:"
+    },
+    {
+      "type": "code",
+      "file": "user-resource.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, input } from '@angular/core';",
+        "import { httpResource } from '@angular/common/http';",
+        "",
+        "@Component({ /* ... */ })",
+        "export class UserProfileComponent {",
+        "  userId = input.required<string>();",
+        "",
+        "  // Khai báo một resource phản ứng theo userId",
+        "  user = httpResource(() => `/api/user/${this.userId()}`);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>httpResource</code> có tính chất phản ứng tự động: bất cứ khi nào một trong các signal phụ thuộc (như <code>userId()</code>) thay đổi, resource sẽ tự động phát ra một request HTTP mới. Nếu request trước đó vẫn đang trong trạng thái chờ xử lý (pending), resource sẽ <strong>tự động hủy (cancel)</strong> request cũ trước khi phát lệnh gửi request mới."
+    },
+    {
+      "type": "callout",
+      "calloutType": "note",
+      "title": "Khác biệt quan trọng so với HttpClient",
+      "text": "<code>httpResource</code> khởi tạo request một cách chủ động ngay lập tức (eagerly). Ngược lại, <code>HttpClient</code> thông thường chỉ gửi request khi có subscription vào Observable trả về."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "advanced-request-object",
+      "text": "Cấu hình Request nâng cao"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với các request phức tạp, bạn có thể truyền vào một đối tượng cấu hình đầy đủ. Bất kỳ thuộc tính nào của request cần có tính phản ứng đều có thể được đọc từ một signal:"
+    },
+    {
+      "type": "code",
+      "file": "advanced-http-resource.ts",
+      "lang": "ts",
+      "code": [
+        "user = httpResource(() => ({",
+        "  url: `/api/user/${this.userId()}`,",
+        "  method: 'GET',",
+        "  headers: { 'X-Special': 'true' },",
+        "  params: { fast: 'yes' },",
+        "  reportProgress: true,",
+        "  keepalive: true,",
+        "  priority: 'high',",
+        "  credentials: 'include',",
+        "}));"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "tip",
+      "title": "Không dùng httpResource cho thao tác Mutate",
+      "text": "Tránh sử dụng <code>httpResource</code> cho các thao tác thay đổi dữ liệu như POST, PUT hay DELETE. Thay vào đó, hãy sử dụng trực tiếp các phương thức tương ứng của <code>HttpClient</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "rendering-in-template",
+      "text": "Hiển thị trạng thái trong Template"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các signal trạng thái của <code>httpResource</code> giúp việc render giao diện trở nên cực kỳ gọn gàng với cú pháp <code>@if / @else if</code>:"
+    },
+    {
+      "type": "code",
+      "file": "user-details.component.html",
+      "lang": "html",
+      "code": [
+        "@if (user.hasValue()) {",
+        "  <user-details [user]=\"user.value()\" />",
+        "} @else if (user.error()) {",
+        "  <div class=\"error-banner\">Không thể tải thông tin người dùng!</div>",
+        "} @else if (user.isLoading()) {",
+        "  <div class=\"loading-spinner\">Đang tải dữ liệu...</div>",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "important",
+      "title": "Bảo vệ khi đọc .value()",
+      "text": "Đọc signal <code>.value()</code> trên một resource đang ở trạng thái lỗi (error state) sẽ ném ra ngoại lệ tại runtime. Bạn luôn nên kiểm tra điều kiện an toàn với <code>user.hasValue()</code> trước khi đọc dữ liệu."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "response-types",
+      "text": "Các định dạng phản hồi (Response Types)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định <code>httpResource</code> phân tích cú pháp phản hồi dưới dạng JSON. Nếu muốn nhận các kiểu dữ liệu khác, bạn có thể gọi trực tiếp các phương thức chuyên biệt:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>httpResource.text(() => ({ ... }))</code>: Trả về chuỗi <code>string</code> trong <code>value()</code>.",
+        "<code>httpResource.blob(() => ({ ... }))</code>: Trả về đối tượng <code>Blob</code> trong <code>value()</code> (thích hợp tải file, ảnh).",
+        "<code>httpResource.arrayBuffer(() => ({ ... }))</code>: Trả về bộ đệm nhị phân <code>ArrayBuffer</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "tracking-download-progress",
+      "text": "Theo dõi tiến trình tải xuống (Download Progress)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đặt <code>reportProgress: true</code> trong cấu hình request để theo dõi tiến trình tải về. Thông tin tiến trình mới nhất được phản ánh qua signal <code>progress()</code> của resource:"
+    },
+    {
+      "type": "code",
+      "file": "download-progress.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, computed, signal } from '@angular/core';",
+        "import { httpResource } from '@angular/common/http';",
+        "",
+        "@Component({ /* ... */ })",
+        "export class FileViewerComponent {",
+        "  fileId = signal('file_123');",
+        "",
+        "  file = httpResource.blob(() => ({",
+        "    url: `/api/files/${this.fileId()}`,",
+        "    reportProgress: true,",
+        "  }));",
+        "",
+        "  // Tính toán số bytes đã tải về",
+        "  downloaded = computed(() => this.file.progress()?.loaded ?? 0);",
+        "  total = computed(() => this.file.progress()?.total ?? 0);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "response-parsing-and-validation",
+      "text": "Phân tích cú pháp và Kiểm thực dữ liệu với Schema (Zod / Valibot)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi nhận dữ liệu từ server, bạn có thể muốn kiểm thực chặt chẽ cấu trúc phản hồi bằng các thư viện schema phổ biến như <strong>Zod</strong> hoặc <strong>Valibot</strong>. Bạn tích hợp dễ dàng thông qua tùy chọn <code>parse</code>; kiểu dữ liệu trả về của hàm parse sẽ quyết định chính xác kiểu dữ liệu của signal <code>value()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "zod-validation.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal } from '@angular/core';",
+        "import { httpResource } from '@angular/common/http';",
+        "import { z } from 'zod';",
+        "",
+        "// Định nghĩa schema kiểm tra kiểu dữ liệu với Zod",
+        "const starWarsPersonSchema = z.object({",
+        "  name: z.string(),",
+        "  height: z.number({ coerce: true }),",
+        "  edited: z.string().datetime(),",
+        "  films: z.array(z.string()),",
+        "});",
+        "",
+        "@Component({ /* ... */ })",
+        "export class CharacterViewer {",
+        "  id = signal(1);",
+        "",
+        "  // swPersonResource tự động có kiểu suy diễn từ Zod schema",
+        "  swPersonResource = httpResource(",
+        "    () => `https://swapi.info/api/people/${this.id()}`,",
+        "    {",
+        "      parse: starWarsPersonSchema.parse,",
+        "    }",
+        "  );",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "testing-an-httpresource",
+      "text": "Kiểm thử httpResource (Testing)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Vì <code>httpResource</code> là một lớp vỏ bọc quanh <code>HttpClient</code>, bạn kiểm thử nó bằng chính xác các công cụ kiểm thử tiêu chuẩn của <code>HttpClient</code> (sử dụng <code>HttpTestingController</code>):"
+    },
+    {
+      "type": "code",
+      "file": "http-resource.spec.ts",
+      "lang": "ts",
+      "code": [
+        "import { TestBed } from '@angular/core/testing';",
+        "import { ApplicationRef, Injector, signal } from '@angular/core';",
+        "import { httpResource } from '@angular/common/http';",
+        "import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';",
+        "",
+        "TestBed.configureTestingModule({",
+        "  providers: [provideHttpClientTesting()],",
+        "});",
+        "",
+        "const id = signal(0);",
+        "const mockBackend = TestBed.inject(HttpTestingController);",
+        "",
+        "const response = httpResource(() => `/data/${id()}`, {",
+        "  injector: TestBed.inject(Injector),",
+        "});",
+        "",
+        "// Kích hoạt effect khởi chạy request",
+        "TestBed.tick();",
+        "",
+        "const firstRequest = mockBackend.expectOne('/data/0');",
+        "firstRequest.flush({ count: 42 });",
+        "",
+        "// Đảm bảo các giá trị đã được truyền đầy đủ tới resource",
+        "await TestBed.inject(ApplicationRef).whenStable();",
+        "",
+        "expect(response.value()).toEqual({ count: 42 });"
+      ]
+    }
+  ]
+}

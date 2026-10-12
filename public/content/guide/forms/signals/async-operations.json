@@ -1,0 +1,299 @@
+{
+  "slug": "guide/forms/signals/async-operations",
+  "title": "Tác vụ bất đồng bộ (Async operations)",
+  "description": "Hướng dẫn thực hiện kiểm thực bất đồng bộ trong Signal Forms: gọi API với validateHttp(), kiểm thực tùy chỉnh dựa trên resource với validateAsync(), tích hợp Observable qua rxResource, kỹ thuật debounce và quản lý trạng thái pending().",
+  "source": "https://angular.dev/guide/forms/signals/async-operations",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Một số quy tắc kiểm thực đòi hỏi phải lấy dữ liệu từ các nguồn bên ngoài như API backend hoặc dịch vụ của bên thứ ba. <strong>Signal Forms</strong> cung cấp hai hàm chuyên dụng cho kiểm thực bất đồng bộ: <code>validateHttp()</code> để kiểm thực dựa trên HTTP và <code>validateAsync()</code> để kiểm thực dựa trên Angular Resource API tùy chỉnh."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-to-use-async-validation",
+      "text": "Khi nào nên dùng Kiểm thực bất đồng bộ?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hãy dùng kiểm thực bất đồng bộ khi việc xác minh dữ liệu bắt buộc phải dựa vào máy chủ bên ngoài:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Kiểm tra tính duy nhất (Uniqueness checks):</strong> Xác minh tên người dùng hoặc email chưa bị đăng ký trước đó.",
+        "<strong>Tra cứu cơ sở dữ liệu:</strong> Kiểm tra mã khách hàng, mã số thuế hoặc địa chỉ với cơ sở dữ liệu của server.",
+        "<strong>Quy tắc nghiệp vụ phía backend:</strong> Những logic phức tạp chỉ có server mới đủ thẩm quyền và dữ liệu để xác minh."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Không nên dùng async validation cho các kiểm tra định dạng tĩnh mà phía client có thể xử lý tức thì như <code>pattern()</code>, <code>email()</code>, hoặc <code>minLength()</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-async-validation-works",
+      "text": "Cơ chế hoạt động của Async Validation"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kiểm thực bất đồng bộ <strong>chỉ chạy sau khi toàn bộ các kiểm thực đồng bộ (synchronous) đã vượt qua</strong>. Trong thời gian request đang chạy, signal <code>pending()</code> của trường sẽ trả về <code>true</code>. Đặc biệt, khi người dùng tiếp tục gõ làm thay đổi giá trị của trường, request đang chờ trước đó sẽ <strong>tự động bị hủy (auto-cancellation)</strong> để tránh tranh chấp dữ liệu (race conditions):"
+    },
+    {
+      "type": "code",
+      "file": "username-async.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal } from '@angular/core';",
+        "import { form, validateHttp, FormField } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  selector: 'app-registration',",
+        "  imports: [FormField],",
+        "  template: `",
+        "    <form>",
+        "      <label>",
+        "        Tên người dùng:",
+        "        <input [formField]=\"registrationForm.username\" />",
+        "      </label>",
+        "      @if (registrationForm.username().pending()) {",
+        "        <span class=\"checking\">Đang kiểm tra tính khả dụng...</span>",
+        "      }",
+        "      @if (registrationForm.username().invalid()) {",
+        "        @for (error of registrationForm.username().errors(); track $index) {",
+        "          <span class=\"error\">{{ error.message }}</span>",
+        "        }",
+        "      }",
+        "    </form>",
+        "  `,",
+        "})",
+        "export class Registration {",
+        "  registrationModel = signal({ username: '' });",
+        "",
+        "  registrationForm = form(this.registrationModel, (schemaPath) => {",
+        "    validateHttp(schemaPath.username, {",
+        "      request: ({ value }) => {",
+        "        const username = value();",
+        "        // Bỏ qua request nếu giá trị rỗng:",
+        "        return username ? `/api/users/check?username=${username}` : undefined;",
+        "      },",
+        "      onSuccess: (response: { available: boolean }) => {",
+        "        return response.available",
+        "          ? null",
+        "          : { kind: 'usernameTaken', message: 'Tên người dùng đã được sử dụng' };",
+        "      },",
+        "      onError: (error) => ({",
+        "        kind: 'serverError',",
+        "        message: 'Không thể kết nối máy chủ để xác thực',",
+        "      }),",
+        "    });",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "http-validation-with-validatehttp",
+      "text": "Kiểm thực HTTP với validateHttp()"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>validateHttp()</code> là giải pháp tiện dụng và phổ biến nhất, tích hợp trực tiếp với cơ chế <code>httpResource</code> của Angular."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "request-function",
+      "text": "1. Hàm request"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>request</code> nhận <code>FieldContext</code> và trả về URL (chuỗi ký tự) hoặc đối tượng <code>HttpResourceRequest</code>. Trả về <code>undefined</code> để bỏ qua kiểm thực (ví dụ: giá trị rỗng hoặc đã có sẵn trong bộ nhớ đệm cache):"
+    },
+    {
+      "type": "code",
+      "file": "post-request.ts",
+      "lang": "ts",
+      "code": [
+        "// Gửi POST request với body JSON:",
+        "request: ({ value }) => ({",
+        "  url: '/api/validate-username',",
+        "  method: 'POST',",
+        "  body: { username: value() },",
+        "})"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "success-and-error-handlers",
+      "text": "2. Xử lý phản hồi onSuccess và onError"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>onSuccess</code> nhận phản hồi từ server. Trả về <code>null</code> hoặc <code>undefined</code> nếu dữ liệu hợp lệ; trả về đối tượng lỗi hoặc mảng lỗi nếu không hợp lệ:"
+    },
+    {
+      "type": "code",
+      "file": "response-handlers.ts",
+      "lang": "ts",
+      "code": [
+        "onSuccess: (response: { available: boolean; inappropriate: boolean }) => {",
+        "  const errors = [];",
+        "  if (!response.available) {",
+        "    errors.push({ kind: 'usernameTaken', message: 'Tên người dùng đã tồn tại' });",
+        "  }",
+        "  if (response.inappropriate) {",
+        "    errors.push({ kind: 'profanity', message: 'Tên chứa từ ngữ không phù hợp' });",
+        "  }",
+        "  return errors.length > 0 ? errors : null;",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "custom-async-validation-with-validateasync",
+      "text": "Kiểm thực tùy chỉnh cấp thấp với validateAsync()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>validateAsync()</code> tiếp xúc trực tiếp với Angular Resource API. Sử dụng hàm này khi bạn cần kiểm thực không qua HTTP (như WebSocket, Web Worker, IndexedDB) hoặc khi bạn cần triển khai chiến lược cache/retry đặc thù:"
+    },
+    {
+      "type": "code",
+      "file": "validate-async-custom.ts",
+      "lang": "ts",
+      "code": [
+        "validateAsync(schemaPath.username, {",
+        "  params: ({ value }) => {",
+        "    const username = value();",
+        "    return username.length >= 3 ? username : undefined!;",
+        "  },",
+        "  factory: this.createUsernameResource, // Trả về resource() tùy chỉnh",
+        "  onSuccess: (result) => result?.available ? null : { kind: 'usernameTaken', message: 'Tên đã tồn tại' },",
+        "  onError: () => ({ kind: 'serverError', message: 'Lỗi xác minh' }),",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-observable-based-services",
+      "text": "Tích hợp dịch vụ Observable với rxResource"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn có các service cũ trả về RxJS Observable, hãy sử dụng <code>rxResource</code> từ <code>@angular/core/rxjs-interop</code> để tích hợp liền mạch vào <code>validateAsync()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "rx-resource-integration.ts",
+      "lang": "ts",
+      "code": [
+        "import { rxResource } from '@angular/core/rxjs-interop';",
+        "",
+        "private createUsernameResource = (usernameSignal: Signal<string | undefined>) => {",
+        "  return rxResource({",
+        "    params: () => usernameSignal(),",
+        "    stream: ({ params: username }) => this.usernameService.checkUsername(username),",
+        "  });",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "debouncing",
+      "text": "Trì hoãn kiểm thực với Debounce"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để tránh gọi request API liên tục theo từng phím gõ của người dùng, bạn có 2 cách áp dụng debounce:"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "debouncing-a-single-async-validator",
+      "text": "1. Debounce riêng cho tác vụ Async Validator (Khuyên dùng)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Truyền tùy chọn <code>debounce: 300</code> trực tiếp vào <code>validateHttp()</code> hoặc <code>validateAsync()</code>. Điều này giúp các validator đồng bộ giá rẻ (như required, format) phản hồi tức thì trên UI, trong khi chỉ riêng lệnh gọi HTTP nặng nề là phải chờ người dùng dừng gõ:"
+    },
+    {
+      "type": "code",
+      "file": "validator-debounce.ts",
+      "lang": "ts",
+      "code": [
+        "validateHttp(schemaPath.username, {",
+        "  debounce: 300, // Chỉ trì hoãn riêng request HTTP này 300ms",
+        "  request: ({ value }) => `/api/check?username=${value()}`,",
+        "  onSuccess: (res: any) => res.available ? null : { kind: 'taken', message: 'Tên đã tồn tại' },",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "debouncing-entire-field",
+      "text": "2. Debounce toàn bộ trường với quy tắc debounce()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Áp dụng quy tắc <code>debounce(path, 300)</code> hoặc <code>debounce(path, 'blur')</code> nếu bạn muốn toàn bộ quá trình cập nhật model (kể cả derived computed) chỉ diễn ra sau khi người dùng ngừng gõ hoặc rời khỏi ô nhập liệu (blur)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "understanding-pending-state",
+      "text": "Hiểu rõ về trạng thái Pending (pending signal)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong thời gian async validator đang chạy:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>field().pending()</code> trả về <code>true</code>.",
+        "<code>field().valid()</code> trả về <code>false</code>.",
+        "<code>field().invalid()</code> trả về <code>false</code> (chưa kết luận có lỗi hay không).",
+        "<code>field().errors()</code> trả về mảng rỗng <code>[]</code>."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "submit-pending.html",
+      "lang": "html",
+      "code": [
+        "<!-- Vô hiệu hóa nút gửi trong khi đang xác thực máy chủ -->",
+        "<button type=\"submit\" [disabled]=\"loginForm().pending() || loginForm().submitting()\">",
+        "  @if (loginForm().pending()) {",
+        "    Đang kiểm tra...",
+        "  } @else {",
+        "    Đăng ký",
+        "  }",
+        "</button>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/validation\">Kiểm thực dữ liệu trong Signal Forms (Validation)</a>",
+        "<a href=\"/docs/guide/forms/signals/form-submission\">Gửi biểu mẫu (Form submission)</a>",
+        "<a href=\"/docs/guide/forms/signals/field-state-management\">Quản lý trạng thái trường (Field state management)</a>"
+      ]
+    }
+  ]
+}

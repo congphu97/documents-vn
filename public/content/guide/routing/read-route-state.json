@@ -1,0 +1,477 @@
+{
+  "slug": "guide/routing/read-route-state",
+  "title": "Đọc trạng thái tuyến đường (Read route state)",
+  "description": "Tìm hiểu cách đọc thông tin tuyến đường hiện tại với ActivatedRoute, snapshot, route params, query params, matrix params, chỉ thị RouterLinkActive và hàm tín hiệu isActive.",
+  "source": "https://angular.dev/guide/routing/read-route-state",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular Router cho phép bạn đọc và sử dụng thông tin gắn liền với một tuyến đường để tạo ra các component linh hoạt, phản ứng nhanh và nhận biết đầy đủ ngữ cảnh (context-aware)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "get-information-about-the-current-route-with-activatedroute",
+      "text": "Lấy thông tin tuyến đường hiện tại với ActivatedRoute (Get information about current route)"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>ActivatedRoute</code> là một dịch vụ được cung cấp bởi <code>@angular/router</code> chứa tất cả thông tin liên kết với tuyến đường đang hoạt động của component:"
+    },
+    {
+      "type": "code",
+      "file": "product.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { ActivatedRoute } from '@angular/router';",
+        "",
+        "@Component({",
+        "  selector: 'app-product',",
+        "})",
+        "export class Product {",
+        "  private activatedRoute = inject(ActivatedRoute);",
+        "",
+        "  constructor() {",
+        "    console.log(this.activatedRoute);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>ActivatedRoute</code> cung cấp nhiều thuộc tính phản ứng (Observable) hữu ích:"
+    },
+    {
+      "type": "table",
+      "headers": ["Thuộc tính (Property)", "Chi tiết (Details)"],
+      "rows": [
+        ["<code>url</code>", "Một Observable chứa danh sách các đường dẫn của route, đại diện bởi mảng các đối tượng <code>UrlSegment</code> cho từng phần của URL."],
+        ["<code>data</code>", "Một Observable chứa đối tượng dữ liệu tĩnh được cấu hình cho route cùng bất kỳ dữ liệu phân giải nào từ resolve guard."],
+        ["<code>params</code>", "Một Observable chứa các tham số bắt buộc và tùy chọn dành riêng cho route."],
+        ["<code>queryParams</code>", "Một Observable chứa các tham số truy vấn (query parameters) dùng chung cho toàn bộ route."],
+        ["<code>resources</code>", "Một record tùy chọn chứa các thể hiện <code>Resource</code> được định nghĩa trên route (khi kích hoạt <code>withRouterResources</code>)."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "understanding-route-snapshots",
+      "text": "Tìm hiểu về Route Snapshots (Understanding route snapshots)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các lần chuyển trang trong ứng dụng là những sự kiện diễn ra theo thời gian. Bạn có thể truy cập trạng thái router tại một thời điểm tức thời nhất định bằng cách lấy bản chụp route (<code>route snapshot</code>)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bản chụp route (<code>ActivatedRouteSnapshot</code>) chứa thông tin thiết yếu về route tại thời điểm khởi tạo, bao gồm các tham số, dữ liệu và route con. Lưu ý rằng các snapshot là <strong>tĩnh (static)</strong> và sẽ không tự động phản ánh các thay đổi trong tương lai nếu component không bị hủy và tạo lại."
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { ActivatedRoute, ActivatedRouteSnapshot } from '@angular/router';",
+        "",
+        "@Component({/* ... */})",
+        "export class UserProfile {",
+        "  readonly userId: string | null;",
+        "  private route = inject(ActivatedRoute);",
+        "",
+        "  constructor() {",
+        "    // Ví dụ URL: https://www.angular.dev/users/123?role=admin&status=active#contact",
+        "",
+        "    // Truy cập trực tiếp tham số từ paramMap của snapshot",
+        "    this.userId = this.route.snapshot.paramMap.get('id');",
+        "",
+        "    // Truy cập nhiều thành phần khác từ snapshot",
+        "    const snapshot = this.route.snapshot;",
+        "    console.log({",
+        "      url: snapshot.url,           // Mảng các UrlSegment khớp với route này",
+        "      params: snapshot.params,     // Đối tượng route parameters: { id: '123' }",
+        "      queryParams: snapshot.queryParams, // Query parameters: { role: 'admin', status: 'active' }",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reading-parameters-on-a-route",
+      "text": "Đọc các tham số trên một tuyến đường (Reading parameters on a route)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Có ba loại tham số mà lập trình viên thường khai thác từ một tuyến đường: Tham số đường dẫn (Route Parameters), Tham số truy vấn (Query Parameters) và Tham số ma trận (Matrix Parameters)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "route-parameters",
+      "text": "Tham số đường dẫn (Route Parameters)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tham số đường dẫn cho phép bạn truyền dữ liệu vào component trực tiếp qua URL. Điều này hữu ích khi bạn muốn hiển thị nội dung cụ thể dựa trên định danh (ID) như mã người dùng hoặc mã sản phẩm."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn định nghĩa tham số route bằng cách thêm dấu hai chấm (<code>:</code>) trước tên tham số trong cấu hình <code>path</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { Product } from './product';",
+        "",
+        "const routes: Routes = [{ path: 'product/:id', component: Product }];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể đọc các tham số này một cách phản ứng bằng cách lắng nghe (subscribe) <code>route.params</code>:"
+    },
+    {
+      "type": "code",
+      "file": "product-detail.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject, signal } from '@angular/core';",
+        "import { ActivatedRoute } from '@angular/router';",
+        "",
+        "@Component({",
+        "  selector: 'app-product-detail',",
+        "  template: `<h1>Product Details: {{ productId() }}</h1>`,",
+        "})",
+        "export class ProductDetail {",
+        "  productId = signal('');",
+        "  private activatedRoute = inject(ActivatedRoute);",
+        "",
+        "  constructor() {",
+        "    // Truy cập route parameters phản ứng (reactive)",
+        "    this.activatedRoute.params.subscribe((params) => {",
+        "      this.productId.set(params['id']);",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "query-parameters",
+      "text": "Tham số truy vấn (Query Parameters)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tham số truy vấn (Query parameters) cung cấp một cách linh hoạt để truyền dữ liệu tùy chọn qua URL mà không ảnh hưởng đến cấu trúc phân cấp của route. Khác với route parameters, query parameters có thể được duy trì xuyên suốt qua các lần điều hướng và rất phù hợp cho các tính năng như lọc (filtering), sắp xếp (sorting), phân trang (pagination):"
+    },
+    {
+      "type": "code",
+      "file": "query-params-navigation.ts",
+      "lang": "ts",
+      "code": [
+        "// Một tham số: /products?category=electronics",
+        "router.navigate(['/products'], {",
+        "  queryParams: { category: 'electronics' },",
+        "});",
+        "",
+        "// Nhiều tham số: /products?category=electronics&sort=price&page=1",
+        "router.navigate(['/products'], {",
+        "  queryParams: {",
+        "    category: 'electronics',",
+        "    sort: 'price',",
+        "    page: 1,",
+        "  },",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể truy cập query parameters thông qua <code>route.queryParams</code> và điều phối việc giữ lại các tham số cũ bằng <code>queryParamsHandling: 'merge'</code>:"
+    },
+    {
+      "type": "code",
+      "file": "product-list.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { ActivatedRoute, Router } from '@angular/router';",
+        "import { Component, inject } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'app-product-list',",
+        "  template: `",
+        "    <div>",
+        "      <select (change)=\"updateSort($event)\">",
+        "        <option value=\"price\">Price</option>",
+        "        <option value=\"name\">Name</option>",
+        "      </select>",
+        "    </div>",
+        "  `,",
+        "})",
+        "export class ProductList {",
+        "  private route = inject(ActivatedRoute);",
+        "  private router = inject(Router);",
+        "",
+        "  constructor() {",
+        "    // Đọc query parameters phản ứng khi URL thay đổi",
+        "    this.route.queryParams.subscribe((params) => {",
+        "      const sort = params['sort'] || 'price';",
+        "      const page = Number(params['page']) || 1;",
+        "      this.loadProducts(sort, page);",
+        "    });",
+        "  }",
+        "",
+        "  updateSort(event: Event) {",
+        "    const sort = (event.target as HTMLSelectElement).value;",
+        "    // Cập nhật URL với sort mới và giữ nguyên các query params khác",
+        "    this.router.navigate([], {",
+        "      queryParams: { sort },",
+        "      queryParamsHandling: 'merge',",
+        "    });",
+        "  }",
+        "",
+        "  private loadProducts(sort: string, page: number) {}",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "matrix-parameters",
+      "text": "Tham số ma trận (Matrix Parameters)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tham số ma trận (Matrix parameters) là các tham số tùy chọn thuộc về một phân đoạn (segment) URL cụ thể, thay vì áp dụng cho toàn bộ tuyến đường như query params. Thay vì đặt sau dấu hỏi chấm (<code>?</code>), matrix parameters sử dụng dấu chấm phẩy (<code>;</code>) và gắn trực tiếp với phân đoạn đường dẫn:"
+    },
+    {
+      "type": "code",
+      "file": "matrix-params-example.ts",
+      "lang": "ts",
+      "code": [
+        "// Định dạng URL: /path;key=value",
+        "// Điều hướng kèm matrix parameters:",
+        "this.router.navigate(['/awesome-products', { view: 'grid', filter: 'new' }]);",
+        "// Kết quả URL: /awesome-products;view=grid;filter=new"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể đọc các matrix parameters này trực tiếp từ <code>route.params</code> của <code>ActivatedRoute</code>:"
+    },
+    {
+      "type": "code",
+      "file": "awesome-products.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { ActivatedRoute } from '@angular/router';",
+        "",
+        "@Component({/* ... */})",
+        "export class AwesomeProducts {",
+        "  private route = inject(ActivatedRoute);",
+        "",
+        "  constructor() {",
+        "    this.route.params.subscribe((params) => {",
+        "      const view = params['view'];     // Ví dụ: 'grid'",
+        "      const filter = params['filter']; // Ví dụ: 'new'",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Ngoài việc dùng <code>ActivatedRoute</code>, các matrix parameters cũng có thể được liên kết tự động trực tiếp vào các `@Input` của component khi bạn kích hoạt tính năng <code>withComponentInputBinding()</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "detect-active-current-route-with-routerlinkactive",
+      "text": "Nhận biết route đang hoạt động với RouterLinkActive (Detect active route)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể sử dụng chỉ thị <code>RouterLinkActive</code> để áp dụng các lớp CSS động cho các phần tử menu điều hướng dựa trên route đang hoạt động. Điều này giúp người dùng nhận biết trực quan vị trí hiện tại của mình trên trang:"
+    },
+    {
+      "type": "code",
+      "file": "nav.component.html",
+      "lang": "html",
+      "code": [
+        "<nav>",
+        "  <a",
+        "    class=\"button\"",
+        "    routerLink=\"/about\"",
+        "    routerLinkActive=\"active-button\"",
+        "    ariaCurrentWhenActive=\"page\"",
+        "  >",
+        "    About",
+        "  </a> | ",
+        "  <a",
+        "    class=\"button\"",
+        "    routerLink=\"/settings\"",
+        "    routerLinkActive=\"active-button\"",
+        "    ariaCurrentWhenActive=\"page\"",
+        "  >",
+        "    Settings",
+        "  </a>",
+        "</nav>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ trên, khi URL khớp với <code>routerLink</code>, Angular Router sẽ tự động thêm class <code>active-button</code> và đặt thuộc tính trợ năng <code>aria-current=\"page\"</code> (thông qua <code>ariaCurrentWhenActive</code>) giúp người dùng khiếm thị có thể nhận diện được liên kết đang chọn."
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu cần áp dụng nhiều class, bạn có thể truyền chuỗi phân cách bằng dấu cách hoặc một mảng các class:"
+    },
+    {
+      "type": "code",
+      "file": "multi-classes.html",
+      "lang": "html",
+      "code": [
+        "<!-- Cú pháp chuỗi phân cách bởi khoảng trắng -->",
+        "<a routerLink=\"/user/bob\" routerLinkActive=\"class1 class2\">Bob</a>",
+        "",
+        "<!-- Cú pháp mảng -->",
+        "<a routerLink=\"/user/bob\" [routerLinkActive]=\"['class1', 'class2']\">Bob</a>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "route-matching-strategy",
+      "text": "Chiến lược khớp tuyến đường (Route matching strategy)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Theo mặc định, <code>RouterLinkActive</code> coi bất kỳ route cha nào chứa đường dẫn đó là khớp (khớp tập con / subset). Ví dụ khi truy cập <code>/user/jane/role/admin</code>, cả hai liên kết <code>/user/jane</code> và <code>/user/jane/role/admin</code> đều sẽ nhận được class <code>active-link</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "only-apply-routerlinkactive-on-exact-route-matches",
+      "text": "Chỉ áp dụng khi khớp chính xác hoàn toàn (exact: true)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn chỉ muốn áp dụng class khi URL khớp chính xác hoàn toàn, hãy cung cấp tùy chọn <code>[routerLinkActiveOptions]=\"{ exact: true }\"</code>:"
+    },
+    {
+      "type": "code",
+      "file": "exact-matching.html",
+      "lang": "html",
+      "code": [
+        "<a",
+        "  [routerLink]=\"['/user/jane']\"",
+        "  routerLinkActive=\"active-link\"",
+        "  [routerLinkActiveOptions]=\"{ exact: true }\"",
+        ">",
+        "  User",
+        "</a>",
+        "<a",
+        "  [routerLink]=\"['/user/jane/role/admin']\"",
+        "  routerLinkActive=\"active-link\"",
+        "  [routerLinkActiveOptions]=\"{ exact: true }\"",
+        ">",
+        "  Role",
+        "</a>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Thực chất <code>exact: true</code> là cú pháp viết tắt của tập tùy chọn <code>IsActiveMatchOptions</code> đầy đủ:"
+    },
+    {
+      "type": "code",
+      "file": "matching-options.ts",
+      "lang": "ts",
+      "code": [
+        "// 'exact: true' tương đương với:",
+        "{",
+        "  paths: 'exact',",
+        "  fragment: 'ignored',",
+        "  matrixParams: 'ignored',",
+        "  queryParams: 'exact',",
+        "}",
+        "",
+        "// 'exact: false' tương đương với:",
+        "{",
+        "  paths: 'subset',",
+        "  fragment: 'ignored',",
+        "  matrixParams: 'ignored',",
+        "  queryParams: 'subset',",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "apply-routerlinkactive-to-an-ancestor",
+      "text": "Áp dụng RouterLinkActive cho phần tử cha (Apply to an ancestor)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Chỉ thị <code>RouterLinkActive</code> cũng có thể được đặt trên một phần tử cha (ancestor element như thẻ <code>&lt;div&gt;</code> hoặc <code>&lt;li&gt;</code>) để định kiểu cho toàn bộ khối khi bất kỳ liên kết con nào bên trong nó đang hoạt động:"
+    },
+    {
+      "type": "code",
+      "file": "ancestor-example.html",
+      "lang": "html",
+      "code": [
+        "<div routerLinkActive=\"active-link\" [routerLinkActiveOptions]=\"{ exact: true }\">",
+        "  <a routerLink=\"/user/jim\">Jim</a>",
+        "  <a routerLink=\"/user/bob\">Bob</a>",
+        "</div>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "check-if-a-url-is-active",
+      "text": "Kiểm tra xem URL có đang hoạt động hay không với isActive() (Check if a URL is active)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>isActive()</code> trả về một <strong>computed signal</strong> theo dõi xem một URL cho trước có đang hoạt động trong router hay không. Signal này sẽ tự động cập nhật phản ứng mỗi khi trạng thái của router thay đổi:"
+    },
+    {
+      "type": "code",
+      "file": "panel.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { isActive, Router } from '@angular/router';",
+        "",
+        "@Component({",
+        "  template: `",
+        "    <div [class.active]=\"isSettingsActive()\">",
+        "      <h2>Settings</h2>",
+        "    </div>",
+        "  `,",
+        "})",
+        "export class Panel {",
+        "  private router = inject(Router);",
+        "",
+        "  // Tạo computed signal theo dõi trạng thái URL /settings",
+        "  isSettingsActive = isActive('/settings', this.router, {",
+        "    paths: 'subset',",
+        "    queryParams: 'ignored',",
+        "    fragment: 'ignored',",
+        "    matrixParams: 'ignored',",
+        "  });",
+        "}"
+      ]
+    }
+  ]
+}

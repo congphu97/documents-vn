@@ -1,43 +1,340 @@
 {
   "slug": "guide/forms/template-driven-forms",
-  "title": "Template-driven Forms",
-  "description": "Tài liệu hướng dẫn về Template-driven Forms trong Angular.",
+  "title": "Biểu mẫu hướng Template (Template-driven forms)",
+  "description": "Hướng dẫn từng bước xây dựng biểu mẫu Template-driven trong Angular: ràng buộc dữ liệu hai chiều [(ngModel)], kiểm thực (validation), theo dõi trạng thái control và form qua CSS classes, hiển thị lỗi có điều kiện và xử lý ngSubmit.",
   "source": "https://angular.dev/guide/forms/template-driven-forms",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/forms/template-driven-forms](https://angular.dev/guide/forms/template-driven-forms)."
+      "type": "paragraph",
+      "text": "Hướng dẫn này chỉ dẫn bạn cách tạo một <strong>Template-driven form</strong> (biểu mẫu hướng template). Các thành phần nhập liệu trong form được liên kết với các thuộc tính dữ liệu trong component thông qua cơ chế ràng buộc dữ liệu hai chiều (two-way data binding) <code>[(ngModel)]</code>, kết hợp kiểm thực dữ liệu (input validation) và tạo kiểu trực quan để nâng cao trải nghiệm người dùng."
     },
     {
-      "type": "paragraph",
-      "text": "Template-driven Forms là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "type": "callout",
+      "calloutType": "note",
+      "title": "So sánh: Template-driven vs Reactive Forms",
+      "text": "Angular cung cấp hai cách tiếp cận chính: Template-driven forms cho phép khai báo trực tiếp các directive trong template HTML, rất phù hợp cho các form vừa và nhỏ hoặc form đơn giản. Trong khi đó, Reactive forms là giải pháp hướng mô hình (model-driven) với khả năng mở rộng cao, tối ưu cho các biểu mẫu phức tạp."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "build-a-template-driven-form",
+      "text": "Các Directive nền tảng trong FormsModule"
+    },
+    {
+      "type": "table",
+      "headers": ["Directive", "Mô tả & Chức năng"],
+      "rows": [
+        ["<code>NgModel</code>", "Đồng bộ hóa giá trị hai chiều giữa phần tử nhập liệu DOM và thuộc tính data model, hỗ trợ kiểm thực và xử lý lỗi."],
+        ["<code>NgForm</code>", "Tự động tạo một FormGroup cấp cao nhất và gắn vào thẻ <code>&lt;form&gt;</code> để theo dõi giá trị tổng hợp và trạng thái hợp lệ của toàn bộ form."],
+        ["<code>NgModelGroup</code>", "Tạo và liên kết một FormGroup con lồng nhau bên trong form vào một phần tử DOM."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "build-the-form",
+      "text": "Khởi tạo Model và Component"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Template-driven Forms, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Bắt đầu bằng việc định nghĩa lớp mô hình dữ liệu <code>Actor</code>:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "actor.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Template-driven Forms",
-        "import { Component } from \"@angular/core\";",
+        "export class Actor {",
+        "  constructor(",
+        "    public id: number,",
+        "    public name: string,",
+        "    public skill: string,",
+        "    public studio?: string",
+        "  ) {}",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Tiếp theo, tạo component quản lý form và nhập <code>FormsModule</code>:"
+    },
+    {
+      "type": "code",
+      "file": "actor-form.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { FormsModule } from '@angular/forms';",
+        "import { JsonPipe } from '@angular/common';",
+        "import { Actor } from './actor';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Template-driven Forms</h1>`",
+        "  selector: 'app-actor-form',",
+        "  templateUrl: './actor-form.component.html',",
+        "  imports: [FormsModule, JsonPipe],",
         "})",
-        "export class ExampleComponent {}"
+        "export class ActorFormComponent {",
+        "  skills = ['Method Acting', 'Singing', 'Dancing', 'Swordfighting'];",
+        "  model = new Actor(18, 'Tom Cruise', this.skills[3], 'CW Productions');",
+        "  submitted = false;",
+        "",
+        "  onSubmit() {",
+        "    this.submitted = true;",
+        "  }",
+        "",
+        "  newActor() {",
+        "    this.model = new Actor(42, '', '');",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "bind-input-controls-to-data-properties",
+      "text": "Ràng buộc Input Control với Data Properties bằng [(ngModel)]"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cú pháp <code>[(ngModel)]=\"model.property\"</code> thiết lập liên kết hai chiều: khi người dùng nhập dữ liệu, model sẽ cập nhật ngay lập tức; và ngược lại, khi mã TypeScript thay đổi model, giao diện HTML sẽ hiển thị giá trị mới."
+    },
+    {
+      "type": "callout",
+      "calloutType": "important",
+      "title": "Bắt buộc có thuộc tính name",
+      "text": "Khi sử dụng <code>[(ngModel)]</code> bên trong thẻ <code>&lt;form&gt;</code>, bạn bắt buộc phải định nghĩa thuộc tính <code>name</code> cho thẻ input đó. Angular sử dụng giá trị của <code>name</code> để đăng ký control với directive <code>NgForm</code> cha."
+    },
+    {
+      "type": "code",
+      "file": "actor-form.component.html",
+      "lang": "html",
+      "code": [
+        "<div class=\"form-group\">",
+        "  <label for=\"name\">Tên diễn viên:</label>",
+        "  <input",
+        "    type=\"text\"",
+        "    class=\"form-control\"",
+        "    id=\"name\"",
+        "    required",
+        "    [(ngModel)]=\"model.name\"",
+        "    name=\"name\"",
+        "    #name=\"ngModel\"",
+        "  />",
+        "</div>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "access-the-overall-form-status",
+      "text": "Truy cập trạng thái toàn bộ form bằng Template Reference Variable"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn import <code>FormsModule</code>, Angular tự động gắn directive <code>NgForm</code> vào mọi thẻ <code>&lt;form&gt;</code>. Để truy cập thực thể này, bạn khai báo một biến tham chiếu template <code>#actorForm=\"ngForm\"</code>:"
+    },
+    {
+      "type": "code",
+      "file": "form-ref.html",
+      "lang": "html",
+      "code": [
+        "<form (ngSubmit)=\"onSubmit()\" #actorForm=\"ngForm\">",
+        "  <!-- Các trường nhập liệu -->",
+        "  <button type=\"submit\" class=\"btn btn-success\" [disabled]=\"!actorForm.form.valid\">",
+        "    Lưu",
+        "  </button>",
+        "</form>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "track-control-states",
+      "text": "Theo dõi trạng thái Control và Form qua các CSS Class"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular tự động gắn các CSS class mô tả trạng thái lên phần tử input dựa trên hành vi của người dùng:"
+    },
+    {
+      "type": "table",
+      "headers": ["Trạng thái tương tác", "Class khi True", "Class khi False"],
+      "rows": [
+        ["Người dùng đã truy cập / focus vào control (Visited)", "<code>.ng-touched</code>", "<code>.ng-untouched</code>"],
+        ["Giá trị của control đã bị thay đổi (Changed)", "<code>.ng-dirty</code>", "<code>.ng-pristine</code>"],
+        ["Giá trị của control hợp lệ (Valid)", "<code>.ng-valid</code>", "<code>.ng-invalid</code>"],
+        ["Form đã được submit (chỉ gắn trên thẻ &lt;form&gt;)", "<code>.ng-submitted</code>", "—"]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể tận dụng các class này để tạo phản hồi thị giác (visual feedback), chẳng hạn như viền màu xanh lá khi hợp lệ và viền đỏ khi không hợp lệ:"
+    },
+    {
+      "type": "code",
+      "file": "forms.css",
+      "lang": "css",
+      "code": [
+        ".ng-valid[required], .ng-valid.required {",
+        "  border-left: 5px solid #42A948; /* Viền xanh khi hợp lệ */",
+        "}",
+        "",
+        ".ng-invalid:not(form) {",
+        "  border-left: 5px solid #a94442; /* Viền đỏ khi không hợp lệ */",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "show-and-hide-validation-error-messages",
+      "text": "Hiển thị và ẩn thông báo lỗi kiểm thực có điều kiện"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bằng cách gán biến tham chiếu <code>#name=\"ngModel\"</code>, bạn có quyền kiểm tra các thuộc tính <code>valid</code> và <code>pristine</code> / <code>touched</code> của control để quyết định khi nào hiển thị thông báo lỗi:"
+    },
+    {
+      "type": "code",
+      "file": "conditional-error.html",
+      "lang": "html",
+      "code": [
+        "<div class=\"form-group\">",
+        "  <label for=\"name\">Tên diễn viên</label>",
+        "  <input",
+        "    type=\"text\"",
+        "    class=\"form-control\"",
+        "    id=\"name\"",
+        "    required",
+        "    [(ngModel)]=\"model.name\"",
+        "    name=\"name\"",
+        "    #name=\"ngModel\"",
+        "  />",
+        "  <div [hidden]=\"name.valid || name.pristine\" class=\"alert alert-danger\">",
+        "    Tên không được để trống.",
+        "  </div>",
+        "</div>"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "tip",
+      "title": "Ý nghĩa của trạng thái pristine",
+      "text": "Ẩn thông báo lỗi khi <code>name.pristine</code> là true giúp ngăn chặn việc người dùng vừa mở một form trống đã bị hiển thị một loạt cảnh báo đỏ, trước khi họ có cơ hội nhập bất kỳ ký tự nào."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resetting-the-form",
+      "text": "Reset Form và khôi phục trạng thái ban đầu"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để thêm một thực thể mới và xóa bỏ toàn bộ cờ trạng thái lỗi (đưa các control về lại <code>pristine</code> và <code>untouched</code>), hãy gọi phương thức <code>reset()</code> của <code>NgForm</code>:"
+    },
+    {
+      "type": "code",
+      "file": "reset-button.html",
+      "lang": "html",
+      "code": [
+        "<button",
+        "  type=\"button\"",
+        "  class=\"btn btn-default\"",
+        "  (click)=\"newActor(); actorForm.reset()\"",
+        ">",
+        "  Thêm mới diễn viên",
+        "</button>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "submit-the-form-with-ngsubmit",
+      "text": "Gửi dữ liệu với sự kiện ngSubmit và chuyển đổi trạng thái giao diện"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng output <code>(ngSubmit)</code> trên thẻ <code>&lt;form&gt;</code> để xử lý khi người dùng nhấn nút submit hoặc nhấn Enter:"
+    },
+    {
+      "type": "code",
+      "file": "full-actor-form.html",
+      "lang": "html",
+      "code": [
+        "<!-- 1. Giao diện khi đang nhập form -->",
+        "<div [hidden]=\"submitted\">",
+        "  <h1>Thông tin diễn viên</h1>",
+        "  <form (ngSubmit)=\"onSubmit()\" #actorForm=\"ngForm\">",
+        "    <div class=\"form-group\">",
+        "      <label for=\"name\">Tên</label>",
+        "      <input",
+        "        type=\"text\"",
+        "        class=\"form-control\"",
+        "        id=\"name\"",
+        "        required",
+        "        [(ngModel)]=\"model.name\"",
+        "        name=\"name\"",
+        "        #name=\"ngModel\"",
+        "      />",
+        "      <div [hidden]=\"name.valid || name.pristine\" class=\"alert alert-danger\">",
+        "        Tên không được để trống.",
+        "      </div>",
+        "    </div>",
+        "",
+        "    <div class=\"form-group\">",
+        "      <label for=\"studio\">Hãng phim (Tùy chọn)</label>",
+        "      <input",
+        "        type=\"text\"",
+        "        class=\"form-control\"",
+        "        id=\"studio\"",
+        "        [(ngModel)]=\"model.studio\"",
+        "        name=\"studio\"",
+        "      />",
+        "    </div>",
+        "",
+        "    <div class=\"form-group\">",
+        "      <label for=\"skill\">Kỹ năng</label>",
+        "      <select",
+        "        class=\"form-control\"",
+        "        id=\"skill\"",
+        "        required",
+        "        [(ngModel)]=\"model.skill\"",
+        "        name=\"skill\"",
+        "      >",
+        "        @for (skill of skills; track $index) {",
+        "          <option [value]=\"skill\">{{ skill }}</option>",
+        "        }",
+        "      </select>",
+        "    </div>",
+        "",
+        "    <button type=\"submit\" class=\"btn btn-success\" [disabled]=\"!actorForm.form.valid\">",
+        "      Lưu",
+        "    </button>",
+        "    <button type=\"button\" class=\"btn btn-default\" (click)=\"newActor(); actorForm.reset()\">",
+        "      Thêm mới",
+        "    </button>",
+        "  </form>",
+        "</div>",
+        "",
+        "<!-- 2. Giao diện sau khi đã submit thành công -->",
+        "<div [hidden]=\"!submitted\">",
+        "  <h2>Bạn đã gửi thông tin sau:</h2>",
+        "  <div class=\"row\">",
+        "    <div class=\"col-xs-3\">Tên:</div>",
+        "    <div class=\"col-xs-9\">{{ model.name }}</div>",
+        "  </div>",
+        "  <div class=\"row\">",
+        "    <div class=\"col-xs-3\">Hãng phim:</div>",
+        "    <div class=\"col-xs-9\">{{ model.studio }}</div>",
+        "  </div>",
+        "  <div class=\"row\">",
+        "    <div class=\"col-xs-3\">Kỹ năng:</div>",
+        "    <div class=\"col-xs-9\">{{ model.skill }}</div>",
+        "  </div>",
+        "  <br />",
+        "  <button type=\"button\" class=\"btn btn-primary\" (click)=\"submitted = false\">Chỉnh sửa</button>",
+        "</div>"
       ]
     }
   ]

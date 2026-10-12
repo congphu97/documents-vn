@@ -1,0 +1,64 @@
+{
+  "slug": "guide/templates/content-projection",
+  "title": "Slotting child content with ng-content",
+  "description": "<ng-content> là một phần tử đặc biệt giúp nhận markup hoặc một đoạn template từ component cha và điều khiển cách render nội dung trong component con mà không sinh thêm thẻ DOM thật.",
+  "source": "https://angular.dev/guide/templates/ng-content",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<ng-content> là một phần tử đặc biệt chấp nhận markup HTML hoặc template fragment từ component cha truyền vào và điều khiển vị trí hiển thị của nội dung đó trong component con. Bản thân <ng-content> không render ra một thẻ DOM thực tế nào trong trình duyệt."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "example",
+      "text": "Ví dụ cơ bản: BaseButton Component"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dưới đây là ví dụ về một BaseButton component có thể nhận bất kỳ mã HTML hoặc icon nào từ component cha thông qua <ng-content />:"
+    },
+    {
+      "type": "code",
+      "file": "base-button/base-button.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'button[baseButton]',",
+        "  template: `<ng-content />`,",
+        "})",
+        "export class BaseButton {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Tại component cha (App), bạn có thể lồng nội dung tuỳ ý vào bên trong thẻ button:"
+    },
+    {
+      "type": "code",
+      "file": "app.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { BaseButton } from './base-button';",
+        "",
+        "@Component({",
+        "  selector: 'app-root',",
+        "  imports: [BaseButton],",
+        "  template: `",
+        "    <button baseButton>Tiếp theo <span class=\"icon arrow-right\"></span></button>",
+        "  `,",
+        "})",
+        "export class App {}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Để tìm hiểu thêm các kỹ thuật nâng cao như Multi-slot content projection với thuộc tính select, Conditional projection hay Aliasing, hãy xem thêm hướng dẫn chuyên sâu về Content Projection trong mục Components."
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "slug": "guide/di/dependency-injection-context",
+  "title": "Injection context",
+  "description": "Learn what an injection context is in Angular and when you can call the inject() function.",
+  "source": "https://angular.dev/guide/di/dependency-injection-context",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The <code>inject()</code> function in Angular requires an active <strong>injection context</strong>. An injection context is available during specific phases of an application's lifecycle, such as construction of components, directives, and services, or field initializers."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-is-injection-context-available",
+      "text": "When is an injection context available?"
+    },
+    {
+      "type": "list",
+      "items": [
+        "In property initializers (field declarations) of a class decorated with <code>@Injectable()</code>, <code>@Component()</code>, or <code>@Directive()</code>.",
+        "In constructor bodies of injectables.",
+        "In factory functions provided to <code>useFactory</code> or functional route guards / resolvers.",
+        "Inside a callback passed to <code>runInInjectionContext()</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "run-in-injection-context",
+      "text": "Using runInInjectionContext"
+    },
+    {
+      "type": "paragraph",
+      "text": "When you need to call <code>inject()</code> outside the standard phases (such as inside an asynchronous callback), use <code>runInInjectionContext</code> with a reference to an <code>EnvironmentInjector</code>:"
+    },
+    {
+      "type": "code",
+      "file": "async-inject.ts",
+      "lang": "ts",
+      "code": [
+        "import { EnvironmentInjector, inject, runInInjectionContext } from '@angular/core';",
+        "",
+        "export class Example {",
+        "  private injector = inject(EnvironmentInjector);",
+        "",
+        "  performAsync() {",
+        "    setTimeout(() => {",
+        "      runInInjectionContext(this.injector, () => {",
+        "        const service = inject(MyService);",
+        "        service.doSomething();",
+        "      });",
+        "    }, 1000);",
+        "  }",
+        "}"
+      ]
+    }
+  ]
+}

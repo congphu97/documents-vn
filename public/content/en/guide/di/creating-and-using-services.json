@@ -1,0 +1,89 @@
+{
+  "slug": "guide/di/creating-and-using-services",
+  "title": "Creating and using services",
+  "description": "Services are reusable pieces of code that you can share across your Angular application to handle data fetching, business logic, and shared state.",
+  "source": "https://angular.dev/guide/di/creating-and-using-services",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Services are reusable pieces of code that you can share across your application. You often use them to handle data fetching from a backend server, implement business logic, or manage shared state across different components."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-a-service",
+      "text": "Creating a service"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can generate a service using the Angular CLI command:"
+    },
+    {
+      "type": "code",
+      "file": "terminal",
+      "lang": "bash",
+      "code": [
+        "ng generate service hero"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "You can also author a service manually by applying the <code>@Injectable()</code> decorator to a TypeScript class:"
+    },
+    {
+      "type": "code",
+      "file": "src/app/hero.service.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable } from '@angular/core';",
+        "",
+        "@Injectable({",
+        "  providedIn: 'root', // Makes the service available application-wide as a singleton",
+        "})",
+        "export class HeroService {",
+        "  private heroes = ['Windstorm', 'Bombasto', 'Magneta'];",
+        "",
+        "  getHeroes() {",
+        "    return this.heroes;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "injecting-a-service",
+      "text": "Injecting and using a service"
+    },
+    {
+      "type": "paragraph",
+      "text": "In modern Angular, use the <code>inject()</code> function to consume the service in components:"
+    },
+    {
+      "type": "code",
+      "file": "src/app/hero-list.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { HeroService } from './hero.service';",
+        "",
+        "@Component({",
+        "  selector: 'app-hero-list',",
+        "  standalone: true,",
+        "  template: `",
+        "    <ul>",
+        "      @for (hero of heroes; track hero) {",
+        "        <li>{{ hero }}</li>",
+        "      }",
+        "    </ul>",
+        "  `",
+        "})",
+        "export class HeroListComponent {",
+        "  private heroService = inject(HeroService);",
+        "  heroes = this.heroService.getHeroes();",
+        "}"
+      ]
+    }
+  ]
+}

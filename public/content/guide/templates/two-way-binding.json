@@ -1,0 +1,147 @@
+{
+  "slug": "guide/templates/two-way-binding",
+  "title": "Two-way binding",
+  "description": "Two-way binding là cú pháp viết tắt cho phép vừa gán giá trị vào một phần tử, vừa lắng nghe và truyền các thay đổi từ phần tử đó ngược lại component state.",
+  "source": "https://angular.dev/guide/templates/two-way-binding",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Two-way binding (ràng buộc hai chiều) là cú pháp viết tắt giúp đồng thời gán dữ liệu vào một phần tử, đồng thời cho phép phần tử đó tự động cập nhật và lan truyền các thay đổi ngược trở lại trạng thái của component."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "syntax",
+      "text": "Cú pháp \"Banana-in-a-box\" [()]"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cú pháp cho two-way binding là sự kết hợp giữa dấu ngoặc vuông và ngoặc tròn [()]. Nó kết hợp cú pháp từ property binding [] và event binding (). Cộng đồng Angular thường gọi một cách thân thuộc là cú pháp \"quả chuối trong hộp\" (banana-in-a-box)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "two-way-binding-with-form-controls",
+      "text": "Two-way binding với các điều khiển Form (Form Controls)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các lập trình viên thường dùng two-way binding để đồng bộ dữ liệu của component với form control khi người dùng tương tác. Ví dụ, khi người dùng nhập dữ liệu vào ô text input, nó sẽ cập nhật ngay biến trạng thái trong component:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { FormsModule } from '@angular/forms';",
+        "",
+        "@Component({",
+        "  imports: [FormsModule],",
+        "  template: `",
+        "    <main>",
+        "      <h2>Hello {{ firstName }}!</h2>",
+        "      <input type=\"text\" [(ngModel)]=\"firstName\" />",
+        "    </main>",
+        "  `,",
+        "})",
+        "export class App {",
+        "  firstName = 'Ada';",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Để sử dụng two-way binding với các phần tử form nguyên bản của trình duyệt, bạn cần:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Import FormsModule từ gói @angular/forms.",
+        "Sử dụng directive ngModel với cú pháp hai chiều [(ngModel)].",
+        "Gán biến trạng thái mà bạn muốn đồng bộ (ví dụ: firstName)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "two-way-binding-between-components",
+      "text": "Two-way binding giữa các Component"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng two-way binding giữa component cha và component con trong Angular hiện đại rất dễ dàng nhờ API signal model(). Sau đây là ví dụ component cha App thiết lập số ban đầu, còn component con Counter chịu trách nhiệm cập nhật và hiển thị giao diện:"
+    },
+    {
+      "type": "code",
+      "file": "counter.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component, model } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'app-counter',",
+        "  template: `",
+        "    <button (click)=\"updateCount(-1)\">-</button>",
+        "    <span>{{ count() }}</span>",
+        "    <button (click)=\"updateCount(+1)\">+</button>",
+        "  `,",
+        "})",
+        "export class Counter {",
+        "  // Khai báo một model signal",
+        "  count = model<number>(0);",
+        "",
+        "  updateCount(amount: number): void {",
+        "    this.count.update((current) => current + amount);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { Counter } from './counter';",
+        "",
+        "@Component({",
+        "  selector: 'app-root',",
+        "  imports: [Counter],",
+        "  template: `",
+        "    <main>",
+        "      <h1>Counter: {{ initialCount }}</h1>",
+        "      <app-counter [(count)]=\"initialCount\"></app-counter>",
+        "    </main>",
+        "  `,",
+        "})",
+        "export class App {",
+        "  initialCount = 18;",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "enabling-two-way-binding-between-components",
+      "text": "Các bước kích hoạt Two-way binding cho Component"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tóm lại, để kích hoạt liên kết hai chiều giữa hai component, quy trình chỉ gồm 2 điều kiện:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Component con: Khai báo thuộc tính bằng hàm model() từ @angular/core (ví dụ: count = model<number>(0)).",
+        "Component cha: Bao bọc tên thuộc tính model trong cú pháp [(count)]=\"initialCount\" và gán vào một property hoặc signal của component cha."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "model() signal đóng vai trò vừa là Input vừa là Output. Khi component con gọi count.set(...) hoặc count.update(...), giá trị mới sẽ ngay lập tức được thông báo và đồng bộ ngược lên component cha!"
+    }
+  ]
+}

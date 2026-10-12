@@ -1,0 +1,51 @@
+{
+  "slug": "guide/di/defining-dependency-providers",
+  "title": "Defining dependency providers",
+  "description": "Learn about the different types of providers in Angular: useClass, useExisting, useValue, and useFactory.",
+  "source": "https://angular.dev/guide/di/defining-dependency-providers",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A dependency provider configures an injector to associate a dependency token with a way to create or retrieve the dependency value."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "provider-types",
+      "text": "Provider types"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Class providers (<code>useClass</code>):</strong> Instantiates a designated class when the token is requested.",
+        "<strong>Aliased class providers (<code>useExisting</code>):</strong> Maps one token to another existing token.",
+        "<strong>Value providers (<code>useValue</code>):</strong> Directly supplies a static value, such as a configuration object.",
+        "<strong>Factory providers (<code>useFactory</code>):</strong> Executes a factory function to compute the dependency dynamically."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "providers.ts",
+      "lang": "ts",
+      "code": [
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    // Class provider",
+        "    { provide: LoggerService, useClass: BetterLoggerService },",
+        "",
+        "    // Value provider",
+        "    { provide: APP_CONFIG, useValue: { apiUrl: 'https://api.example.com' } },",
+        "",
+        "    // Factory provider",
+        "    {",
+        "      provide: DataService,",
+        "      useFactory: (http: HttpClient) => new DataService(http),",
+        "      deps: [HttpClient],",
+        "    },",
+        "  ],",
+        "};"
+      ]
+    }
+  ]
+}

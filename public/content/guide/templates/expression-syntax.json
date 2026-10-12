@@ -1,0 +1,127 @@
+{
+  "slug": "guide/templates/expression-syntax",
+  "title": "Expression syntax",
+  "description": "Cú pháp biểu thức trong Angular Template dựa trên JavaScript nhưng có một số điểm tương đồng và khác biệt cốt lõi về toán tử, biến toàn cục và ngữ cảnh từ vựng.",
+  "source": "https://angular.dev/guide/templates/expression-syntax",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Các biểu thức template của Angular dựa trên ngôn ngữ JavaScript nhưng có một số điểm khác biệt quan trọng. Tài liệu này giải thích chi tiết các điểm tương đồng, toán tử được hỗ trợ, biến toàn cục và phạm vi ngữ cảnh."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "value-literals",
+      "text": "Các giá trị Literal"
+    },
+    {
+      "type": "table",
+      "headers": ["Kiểu Literal", "Ví dụ hỗ trợ", "Trạng thái"],
+      "rows": [
+        ["String", "'Hello', \"World\"", "Hỗ trợ"],
+        ["Boolean", "true, false", "Hỗ trợ"],
+        ["Number", "123, 3.14", "Hỗ trợ"],
+        ["Object", "{ name: 'Alice' }", "Hỗ trợ"],
+        ["Array", "['Onion', 'Cheese', 'Garlic']", "Hỗ trợ"],
+        ["null", "null", "Hỗ trợ"],
+        ["RegExp", "/\\d+/", "Hỗ trợ"],
+        ["Template string", "`Xin chào ${name}`", "Hỗ trợ"],
+        ["Tagged template string", "tag`Xin chào ${name}`", "Hỗ trợ"],
+        ["BigInt", "1n", "KHÔNG hỗ trợ"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "globals-and-locals",
+      "text": "Biến toàn cục (Globals) và biến ngữ cảnh cục bộ (Locals)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Biểu thức template của Angular chỉ hỗ trợ hai biến toàn cục duy nhất là undefined và $any. Các đối tượng toàn cục của JavaScript như Number, Boolean, NaN, Infinity, parseInt,... KHÔNG được hỗ trợ trực tiếp trong template (nếu cần, hãy expose chúng qua class component)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular tự động cung cấp các biến ngữ cảnh cục bộ bắt đầu bằng dấu đô la ($) trong từng khối nhất định, ví dụ: $index, $count, $even trong @for, hay $event trong event listener."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "what-operators-are-supported",
+      "text": "Các toán tử được hỗ trợ & không được hỗ trợ"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ hầu hết các toán tử tiêu chuẩn của JavaScript và bổ sung thêm các toán tử chuyên biệt:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Toán tử toán học & logic: +, -, *, /, %, **, &&, ||, !, ??, so sánh (<, <=, >, >=, ==, ===, !==, !=).",
+        "Truy cập thuộc tính & kiểm tra kiểu: obj['prop'], typeof, void, in, instanceof.",
+        "Spread / Rest: {...obj}, [...arr], fn(...args).",
+        "Arrow functions: items.filter((i) => i.active) (chỉ hỗ trợ expression body dạng ngắn).",
+        "Toán tử đặc thù Angular: Pipe (|), Optional chaining (?.), Non-null assertion (!)."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Toán tử gán (=, +=, -=, ??=) và tăng/giảm chỉ hợp lệ trong câu lệnh lắng nghe sự kiện (event listeners) hoặc trong arrow function. Không thể dùng chúng trong interpolation hay property binding."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "unsupported-operators",
+      "text": "Các toán tử KHÔNG được hỗ trợ"
+    },
+    {
+      "type": "table",
+      "headers": ["Toán tử không hỗ trợ", "Ví dụ minh họa"],
+      "rows": [
+        ["Tất cả toán tử Bitwise", "&, &=, ~, |=, ^="],
+        ["Destructuring Object / Array", "const { name } = person; const [a] = list;"],
+        ["Toán tử phẩy (comma)", "x = (x++, x)"],
+        ["Khởi tạo new", "new Car()"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "safe-navigation-migration",
+      "text": "Cập nhật toán tử Optional Chaining (?.) từ Angular 22"
+    },
+    {
+      "type": "paragraph",
+      "text": "Từ Angular 22, hành vi của toán tử optional chaining (?.) đã được đồng bộ hoàn toàn với JavaScript chuẩn: trả về undefined khi vế trái là null hoặc undefined (thay vì trả về null như các phiên bản cũ). Trong quá trình nâng cấp, Angular schematics có thể tạm chèn hàm ma thuật $safeNavigationMigration(foo?.bar) để giữ tương thích ngược."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "lexical-context-for-expressions",
+      "text": "Ngữ cảnh từ vựng (Lexical context) & Từ khoá this"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các biểu thức template được thực thi trong ngữ cảnh của component class. Từ khoá this luôn được hiểu ngầm định. Tuy nhiên, nếu template có khai báo biến trùng tên che khuất (shadow) thuộc tính của class, bạn có thể gọi tường minh this.propertyName để truy cập chính xác thuộc tính gốc của component."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "event-listener-statements",
+      "text": "Câu lệnh xử lý sự kiện (Event listener statements)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trình xử lý sự kiện (click)=\"...\" là câu lệnh (statements) chứ không phải biểu thức (expression). Có hai điểm khác biệt mấu chốt:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Cho phép sử dụng toán tử gán (ví dụ: isExpanded = !isExpanded).",
+        "KHÔNG hỗ trợ toán tử pipe (|) bên trong câu lệnh sự kiện."
+      ]
+    }
+  ]
+}

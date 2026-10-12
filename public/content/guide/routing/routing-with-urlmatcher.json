@@ -1,0 +1,202 @@
+{
+  "slug": "guide/routing/routing-with-urlmatcher",
+  "title": "Tạo bộ so khớp tuyến đường tùy chỉnh (Creating custom route matches)",
+  "description": "Hướng dẫn xây dựng bộ so khớp route tùy chỉnh bằng UrlMatcher trong Angular Router để nhận diện các mẫu URL phức tạp như handle tài khoản (@username).",
+  "source": "https://angular.dev/guide/routing/routing-with-urlmatcher",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular Router hỗ trợ một chiến lược khớp đường dẫn mạnh mẽ cho phép bạn điều phối linh hoạt quá trình điều hướng của người dùng. Chiến lược khớp này hỗ trợ các tuyến đường tĩnh, các tuyến đường biến đổi với tham số, các tuyến đường đại diện (wildcards), v.v. Ngoài ra, bạn hoàn toàn có thể xây dựng cơ chế so khớp mẫu tùy chỉnh của riêng mình cho các tình huống mà định dạng URL phức tạp hơn thông thường."
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong bài hướng dẫn này, bạn sẽ xây dựng một bộ so khớp route tùy chỉnh bằng cách sử dụng <code>UrlMatcher</code> của Angular. Bộ matcher này sẽ tìm kiếm định dạng tên tài khoản X / Twitter (bắt đầu bằng ký tự <code>@</code>) trên URL."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "objectives",
+      "text": "Mục tiêu (Objectives)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Triển khai hàm <code>UrlMatcher</code> của Angular để tạo một bộ so khớp route tùy biến."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "create-a-sample-application",
+      "text": "Tạo ứng dụng mẫu (Create a sample application)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng Angular CLI để tạo một ứng dụng mới và một profile component:"
+    },
+    {
+      "type": "code",
+      "file": "terminal",
+      "lang": "bash",
+      "code": [
+        "ng new angular-custom-route-match",
+        "cd angular-custom-route-match",
+        "ng generate component profile"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Cập nhật template cho component <code>profile</code>:"
+    },
+    {
+      "type": "code",
+      "file": "profile.component.html",
+      "lang": "html",
+      "code": [
+        "<p>Hello {{ username() }}!</p>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Cập nhật template chính của ứng dụng tại <code>app.component.html</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.html",
+      "lang": "html",
+      "code": [
+        "<h2>Định tuyến với Bộ so khớp tùy chỉnh (Custom Matching)</h2>",
+        "<p>",
+        "  Điều hướng đến: ",
+        "  <a routerLink=\"/@Angular\">Hồ sơ của tôi (@Angular)</a>",
+        "</p>",
+        "",
+        "<router-outlet />"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configure-your-routes-for-your-application",
+      "text": "Cấu hình routes cho ứng dụng (Configure your routes)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kích hoạt tính năng <code>withComponentInputBinding()</code> trong tệp <code>app.config.ts</code> để Router tự động liên kết các tham số đã trích xuất vào input của component:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideRouter, withComponentInputBinding } from '@angular/router';",
+        "import { routes } from './app.routes';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideRouter(routes, withComponentInputBinding()),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bây giờ, định nghĩa route với thuộc tính <code>matcher</code> thay vì <code>path</code> thông thường bên trong <code>app.routes.ts</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes, UrlSegment } from '@angular/router';",
+        "import { Profile } from './profile/profile.component';",
+        "",
+        "export const routes: Routes = [",
+        "  {",
+        "    matcher: (url) => {",
+        "      // Kiểm tra URL chỉ gồm 1 phân đoạn và bắt đầu bằng ký tự @",
+        "      if (url.length === 1 && url[0].path.match(/^@[\\w]+$/gm)) {",
+        "        return {",
+        "          consumed: url,",
+        "          posParams: {",
+        "            // Trích xuất username bằng cách bỏ ký tự @ đầu tiên",
+        "            username: new UrlSegment(url[0].path.slice(1), {}),",
+        "          },",
+        "        };",
+        "      }",
+        "      return null;",
+        "    },",
+        "    component: Profile,",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm custom matcher này thực hiện các nhiệm vụ sau:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Xác minh rằng mảng phân đoạn URL chỉ chứa đúng 1 phần tử (<code>url.length === 1</code>).",
+        "Sử dụng biểu thức chính quy (Regular Expression) để đảm bảo chuỗi ký tự bắt đầu bằng <code>@</code> kèm các ký tự chữ cái/chữ số.",
+        "Nếu khớp, hàm trả về đối tượng gồm <code>consumed</code> (phần URL đã tiêu thụ) và <code>posParams</code> định nghĩa tham số route <code>username</code>.",
+        "Nếu không khớp, hàm trả về <code>null</code> để router tiếp tục tìm kiếm các route khác trong mảng."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Một route sử dụng custom <code>matcher</code> có hành vi tương đương như bất kỳ route thông thường nào. Bạn vẫn có thể khai báo child routes hoặc tải lười (lazy loading) bên trong nó."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reading-the-route-parameters",
+      "text": "Đọc các tham số route trong Component (Reading route parameters)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau khi định nghĩa custom matcher, bạn chỉ cần tạo một signal input có tên <code>username</code> trong component <code>Profile</code>:"
+    },
+    {
+      "type": "code",
+      "file": "profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, input } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'app-profile',",
+        "  templateUrl: './profile.component.html',",
+        "})",
+        "export class Profile {",
+        "  // Nhận giá trị tự động từ posParams.username của UrlMatcher",
+        "  username = input.required<string>();",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "test-your-custom-url-matcher",
+      "text": "Chạy thử nghiệm (Test your custom URL matcher)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khởi động ứng dụng bằng lệnh:"
+    },
+    {
+      "type": "code",
+      "file": "terminal",
+      "lang": "bash",
+      "code": [
+        "ng serve"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi truy cập vào <code>http://localhost:4200</code> và nhấp vào liên kết <code>/@Angular</code>, màn hình sẽ hiển thị <strong>Hello Angular!</strong> nhờ việc router đã khớp và trích xuất thành công tham số <code>username</code>."
+    }
+  ]
+}

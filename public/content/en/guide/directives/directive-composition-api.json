@@ -1,0 +1,69 @@
+{
+  "slug": "guide/directives/directive-composition-api",
+  "title": "Directive Composition API",
+  "description": "Learn how the directive composition API lets you compose behaviors directly onto component host elements in Angular.",
+  "source": "https://angular.dev/guide/directives/directive-composition-api",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular's <strong>Directive Composition API</strong> allows you to apply directives to component host elements directly from within the TypeScript component decorator. This enables powerful code reuse without classical class inheritance."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "adding-host-directives",
+      "text": "Adding host directives"
+    },
+    {
+      "type": "paragraph",
+      "text": "Specify directives using the <code>hostDirectives</code> property in <code>@Component</code> or <code>@Directive</code>:"
+    },
+    {
+      "type": "code",
+      "file": "custom-slider.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { Focusable, Highlightable } from './behaviors';",
+        "",
+        "@Component({",
+        "  selector: 'custom-slider',",
+        "  standalone: true,",
+        "  hostDirectives: [Focusable, Highlightable],",
+        "  template: `<div class=\"slider-track\"></div>`",
+        "})",
+        "export class CustomSliderComponent {}",
+        "// CustomSliderComponent automatically inherits Focusable and Highlightable behaviors!"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "forwarding-inputs-and-outputs",
+      "text": "Forwarding inputs and outputs"
+    },
+    {
+      "type": "paragraph",
+      "text": "By default, inputs and outputs of host directives are not exposed publicly on the host component. You can explicitly expose or alias them using the expanded configuration object:"
+    },
+    {
+      "type": "code",
+      "file": "forwarding.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  selector: 'custom-slider',",
+        "  standalone: true,",
+        "  hostDirectives: [{",
+        "    directive: Highlightable,",
+        "    inputs: ['color: sliderColor'],",
+        "    outputs: ['colorChange: sliderColorChange'],",
+        "  }],",
+        "  template: `...`",
+        "})",
+        "export class CustomSliderComponent {}"
+      ]
+    }
+  ]
+}

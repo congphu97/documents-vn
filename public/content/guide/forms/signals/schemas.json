@@ -1,0 +1,280 @@
+{
+  "slug": "guide/forms/signals/schemas",
+  "title": "Lược đồ và Khả năng kết hợp Schema (Schemas and schema composability)",
+  "description": "Tìm hiểu kiến trúc hai lớp trong Signal Forms: tầng cấu trúc (structural layer) và tầng hành vi (behavioral layer), tái sử dụng với schema(), áp dụng có điều kiện với applyWhen(), thu hẹp kiểu với applyWhenValue() và duyệt mảng với applyEach().",
+  "source": "https://angular.dev/guide/forms/signals/schemas",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<strong>Signal Forms</strong> sử dụng kiến trúc hai lớp (two-layer architecture) để phân tách rõ ràng giữa cách biểu mẫu được cấu trúc (structural layer) và cách nó phản ứng trong thời gian chạy (behavioral layer)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn truyền một hàm schema vào hàm <code>form()</code>, hàm đó chỉ chạy <strong>đúng một lần duy nhất</strong> khi khởi tạo form. Nhiệm vụ của nó là thiết lập cây logic (logic tree): khai báo trường nào cần kiểm thực, trường nào bị vô hiệu hóa và trường nào phụ thuộc vào trường khác. Đây là <strong>tầng cấu trúc</strong> của biểu mẫu."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bên trong hàm schema, bạn gọi các hàm quy tắc như <code>disabled()</code>, <code>required()</code>, <code>validate()</code>. Các quy tắc này tiếp nhận logic phản ứng tự động tính toán lại mỗi khi signal mà chúng tham chiếu thay đổi. Chúng tạo nên <strong>tầng hành vi</strong> trong thời gian chạy."
+    },
+    {
+      "type": "code",
+      "file": "two-layer-concept.ts",
+      "lang": "ts",
+      "code": [
+        "contactForm = form(this.contactModel, (schemaPath) => {",
+        "  // Hàm Schema: chỉ chạy 1 LẦN DUY NHẤT khi tạo form",
+        "  required(schemaPath.name);",
+        "  ",
+        "  // Logic phản ứng bên trong: tính toán lại mỗi khi total thay đổi",
+        "  disabled(schemaPath.couponCode, {",
+        "    when: ({ valueOf }) => valueOf(schemaPath.total) < 50,",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Sự phân biệt này rất quan trọng khi bạn kết hợp các schema: các hàm như <code>apply()</code>, <code>applyWhen()</code>, <code>applyWhenValue()</code>, và <code>schema()</code> đều vận hành ở tầng cấu trúc để kiểm soát quy tắc nào tồn tại và được kích hoạt."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "create-reusable-schemas-with-schema",
+      "text": "Tạo Schema tái sử dụng với schema()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi nhiều biểu mẫu có chung các quy tắc cho cùng một cấu trúc dữ liệu, hãy dùng hàm <code>schema()</code> để trích xuất thành đối tượng <code>Schema&lt;T&gt;</code> tái sử dụng:"
+    },
+    {
+      "type": "code",
+      "file": "name-schema.ts",
+      "lang": "ts",
+      "code": [
+        "import { schema, required, minLength } from '@angular/forms/signals';",
+        "",
+        "export const nameSchema = schema<{ first: string; last: string }>((name) => {",
+        "  required(name.first);",
+        "  required(name.last);",
+        "  minLength(name.first, 2);",
+        "  minLength(name.last, 2);",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Các đối tượng <code>Schema</code> tái sử dụng được Angular lưu trữ vào bộ nhớ đệm (cached) trong quá trình biên dịch form, giúp tối ưu hiệu năng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-the-schema-with-apply",
+      "text": "Áp dụng schema bằng hàm apply()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể áp dụng một schema tái sử dụng vào một đường dẫn cụ thể trong form bằng hàm <code>apply()</code>. Schema nhận một đường dẫn phạm vi (scoped path) chỉ nhìn thấy các trường con bên trong đường dẫn đó:"
+    },
+    {
+      "type": "code",
+      "file": "apply-schema.ts",
+      "lang": "ts",
+      "code": [
+        "import { apply } from '@angular/forms/signals';",
+        "",
+        "profileForm = form(this.profileModel, (schemaPath) => {",
+        "  apply(schemaPath.name, nameSchema);",
+        "});",
+        "",
+        "registrationForm = form(this.registrationModel, (schemaPath) => {",
+        "  apply(schemaPath.name, nameSchema);",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "conditional-schemas-with-applywhen",
+      "text": "Schema có điều kiện với applyWhen()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>applyWhen()</code> áp dụng schema dựa trên trạng thái phản ứng. Nó nhận vào 3 tham số:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Đường dẫn áp dụng schema (path).",
+        "Hàm logic phản ứng trả về <code>true</code> (kích hoạt) hoặc <code>false</code> (hủy kích hoạt).",
+        "Hàm schema hoặc đối tượng schema chứa các quy tắc điều kiện."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "apply-when.ts",
+      "lang": "ts",
+      "code": [
+        "import { form, applyWhen, required, pattern } from '@angular/forms/signals';",
+        "",
+        "addressForm = form(this.addressModel, (schemaPath) => {",
+        "  applyWhen(",
+        "    schemaPath,",
+        "    ({ valueOf }) => valueOf(schemaPath.country) === 'US',",
+        "    (schemaPath) => {",
+        "      required(schemaPath.zipCode);",
+        "      pattern(schemaPath.zipCode, /^\\d{5}(-\\d{4})?$/);",
+        "    },",
+        "  );",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "combining-applywhen-with-reusable-schemas",
+      "text": "Kết hợp applyWhen() với Schema tái sử dụng"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể kết hợp <code>applyWhen()</code> với các đối tượng <code>Schema</code> tái sử dụng để xây dựng các biểu mẫu quốc tế linh hoạt:"
+    },
+    {
+      "type": "code",
+      "file": "international-address.ts",
+      "lang": "ts",
+      "code": [
+        "const usZipCodeSchema = schema<{ zipCode: string }>((address) => {",
+        "  required(address.zipCode);",
+        "  pattern(address.zipCode, /^\\d{5}(-\\d{4})?$/);",
+        "});",
+        "",
+        "const caPostalCodeSchema = schema<{ postalCode: string }>((address) => {",
+        "  required(address.postalCode);",
+        "  pattern(address.postalCode, /^[A-Z]\\d[A-Z] \\d[A-Z]\\d$/);",
+        "});",
+        "",
+        "shippingForm = form(this.shippingModel, (schemaPath) => {",
+        "  applyWhen(",
+        "    schemaPath.address,",
+        "    ({ valueOf }) => valueOf(schemaPath.country) === 'US',",
+        "    usZipCodeSchema,",
+        "  );",
+        "  applyWhen(",
+        "    schemaPath.address,",
+        "    ({ valueOf }) => valueOf(schemaPath.country) === 'CA',",
+        "    caPostalCodeSchema,",
+        "  );",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "type-narrowing-with-applywhenvalue",
+      "text": "Thu hẹp kiểu dữ liệu với applyWhenValue()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>applyWhenValue()</code> đơn giản hóa các điều kiện chỉ cần kiểm tra giá trị của chính trường đó. Thay vì nhận <code>FieldContext</code>, hàm điều kiện nhận trực tiếp giá trị thô của trường."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ưu điểm vượt trội của <code>applyWhenValue()</code> là hỗ trợ <strong>TypeScript Type Guard</strong>. Khi hàm điều kiện là một type guard, tham số của schema sẽ tự động thu hẹp thành kiểu cụ thể. Điều này cực kỳ lý tưởng cho các <strong>Discriminated Unions</strong>:"
+    },
+    {
+      "type": "code",
+      "file": "discriminated-unions.ts",
+      "lang": "ts",
+      "code": [
+        "interface CreditCard {",
+        "  type: 'credit-card';",
+        "  cardNumber: string;",
+        "  expiry: string;",
+        "  cvv: string;",
+        "}",
+        "",
+        "interface BankTransfer {",
+        "  type: 'bank-transfer';",
+        "  accountNumber: string;",
+        "  routingNumber: string;",
+        "}",
+        "",
+        "type PaymentMethod = CreditCard | BankTransfer;",
+        "",
+        "function isCreditCard(value: PaymentMethod): value is CreditCard {",
+        "  return value.type === 'credit-card';",
+        "}",
+        "",
+        "function isBankTransfer(value: PaymentMethod): value is BankTransfer {",
+        "  return value.type === 'bank-transfer';",
+        "}",
+        "",
+        "paymentForm = form(this.paymentModel, (schemaPath) => {",
+        "  // TypeScript tự động hiểu payment mang kiểu CreditCard:",
+        "  applyWhenValue(schemaPath, isCreditCard, (payment) => {",
+        "    required(payment.cardNumber);",
+        "    required(payment.expiry);",
+        "    required(payment.cvv);",
+        "  });",
+        "",
+        "  // TypeScript tự động hiểu payment mang kiểu BankTransfer:",
+        "  applyWhenValue(schemaPath, isBankTransfer, (payment) => {",
+        "    required(payment.accountNumber);",
+        "    required(payment.routingNumber);",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "array-items-with-applyeach",
+      "text": "Áp dụng cho từng phần tử mảng với applyEach()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi biểu mẫu chứa mảng các đối tượng, hàm <code>applyEach()</code> áp dụng schema cho từng phần tử trong mảng, bất kể mảng có bao nhiêu phần tử hoặc thêm mới bao nhiêu phần tử sau đó:"
+    },
+    {
+      "type": "code",
+      "file": "apply-each-reusable.ts",
+      "lang": "ts",
+      "code": [
+        "type LineItem = { name: string; quantity: number };",
+        "",
+        "// Tạo schema tái sử dụng cho từng dòng sản phẩm:",
+        "const lineItemSchema = schema<LineItem>((item) => {",
+        "  required(item.name);",
+        "  min(item.quantity, 1);",
+        "});",
+        "",
+        "// Dùng trong nhiều form khác nhau:",
+        "orderForm = form(this.orderModel, (schemaPath) => {",
+        "  required(schemaPath.title);",
+        "  applyEach(schemaPath.items, lineItemSchema);",
+        "});",
+        "",
+        "invoiceForm = form(this.invoiceModel, (schemaPath) => {",
+        "  required(schemaPath.invoiceNumber);",
+        "  applyEach(schemaPath.lineItems, lineItemSchema);",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/form-logic\">Thêm logic vào Biểu mẫu (Adding form logic)</a>",
+        "<a href=\"/docs/guide/forms/signals/validation\">Kiểm thực dữ liệu trong Signal Forms (Validation)</a>",
+        "<a href=\"/docs/guide/forms/signals/form-submission\">Gửi biểu mẫu (Form submission)</a>"
+      ]
+    }
+  ]
+}

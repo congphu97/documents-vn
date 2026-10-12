@@ -1,0 +1,204 @@
+{
+  "slug": "guide/http/setup",
+  "title": "Thiết lập HttpClient (Setting up HttpClient)",
+  "description": "Hướng dẫn chi tiết cách cấu hình và cung cấp HttpClient trong Angular qua provideHttpClient, các tính năng đi kèm (withFetch, withXhr, withInterceptors, withXsrfConfiguration...) và chiến lược di chuyển từ HttpClientModule cũ.",
+  "source": "https://angular.dev/guide/http/setup",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Từ Angular v21 trở đi, <code>HttpClient</code> đã có sẵn theo mặc định để tiêm phụ thuộc (dependency injection). Bạn có thể cấu hình chi tiết hành vi và các tính năng bổ sung của HTTP client thông qua hàm trợ giúp <code>provideHttpClient()</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "providing-httpclient-through-dependency-injection",
+      "text": "Cung cấp HttpClient qua Dependency Injection"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong các ứng dụng Standalone hiện đại, bạn cấu hình HTTP client trong danh sách <code>providers</code> của file <code>app.config.ts</code> bằng hàm <code>provideHttpClient()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideHttpClient, withInterceptors } from '@angular/common/http';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideHttpClient(",
+        "      // Thêm các tính năng tùy chọn tại đây, ví dụ withInterceptors(...)",
+        "    ),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu ứng dụng của bạn vẫn đang khởi động theo phong cách <code>NgModule</code>, bạn có thể truyền <code>provideHttpClient()</code> vào mảng <code>providers</code> của <code>AppModule</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.module.ts",
+      "lang": "ts",
+      "code": [
+        "import { NgModule } from '@angular/core';",
+        "import { provideHttpClient } from '@angular/common/http';",
+        "",
+        "@NgModule({",
+        "  providers: [",
+        "    provideHttpClient(/* cấu hình tính năng */),",
+        "  ],",
+        "})",
+        "export class AppModule {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau đó, bạn có thể tiêm dịch vụ <code>HttpClient</code> vào các service, component hoặc class bằng hàm <code>inject()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "config.service.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable, inject } from '@angular/core';",
+        "import { HttpClient } from '@angular/common/http';",
+        "",
+        "@Injectable({ providedIn: 'root' })",
+        "export class ConfigService {",
+        "  private http = inject(HttpClient);",
+        "  // Service hiện đã có thể thực hiện các request HTTP thông qua this.http",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configuring-features-of-httpclient",
+      "text": "Cấu hình các tính năng của HttpClient"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>provideHttpClient</code> nhận vào một danh sách các hàm cấu hình tính năng tùy chọn nhằm bật hoặc tùy chỉnh các khía cạnh khác nhau của client."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "withxhr",
+      "text": "withXhr()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, <code>HttpClient</code> sử dụng Fetch API hiện đại của trình duyệt để gửi request. Tính năng <code>withXhr()</code> chuyển đổi client sang sử dụng <code>XMLHttpRequest</code> (XHR) truyền thống:"
+    },
+    {
+      "type": "code",
+      "file": "with-xhr.ts",
+      "lang": "ts",
+      "code": [
+        "provideHttpClient(withXhr())"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "warning",
+      "title": "Không sử dụng withXhr() trong môi trường SSR (Server-Side Rendering)",
+      "text": "Hỗ trợ XHR trên server đã bị deprecated và dự kiến sẽ bị loại bỏ hoàn toàn trong Angular v23. Thư viện <code>xhr2</code> cơ sở trên server không xử lý an toàn các chuyển hướng (redirects), có thể làm lộ header Authorization hoặc dễ bị tấn công DoS qua vòng lặp chuyển hướng. Trong ứng dụng SSR, luôn sử dụng backend mặc định là <code>fetch</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "withinterceptors",
+      "text": "withInterceptors(...)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cấu hình danh sách các hàm interceptor chức năng (functional interceptors) để tiền xử lý request hoặc hậu xử lý response. Đây là cách tiếp cận hiện đại và được khuyến nghị hàng đầu do thứ tự thực thi rõ ràng và dễ đoán trước."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "withinterceptorsfromdi",
+      "text": "withInterceptorsFromDi()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cho phép tích hợp các class-based interceptor cũ (được đăng ký thông qua token <code>HTTP_INTERCEPTORS</code>) vào cấu hình <code>provideHttpClient</code> để tương thích ngược với mã nguồn cũ."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "withrequestsmadeviaparent",
+      "text": "withRequestsMadeViaParent()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, khi cấu hình <code>provideHttpClient</code> trong một injector con, cấu hình này sẽ ghi đè hoàn toàn cấu hình ở injector cha. Khi thêm <code>withRequestsMadeViaParent()</code>, các request sau khi đi qua interceptor ở cấp con sẽ tiếp tục được chuyển lên phiên bản <code>HttpClient</code> ở injector cha để đi qua tiếp các interceptor của cha."
+    },
+    {
+      "type": "callout",
+      "calloutType": "important",
+      "title": "Yêu cầu bắt buộc",
+      "text": "Bạn phải chắc chắn rằng injector cấp trên đã được cung cấp một thực thể <code>HttpClient</code>, nếu không sẽ phát sinh lỗi runtime khi thực hiện request."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "withjsonpsupport",
+      "text": "withJsonpSupport() [Deprecated]"
+    },
+    {
+      "type": "callout",
+      "calloutType": "caution",
+      "title": "JSONP đã bị Deprecated",
+      "text": "<code>withJsonpSupport()</code> và phương thức <code>http.jsonp()</code> đã bị đánh dấu deprecated vì cơ chế JSONP tiềm ẩn nguy cơ bảo mật Cross-Site Scripting (XSS). Hãy luôn ưu tiên sử dụng chuẩn HTTP thông thường kết hợp với CORS."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "xsrf-configuration",
+      "text": "withXsrfConfiguration(...) & withNoXsrfProtection()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular tích hợp sẵn cơ chế phòng chống giả mạo yêu cầu qua các trang web khác nhau (XSRF/CSRF). Bạn có thể cấu hình tên cookie và header hoặc tắt hoàn toàn:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>withXsrfConfiguration({ cookieName: 'CUSTOM_XSRF_TOKEN', headerName: 'X-CUSTOM-XSRF' })</code>: Tùy biến tên cookie và header XSRF.",
+        "<code>withNoXsrfProtection()</code>: Tắt hoàn toàn tính năng bảo vệ XSRF tích hợp (ví dụ khi API backend không cần cookie xác thực)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "httpclientmodule-based-configuration",
+      "text": "So sánh với cấu hình cũ dựa trên HttpClientModule"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bảng đối chiếu giữa các NgModule cũ trong <code>@angular/common/http</code> và các hàm tương đương trong <code>provideHttpClient()</code>:"
+    },
+    {
+      "type": "table",
+      "headers": ["NgModule cũ (Deprecated)", "Hàm tương đương với provideHttpClient()"],
+      "rows": [
+        ["<code>HttpClientModule</code>", "<code>provideHttpClient(withInterceptorsFromDi(), withXhr())</code>"],
+        ["<code>HttpClientJsonpModule</code>", "<code>withJsonpSupport()</code> (Deprecated)"],
+        ["<code>HttpClientXsrfModule.withOptions(...)</code>", "<code>withXsrfConfiguration(...)</code>"],
+        ["<code>HttpClientXsrfModule.disable()</code>", "<code>withNoXsrfProtection()</code>"]
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "note",
+      "title": "Cảnh báo khi dùng HttpClientModule ở nhiều injector",
+      "text": "Khi <code>HttpClientModule</code> xuất hiện ở nhiều injector khác nhau, hành vi của các interceptor không ổn định và phụ thuộc vào thứ tự import. Hãy chuyển đổi hoàn toàn sang <code>provideHttpClient</code> để đảm bảo tính nhất quán."
+    }
+  ]
+}

@@ -1,0 +1,208 @@
+{
+  "slug": "guide/di/debugging-di",
+  "title": "Gỡ lỗi và khắc phục sự cố Dependency Injection (Debugging and troubleshooting DI)",
+  "description": "Hướng dẫn chẩn đoán và xử lý các lỗi thường gặp trong Dependency Injection của Angular: NullInjectorError (NG0201), NG0203, NG0200, lệch phạm vi provider và DevTools.",
+  "source": "https://angular.dev/guide/di/debugging-and-troubleshooting-di",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Các vấn đề trong Dependency Injection (DI) thường bắt nguồn từ lỗi cấu hình provider, phạm vi (scope) không phù hợp hoặc sử dụng sai ngữ cảnh. Hướng dẫn này giúp bạn nhanh chóng xác định và giải quyết các lỗi DI phổ biến nhất."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "common-pitfalls-and-solutions",
+      "text": "Các cạm bẫy phổ biến và giải pháp (Common pitfalls and solutions)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "services-not-available-where-expected",
+      "text": "1. Service không khả dụng ở vị trí mong đợi"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular chỉ tìm kiếm dependency ngược lên phía trên cây phân cấp injector (từ con lên cha), không bao giờ tìm kiếm ngược xuống dưới. Do đó, nếu bạn cung cấp service trong mảng `providers` của một component con, component cha hoặc component anh em sẽ KHÔNG THỂ truy cập được service đó:"
+    },
+    {
+      "type": "code",
+      "file": "scope-mismatch.example.ts",
+      "lang": "typescript",
+      "code": [
+        "// Component con cung cấp DataStore",
+        "@Component({",
+        "  selector: 'app-child',",
+        "  providers: [DataStore],",
+        "})",
+        "export class ChildView {}",
+        "",
+        "// Component cha cố gắng inject -> Báo lỗi NullInjectorError!",
+        "@Component({ selector: 'app-parent', template: '<app-child />' })",
+        "export class ParentView {",
+        "  private dataService = inject(DataStore); // ❌ LỖI: Cha không thể tìm thấy provider của con",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Giải pháp: Hãy cung cấp service ở cấp cao hơn, hoặc ưu tiên dùng @Service() / @Injectable({ providedIn: 'root' }) để service khả dụng toàn cục và hỗ trợ Tree-shaking."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "multiple-instances-instead-of-singletons",
+      "text": "2. Xuất hiện nhiều instance thay vì Singleton dùng chung"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn khai báo service trong mảng `providers` của component, Angular sẽ tạo ra một instance hoàn toàn mới cho mỗi instance của component đó. Điều này dẫn đến việc thay đổi dữ liệu ở component A sẽ không phản ánh sang component B:"
+    },
+    {
+      "type": "code",
+      "file": "unintended-multiple-instances.ts",
+      "lang": "typescript",
+      "code": [
+        "// ❌ Tránh khai báo ở component nếu muốn dùng chung trạng thái:",
+        "@Component({",
+        "  selector: 'app-profile',",
+        "  providers: [UserClient], // Tạo instance riêng!",
+        "})",
+        "export class UserProfile { private userService = inject(UserClient); }",
+        "",
+        "@Component({",
+        "  selector: 'app-settings',",
+        "  providers: [UserClient], // Tạo một instance khác!",
+        "})",
+        "export class UserSettings { private userService = inject(UserClient); }"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Chỉ cố tình sử dụng mảng providers ở component khi bạn thực sự muốn cô lập trạng thái (ví dụ form state độc lập, cache tạm thời của riêng component)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "incorrect-inject-usage",
+      "text": "3. Sử dụng sai hàm inject() (Gọi trong lifecycle hook hoặc callback)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm `inject()` CHỈ hoạt động đồng bộ trong quá trình khởi tạo class (field initializer hoặc constructor body). Gọi `inject()` trong lifecycle hooks (`ngOnInit`, `ngAfterViewInit`, `ngOnDestroy`) hoặc trong callback bất đồng bộ (`setTimeout`, Promise) sẽ ném ra lỗi `NG0203`:"
+    },
+    {
+      "type": "code",
+      "file": "lifecycle-inject-error.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({/* ... */})",
+        "export class UserProfile {",
+        "  // ❌ SAI: ngOnInit chạy ngoài injection context",
+        "  ngOnInit() {",
+        "    const userService = inject(UserClient); // LỖI NG0203",
+        "  }",
+        "",
+        "  // ✅ ĐÚNG: Gán trực tiếp tại field initializer",
+        "  private userService = inject(UserClient);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bắt buộc phải nạp service sau một khoảng thời gian hoặc trong callback ngoài luồng, hãy lưu lại `Injector` tại field initializer và dùng `this.injector.get(UserClient)` hoặc bọc trong `runInInjectionContext(this.injector, callback)`."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "providers-vs-viewproviders-confusion",
+      "text": "4. Nhầm lẫn giữa providers và viewProviders trong Content Projection"
+    },
+    {
+      "type": "paragraph",
+      "text": "Điểm khác biệt quan trọng:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "providers: Khả dụng cho template của component VÀ bất kỳ nội dung nào được chiếu vào qua <ng-content>.",
+        "viewProviders: CHỈ khả dụng cho template của component, KHÔNG cho phép nội dung chiếu qua <ng-content> truy cập."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "injectiontoken-issues",
+      "text": "5. Sự cố định danh với InjectionToken & Cố gắng inject Interface"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi lần bạn gọi `new InjectionToken('description')`, JavaScript tạo ra một đối tượng duy nhất trong bộ nhớ. Angular so sánh token theo tham chiếu đối tượng (object reference), KHÔNG so sánh theo chuỗi mô tả. Do đó, luôn export token ra từ một file chung và import nó ở các nơi cần dùng, tuyệt đối không tạo mới token cùng tên ở nhiều file khác nhau."
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "TypeScript Interface bị xóa hoàn toàn khỏi file JavaScript sau khi build, vì vậy bạn không thể dùng interface làm injection token. Hãy dùng InjectionToken<InterfaceType> để vừa có runtime value cho Angular, vừa đảm bảo tính an toàn kiểu."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "circular-dependencies",
+      "text": "6. Phụ thuộc vòng (Circular dependencies - NG0200)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Xảy ra khi Service A inject Service B và Service B lại inject Service A. Giải pháp tối ưu theo thứ tự ưu tiên:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Tái cấu trúc (Restructure - Khuyến nghị): Tách logic dùng chung ra một service thứ ba C để phá vỡ vòng lặp.",
+        "Sử dụng sự kiện (Events): Thay thế quan hệ phụ thuộc trực tiếp bằng cơ chế giao tiếp hướng sự kiện (Subject / EventEmitter).",
+        "Trì hoãn injection: Sử dụng Injector.get() lúc cần thiết thay vì inject ngay trong constructor (biện pháp tình thế)."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Không sử dụng forwardRef() cho sự cố phụ thuộc vòng giữa các service—forwardRef() chỉ nhằm giải quyết tham chiếu vòng khi cấu hình component và module."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "debugging-dependency-resolution",
+      "text": "Phương pháp và công cụ gỡ lỗi DI"
+    },
+    {
+      "type": "paragraph",
+      "text": "1. Sử dụng Angular DevTools: Mở tab Injector Tree để kiểm tra cây injector, xác định service có được cung cấp hay không và ở cấp độ nào (Root, Route hay Element)."
+    },
+    {
+      "type": "paragraph",
+      "text": "2. Thêm console.log và console.trace() trong constructor của Service để kiểm tra số lần khởi tạo (xem có bị tạo thừa instance không) và luồng gọi call stack."
+    },
+    {
+      "type": "paragraph",
+      "text": "3. Sử dụng optional injection `inject(MyService, { optional: true })` khi viết code debug để kiểm tra xem service có khả dụng mà không làm crash ứng dụng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "di-error-reference",
+      "text": "Bảng tham chiếu các mã lỗi DI phổ biến"
+    },
+    {
+      "type": "table",
+      "headers": ["Mã lỗi", "Tên lỗi & Nguyên nhân", "Cách khắc phục nhanh"],
+      "rows": [
+        ["NG0201", "NullInjectorError: No provider for [Service]", "Kiểm tra chuỗi Dependency path trong log console. Thêm @Service() / providedIn: 'root' hoặc bổ sung service vào mảng providers."],
+        ["NG0203", "inject() must be called from an injection context", "Di chuyển lệnh gọi inject() ra field initializer của class hoặc bọc trong runInInjectionContext()."],
+        ["NG0200", "Circular dependency detected", "Tách logic chung ra service thứ 3 hoặc chuyển sang dùng Event/Subject."],
+        ["NG0204", "Can't resolve all parameters", "Thiếu decorator @Injectable() hoặc @Service() trên service class."],
+        ["NG0205", "Injector already destroyed", "Cố gắng truy cập service sau khi component đã bị tiêu hủy (destroy)."],
+        ["NG0207", "EnvironmentProviders in wrong context", "Sử dụng nhầm các hàm provider cấp môi trường (như provideHttpClient) vào mảng providers của component."]
+      ]
+    }
+  ]
+}

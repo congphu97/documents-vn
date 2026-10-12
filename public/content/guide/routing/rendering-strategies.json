@@ -1,0 +1,201 @@
+{
+  "slug": "guide/routing/rendering-strategies",
+  "title": "Chiến lược Render trong Angular (Rendering strategies in Angular)",
+  "description": "Tìm hiểu và so sánh các chiến lược render trong Angular: Client-Side Rendering (CSR), Static Site Generation (SSG/Prerendering) và Server-Side Rendering (SSR), ma trận quyết định và cơ chế Hydration.",
+  "source": "https://angular.dev/guide/routing/rendering-strategies",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Hướng dẫn này giúp bạn lựa chọn chiến lược render phù hợp nhất cho từng phần khác nhau trong ứng dụng Angular của mình."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "what-are-rendering-strategies",
+      "text": "Chiến lược Render là gì? (What are rendering strategies?)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Chiến lược render quyết định thời điểm và vị trí mã HTML của ứng dụng Angular được tạo ra. Mỗi chiến lược mang lại những ưu nhược điểm riêng về hiệu năng tải trang ban đầu, khả năng tương tác, SEO và chi phí tài nguyên máy chủ."
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ ba chiến lược render chính:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Client-Side Rendering (CSR):</strong> Nội dung được render hoàn toàn trên trình duyệt phía client.",
+        "<strong>Static Site Generation (SSG / Prerendering):</strong> Nội dung được render sẵn tại thời điểm build ứng dụng.",
+        "<strong>Server-Side Rendering (SSR):</strong> Nội dung được máy chủ render ngay khi nhận yêu cầu đầu tiên cho một route."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "client-side-rendering-csr",
+      "text": "Render phía Client (Client-Side Rendering - CSR)"
+    },
+    {
+      "type": "paragraph",
+      "text": "CSR là chiến lược mặc định của Angular. Nội dung chỉ được render hoàn toàn trong trình duyệt sau khi mã JavaScript đã được tải và thực thi."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "when-to-use-csr",
+      "text": "Khi nào nên dùng CSR"
+    },
+    {
+      "type": "list",
+      "items": [
+        "✅ <strong>Phù hợp cho:</strong> Các ứng dụng tương tác cao (bảng điều khiển dashboard, trang quản trị admin panel), ứng dụng thời gian thực, công cụ nội bộ nơi SEO không quan trọng, hoặc các SPA có quản lý state phức tạp phía client.",
+        "❌ <strong>Nên tránh khi:</strong> Trang công khai cần tối ưu hóa công cụ tìm kiếm (SEO), hoặc các trang mà tốc độ hiển thị nội dung đầu tiên là tối quan trọng."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "csr-trade-offs",
+      "text": "Đánh giá đánh đổi của CSR"
+    },
+    {
+      "type": "table",
+      "headers": ["Khía cạnh (Aspect)", "Tác động (Impact)"],
+      "rows": [
+        ["SEO", "Kém - Bot tìm kiếm không thấy nội dung cho đến khi mã JS chạy."],
+        ["Tải trang đầu (Initial load)", "Chậm hơn - Phải tải và phân tích xong file JS trước."],
+        ["Khả năng tương tác (Interactivity)", "Tức thì ngay sau khi bundle JS nạp xong."],
+        ["Yêu cầu Server", "Tối thiểu - Chỉ cần hosting tệp tĩnh."],
+        ["Độ phức tạp", "Đơn giản nhất vì hoạt động với cấu hình mặc định."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "static-site-generation-ssg-prerendering",
+      "text": "Tạo trang tĩnh (Static Site Generation - SSG / Prerendering)"
+    },
+    {
+      "type": "paragraph",
+      "text": "SSG tạo sẵn các trang thành các tệp HTML tĩnh ngay tại thời điểm build (build time). Máy chủ chỉ việc trả về tệp HTML có sẵn này cho lần tải trang đầu tiên. Sau khi quá trình <strong>hydration</strong> hoàn tất, ứng dụng tiếp tục chạy mượt mà trên trình duyệt như một SPA truyền thống - các lần điều hướng tiếp theo và gọi API đều diễn ra phía client mà không cần máy chủ render lại."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "when-to-use-ssg",
+      "text": "Khi nào nên dùng SSG"
+    },
+    {
+      "type": "list",
+      "items": [
+        "✅ <strong>Phù hợp cho:</strong> Trang giới thiệu (landing page), trang tiếp thị marketing, bài viết blog, tài liệu hướng dẫn (documentation), danh mục sản phẩm có nội dung ổn định không đổi theo từng người dùng.",
+        "❌ <strong>Nên tránh khi:</strong> Nội dung cá nhân hóa theo từng tài khoản đăng nhập, dữ liệu thay đổi liên tục theo từng giây, hoặc dữ liệu thời gian thực."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ssg-trade-offs",
+      "text": "Đánh giá đánh đổi của SSG"
+    },
+    {
+      "type": "table",
+      "headers": ["Khía cạnh (Aspect)", "Tác động (Impact)"],
+      "rows": [
+        ["SEO", "Xuất sắc - Toàn bộ mã HTML có sẵn ngay lập tức cho bot cào dữ liệu."],
+        ["Tải trang đầu (Initial load)", "Nhanh nhất - Nhận trực tiếp HTML đã render sẵn."],
+        ["Khả năng tương tác (Interactivity)", "Sẵn sàng sau khi hydration hoàn tất."],
+        ["Yêu cầu Server", "Không cần máy chủ Node.js - Phân phối cực tốt qua CDN."],
+        ["Thời gian build", "Lâu hơn - Vì phải sinh mã cho tất cả các trang."],
+        ["Cập nhật nội dung", "Cần phải rebuild và deploy lại ứng dụng."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "server-side-rendering-ssr",
+      "text": "Render phía Máy chủ (Server-Side Rendering - SSR)"
+    },
+    {
+      "type": "paragraph",
+      "text": "SSR sinh mã HTML trên máy chủ khi có yêu cầu (request) từ phía người dùng, cung cấp nội dung động mới nhất kết hợp với khả năng SEO tuyệt vời. Máy chủ tạo mã HTML và gửi về cho trình duyệt. Khi trình duyệt nhận được, Angular sẽ thực hiện <strong>hydrate</strong> ứng dụng và từ đó nó hoạt động như một SPA thông thường trên client."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "when-to-use-ssr",
+      "text": "Khi nào nên dùng SSR"
+    },
+    {
+      "type": "list",
+      "items": [
+        "✅ <strong>Phù hợp cho:</strong> Trang chi tiết sản phẩm thương mại điện tử (e-commerce với giá và số lượng tồn kho thay đổi liên tục), trang tin tức thời sự, mạng xã hội, nội dung cá nhân hóa theo người dùng cần chuẩn SEO.",
+        "❌ <strong>Nên tránh khi:</strong> Nội dung hoàn toàn tĩnh (nên dùng SSG để tiết kiệm chi phí), hoặc khi chi phí hạ tầng máy chủ bị giới hạn."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ssr-trade-offs",
+      "text": "Đánh giá đánh đổi của SSR"
+    },
+    {
+      "type": "table",
+      "headers": ["Khía cạnh (Aspect)", "Tác động (Impact)"],
+      "rows": [
+        ["SEO", "Xuất sắc - HTML đầy đủ cho crawler."],
+        ["Tải trang đầu (Initial load)", "Nhanh - Nội dung hiển thị mắt thường nhìn thấy ngay."],
+        ["Khả năng tương tác (Interactivity)", "Chờ quá trình hydration hoàn tất."],
+        ["Yêu cầu Server", "Cần máy chủ Node.js để chạy ứng dụng."],
+        ["Cá nhân hóa", "Truy cập đầy đủ ngữ cảnh người dùng (cookies, headers)."],
+        ["Chi phí Server", "Cao hơn - Mỗi request yêu cầu CPU máy chủ xử lý render."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "choosing-the-right-strategy",
+      "text": "Lựa chọn Chiến lược Đúng đắn (Choosing the Right Strategy)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "decision-matrix",
+      "text": "Ma trận quyết định (Decision matrix)"
+    },
+    {
+      "type": "table",
+      "headers": ["Nếu bạn cần...", "Sử dụng chiến lược", "Lý do"],
+      "rows": [
+        ["SEO + Nội dung tĩnh", "<strong>SSG</strong>", "HTML render sẵn, tốc độ tải nhanh nhất, chi phí rẻ nhất."],
+        ["SEO + Nội dung động", "<strong>SSR</strong>", "Nội dung luôn mới nhất theo thời gian thực tại thời điểm request."],
+        ["Không cần SEO + Tương tác cao", "<strong>CSR</strong>", "Đơn giản nhất, không cần cài đặt máy chủ Node.js phức tạp."],
+        ["Yêu cầu hỗn hợp", "<strong>Hybrid</strong>", "Áp dụng các chiến lược khác nhau linh hoạt cho từng route cụ thể."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "making-ssr-ssg-interactive-with-hydration",
+      "text": "Làm cho SSR/SSG tương tác được với Hydration (Making Interactive with Hydration)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi sử dụng SSR hoặc SSG, Angular sẽ \"hydrate\" (tiếp nước / kích hoạt sự kiện) cây HTML mà máy chủ đã render để biến nó thành một ứng dụng có thể tương tác đầy đủ với các event listener."
+    },
+    {
+      "type": "paragraph",
+      "text": "Các chiến lược Hydration có sẵn trong Angular:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Full hydration (Mặc định):</strong> Toàn bộ ứng dụng trở nên tương tác cùng một lúc.",
+        "<strong>Incremental hydration:</strong> Các phần của trang chỉ được hydrate dần khi cần thiết (ví dụ: khi người dùng cuộn đến với khối <code>@defer</code>), giúp cải thiện đáng kể hiệu năng.",
+        "<strong>Event replay:</strong> Tự động ghi lại các cú nhấp chuột hoặc thao tác của người dùng diễn ra trước khi hydration hoàn tất và phát lại ngay sau khi hoàn thành."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "slug": "guide/forms/signals",
+  "title": "Biểu mẫu với Angular Signals (Forms with Angular Signals)",
+  "description": "Tìm hiểu về Signal Forms trong Angular: thư viện quản lý trạng thái biểu mẫu hiện đại dựa trên Signals, đồng bộ hai chiều tự động, an toàn kiểu dữ liệu và kiểm thực dựa trên schema.",
+  "source": "https://angular.dev/guide/forms/signals/overview",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<strong>Signal Forms</strong> là thư viện mới cho phép bạn quản lý trạng thái biểu mẫu trong các ứng dụng Angular bằng cách xây dựng dựa trên nền tảng phản ứng của Angular Signals. Với tính năng tự động liên kết hai chiều (two-way binding), truy cập trường dữ liệu an toàn kiểu (type-safe) và kiểm thực theo lược đồ (schema-based validation), Signal Forms giúp bạn tạo ra các biểu mẫu mạnh mẽ và tinh gọn."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Để có cái nhìn tổng quan và nhanh chóng về Signal Forms, hãy tham khảo [Hướng dẫn cốt lõi Signal Forms (Signal Forms essentials)](https://angular.dev/essentials/signal-forms)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "why-signal-forms",
+      "text": "Tại sao nên dùng Signal Forms? (Why Signal Forms?)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Xây dựng biểu mẫu trong các ứng dụng web liên quan đến việc quản lý nhiều mối quan tâm liên kết chặt chẽ: theo dõi giá trị trường nhập, kiểm thực dữ liệu đầu vào của người dùng, xử lý các trạng thái lỗi và giữ cho giao diện người dùng đồng bộ với mô hình dữ liệu. Việc xử lý riêng rẽ các mối bận tâm này thường tạo ra nhiều mã lặp lại (boilerplate) và làm tăng độ phức tạp."
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal Forms giải quyết những thách thức này bằng cách:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Đồng bộ trạng thái tự động (Synchronizing state automatically):</strong> Tự động đồng bộ hóa mô hình dữ liệu của form với các trường biểu mẫu được liên kết trên giao diện.",
+        "<strong>Bảo đảm an toàn kiểu (Providing type safety):</strong> Hỗ trợ các schema và binding hoàn toàn an toàn kiểu dữ liệu giữa các điều khiển UI và data model.",
+        "<strong>Tập trung hóa logic kiểm thực (Centralizing validation logic):</strong> Định nghĩa toàn bộ các quy tắc kiểm thực tại một nơi duy nhất thông qua một validation schema."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal Forms hoạt động tốt nhất trong các ứng dụng mới được xây dựng xoay quanh Angular Signals. Nếu bạn đang làm việc với một ứng dụng hiện có sử dụng Reactive Forms, thì Reactive Forms vẫn tiếp tục là một lựa chọn vững chắc và được hỗ trợ đầy đủ."
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Nếu bạn đang chuyển từ Template-driven Forms hoặc Reactive Forms sang, hãy tham khảo thêm bài viết so sánh chuyên sâu giữa các giải pháp biểu mẫu trong Angular."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "prerequisites",
+      "text": "Điều kiện tiên quyết (Prerequisites)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal Forms yêu cầu phiên bản <strong>Angular v21 trở lên</strong>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setup",
+      "text": "Thiết lập và Cài đặt (Setup)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal Forms đã được tích hợp sẵn trong gói <code>@angular/forms</code>. Bạn chỉ cần import các hàm và chỉ thị cần thiết từ entry point <code>@angular/forms/signals</code>:"
+    },
+    {
+      "type": "code",
+      "file": "example.ts",
+      "lang": "ts",
+      "code": [
+        "import { form, FormField, required, email } from '@angular/forms/signals';"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Chỉ thị <code>FormField</code> phải được import vào bất kỳ component nào liên kết các trường biểu mẫu với các phần tử nhập liệu HTML (input, select, textarea):"
+    },
+    {
+      "type": "code",
+      "file": "login-form.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { FormField } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  selector: 'app-login-form',",
+        "  imports: [FormField],",
+        "  template: `",
+        "    <!-- Form template sử dụng FormField -->",
+        "  `,",
+        "})",
+        "export class LoginFormComponent {}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tiếp tục tìm hiểu cách khai báo schema, xử lý lỗi và liên kết hai chiều mượt mà trong tài liệu chi tiết của Signal Forms."
+    }
+  ]
+}

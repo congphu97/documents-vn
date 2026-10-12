@@ -1,43 +1,309 @@
 {
   "slug": "guide/http/interceptors",
-  "title": "Interceptors",
-  "description": "Tài liệu hướng dẫn về Interceptors trong Angular.",
+  "title": "Bộ chặn HTTP (Interceptors)",
+  "description": "Hướng dẫn chi tiết về Interceptors trong Angular: functional interceptors hiện đại, sửa đổi request và response, tiêm phụ thuộc (DI), truyền metadata với HttpContextToken, phản hồi giả lập (synthetic responses), xử lý chuyển hướng (redirect) và so sánh với class-based interceptors.",
   "source": "https://angular.dev/guide/http/interceptors",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/http/interceptors](https://angular.dev/guide/http/interceptors)."
+      "type": "paragraph",
+      "text": "<code>HttpClient</code> hỗ trợ một mô hình middleware mạnh mẽ được gọi là <strong>Interceptors</strong> (Bộ chặn). Interceptors cho phép tách biệt và tái sử dụng các mẫu logic phổ biến như xác thực (authentication), thử lại khi thất bại (retrying), lưu bộ nhớ đệm (caching), ghi log (logging) và xử lý lỗi khỏi từng yêu cầu riêng lẻ."
     },
     {
-      "type": "paragraph",
-      "text": "Interceptors là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "type": "callout",
+      "calloutType": "tip",
+      "title": "Khuyến nghị: Sử dụng Functional Interceptors",
+      "text": "Angular hỗ trợ hai loại interceptor: <strong>Functional</strong> (dạng hàm) và <strong>DI-based</strong> (dạng class). Chúng tôi khuyến nghị sử dụng functional interceptors vì chúng có thứ tự thực thi rõ ràng, dễ đoán trước và hoạt động ổn định hơn trong các cấu hình injector phức tạp."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "defining-an-interceptor",
+      "text": "Định nghĩa một Interceptor"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Interceptors, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Dạng cơ bản của một functional interceptor là một hàm nhận vào đối tượng <code>HttpRequest</code> đi ra và một hàm <code>next</code> (kiểu <code>HttpHandlerFn</code>) đại diện cho bước xử lý tiếp theo trong chuỗi interceptor:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "logging.interceptor.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Interceptors",
-        "import { Component } from \"@angular/core\";",
+        "import { HttpRequest, HttpHandlerFn, HttpEvent } from '@angular/common/http';",
+        "import { Observable } from 'rxjs';",
         "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Interceptors</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+        "export function loggingInterceptor(",
+        "  req: HttpRequest<unknown>,",
+        "  next: HttpHandlerFn",
+        "): Observable<HttpEvent<unknown>> {",
+        "  console.log('Đang gửi request tới:', req.url);",
+        "  return next(req);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configuring-interceptors",
+      "text": "Cấu hình Interceptors trong ứng dụng"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn khai báo danh sách interceptor bằng tính năng <code>withInterceptors</code> khi cấu hình <code>provideHttpClient()</code> trong <code>app.config.ts</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideHttpClient, withInterceptors } from '@angular/common/http';",
+        "import { loggingInterceptor } from './logging.interceptor';",
+        "import { authInterceptor } from './auth.interceptor';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideHttpClient(",
+        "      // Thứ tự khai báo quyết định thứ tự thực thi trong chuỗi",
+        "      withInterceptors([loggingInterceptor, authInterceptor])",
+        "    ),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "intercepting-response-events",
+      "text": "Can thiệp vào sự kiện phản hồi (Response Events)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Interceptor có thể biến đổi luồng Observable của <code>HttpEvent</code> trả về từ <code>next(req)</code> để truy cập hoặc thao tác trên phản hồi. Bạn kiểm tra thuộc tính <code>event.type</code> để nhận diện đối tượng <code>HttpResponse</code> cuối cùng:"
+    },
+    {
+      "type": "code",
+      "file": "response-logging.interceptor.ts",
+      "lang": "ts",
+      "code": [
+        "import { HttpRequest, HttpHandlerFn, HttpEvent, HttpEventType } from '@angular/common/http';",
+        "import { Observable } from 'rxjs';",
+        "import { tap } from 'rxjs/operators';",
+        "",
+        "export function loggingInterceptor(",
+        "  req: HttpRequest<unknown>,",
+        "  next: HttpHandlerFn",
+        "): Observable<HttpEvent<unknown>> {",
+        "  return next(req).pipe(",
+        "    tap((event) => {",
+        "      if (event.type === HttpEventType.Response) {",
+        "        console.log(req.url, 'phản hồi với mã trạng thái:', event.status);",
+        "      }",
+        "    })",
+        "  );",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "modifying-requests",
+      "text": "Chỉnh sửa Request (Tính bất biến - Immutability)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hầu hết các thuộc tính của <code>HttpRequest</code> là <strong>bất biến</strong>. Interceptor không thể sửa đổi trực tiếp các thuộc tính này mà phải tạo một bản sao bằng phương thức <code>.clone()</code> và chỉ định các giá trị cần thay đổi:"
+    },
+    {
+      "type": "code",
+      "file": "auth.interceptor.ts",
+      "lang": "ts",
+      "code": [
+        "import { HttpRequest, HttpHandlerFn, HttpEvent } from '@angular/common/http';",
+        "import { inject } from '@angular/core';",
+        "import { Observable } from 'rxjs';",
+        "import { AuthService } from './auth.service';",
+        "",
+        "export function authInterceptor(",
+        "  req: HttpRequest<unknown>,",
+        "  next: HttpHandlerFn",
+        "): Observable<HttpEvent<unknown>> {",
+        "  // Tiêm AuthService bằng hàm inject()",
+        "  const authService = inject(AuthService);",
+        "  const authToken = authService.getAuthToken();",
+        "",
+        "  // Clone request để thêm header Authorization",
+        "  const newReq = req.clone({",
+        "    headers: req.headers.set('Authorization', `Bearer ${authToken}`),",
+        "  });",
+        "",
+        "  return next(newReq);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "request-and-response-metadata",
+      "text": "Truyền Metadata qua HttpContext và HttpContextToken"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đôi khi bạn muốn đính kèm thông tin cấu hình vào request dành riêng cho interceptor xử lý (như cờ bật/tắt caching, bỏ qua auth token) mà không gửi thông tin này lên server backend. Angular cung cấp <code>HttpContext</code> và <code>HttpContextToken</code> để lưu trữ metadata có định kiểu an toàn:"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "defining-context-tokens",
+      "text": "1. Định nghĩa Context Token"
+    },
+    {
+      "type": "code",
+      "file": "caching-context.ts",
+      "lang": "ts",
+      "code": [
+        "import { HttpContextToken } from '@angular/common/http';",
+        "",
+        "// Giá trị mặc định là true (bật cache)",
+        "export const CACHING_ENABLED = new HttpContextToken<boolean>(() => true);"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "reading-the-token-in-an-interceptor",
+      "text": "2. Đọc Token trong Interceptor"
+    },
+    {
+      "type": "code",
+      "file": "caching.interceptor.ts",
+      "lang": "ts",
+      "code": [
+        "import { HttpRequest, HttpHandlerFn, HttpEvent } from '@angular/common/http';",
+        "import { Observable } from 'rxjs';",
+        "import { CACHING_ENABLED } from './caching-context';",
+        "",
+        "export function cachingInterceptor(",
+        "  req: HttpRequest<unknown>,",
+        "  next: HttpHandlerFn",
+        "): Observable<HttpEvent<unknown>> {",
+        "  const isCachingEnabled = req.context.get(CACHING_ENABLED);",
+        "",
+        "  if (isCachingEnabled) {",
+        "    // Áp dụng logic kiểm tra và lưu cache...",
+        "  }",
+        "",
+        "  return next(req);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "setting-context-tokens-when-making-a-request",
+      "text": "3. Truyền Context Token khi gọi API"
+    },
+    {
+      "type": "code",
+      "file": "user.service.ts",
+      "lang": "ts",
+      "code": [
+        "import { HttpContext } from '@angular/common/http';",
+        "import { CACHING_ENABLED } from './caching-context';",
+        "",
+        "// Tắt cache riêng cho request này:",
+        "const data$ = http.get('/api/sensitive-data', {",
+        "  context: new HttpContext().set(CACHING_ENABLED, false),",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "note",
+      "title": "HttpContext có tính khả biến (Mutable)",
+      "text": "Không giống như các thuộc tính khác của <code>HttpRequest</code>, <code>HttpContext</code> là đối tượng khả biến (mutable). Nếu interceptor thay đổi context của một request và request đó sau đó được retry (thử lại), context đã sửa đổi sẽ được giữ nguyên ở lần chạy tiếp theo."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "synthetic-responses",
+      "text": "Phản hồi giả lập (Synthetic Responses)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Interceptor không bắt buộc phải gọi <code>next(req)</code>. Bạn hoàn toàn có thể tự khởi tạo một đối tượng <code>HttpResponse</code> và trả về ngay từ bộ nhớ đệm (cache) mà không cần gửi request lên mạng:"
+    },
+    {
+      "type": "code",
+      "file": "cache-mock.ts",
+      "lang": "ts",
+      "code": [
+        "import { HttpResponse } from '@angular/common/http';",
+        "import { of } from 'rxjs';",
+        "",
+        "const cachedData = { message: 'Dữ liệu từ cache' };",
+        "return of(new HttpResponse({ status: 200, body: cachedData }));"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "working-with-redirect-and-response-types",
+      "text": "Thông tin chuyển hướng (Redirects) và Kiểu phản hồi Fetch"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi sử dụng backend <code>fetch</code> mặc định, đối tượng <code>HttpResponse</code> cung cấp các thuộc tính mới tương ứng với đặc tả Fetch API:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong><code>event.redirected</code>:</strong> Thuộc tính boolean cho biết request có bị server chuyển hướng (redirect) hay không.",
+        "<strong><code>event.responseType</code>:</strong> Cho biết cách trình duyệt xử lý response theo chính sách CORS (<code>'basic'</code>, <code>'cors'</code>, <code>'opaque'</code>, <code>'error'</code>). Hữu ích cho việc debug lỗi CORS khi response bị hạn chế truy cập (opaque)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "di-based-interceptors",
+      "text": "So sánh với Class-based (DI-based) Interceptors"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong các phiên bản cũ, interceptor được tạo dưới dạng class kế thừa <code>HttpInterceptor</code> và đăng ký qua token <code>HTTP_INTERCEPTORS</code>:"
+    },
+    {
+      "type": "code",
+      "file": "class-based-interceptor.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable } from '@angular/core';",
+        "import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';",
+        "import { Observable } from 'rxjs';",
+        "",
+        "@Injectable()",
+        "export class ClassicLoggingInterceptor implements HttpInterceptor {",
+        "  intercept(req: HttpRequest<any>, handler: HttpHandler): Observable<HttpEvent<any>> {",
+        "    console.log('URL:', req.url);",
+        "    return handler.handle(req);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Để sử dụng các class-based interceptor này trong ứng dụng hiện đại, bạn cần kích hoạt rõ ràng tính năng <code>withInterceptorsFromDi()</code> trong <code>provideHttpClient()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "enable-di-interceptors.ts",
+      "lang": "ts",
+      "code": [
+        "provideHttpClient(",
+        "  withInterceptorsFromDi() // Bắt buộc để nhận diện HTTP_INTERCEPTORS",
+        "),",
+        "{ provide: HTTP_INTERCEPTORS, useClass: ClassicLoggingInterceptor, multi: true }"
       ]
     }
   ]

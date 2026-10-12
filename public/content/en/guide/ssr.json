@@ -1,44 +1,607 @@
 {
   "slug": "guide/ssr",
-  "title": "SSR Overview",
-  "description": "Documentation guide for SSR Overview in Angular.",
+  "title": "Server and Hybrid Rendering",
+  "description": "Learn about server-side rendering (SSR), prerendering (SSG), and hybrid rendering in Angular: server routing (app.routes.server.ts), RenderMode, getPrerenderParams, redirects, authoring server-compatible components, DI tokens (REQUEST, RESPONSE_INIT), HttpTransferCache, and server configurations.",
   "source": "https://angular.dev/guide/ssr",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Official documentation from [angular.dev/guide/ssr](https://angular.dev/guide/ssr)."
-    },
-    {
       "type": "paragraph",
-      "text": "SSR Overview is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+      "text": "Angular ships all applications as client-side rendered (CSR) by default. While this approach delivers an initial payload that's lightweight, it introduces trade-offs including slower load times, degraded performance metrics, and higher resource demands since the user's device performs most of the computations. As a result, many applications achieve significant performance improvements by integrating server-side rendering (SSR) into a <strong>hybrid rendering strategy</strong>."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Overview and Concepts"
+      "id": "what-is-hybrid-rendering",
+      "text": "What is hybrid rendering?"
     },
     {
       "type": "paragraph",
-      "text": "To master SSR Overview, explore the core mechanisms and design patterns provided by Angular."
+      "text": "<strong>Hybrid rendering</strong> allows developers to leverage the benefits of server-side rendering (SSR), pre-rendering (also known as \"static site generation\" or SSG) and client-side rendering (CSR) to optimize your Angular application. It gives you fine-grained control over how the different parts of your app are rendered to give your users the best experience possible."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setting-up-hybrid-rendering",
+      "text": "Setting up hybrid rendering"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can create a new project with hybrid rendering by using the server-side rendering flag (i.e., <code>--ssr</code>) with the Angular CLI <code>ng new</code> command:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "terminal",
+      "lang": "shell",
+      "code": [
+        "ng new --ssr"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "You can also enable hybrid rendering by adding server-side rendering to an existing project with the <code>ng add</code> command:"
+    },
+    {
+      "type": "code",
+      "file": "terminal",
+      "lang": "shell",
+      "code": [
+        "ng add @angular/ssr"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "By default, Angular prerenders your entire application and generates a server file. To disable this and create a fully static app, set <code>outputMode: \"static\"</code> in <code>angular.json</code>. To enable SSR, update the server routes to use <code>RenderMode.Server</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "server-routing",
+      "text": "Server routing"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can create a server route config by declaring an array of <code>ServerRoute</code> objects in <code>app.routes.server.ts</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.server.ts",
       "lang": "ts",
       "code": [
-        "// Example demonstration for SSR Overview",
-        "import { Component } from \"@angular/core\";",
+        "import { RenderMode, ServerRoute } from '@angular/ssr';",
+        "",
+        "export const serverRoutes: ServerRoute[] = [",
+        "  {",
+        "    path: '', // This renders the \"/\" route on the client (CSR)",
+        "    renderMode: RenderMode.Client,",
+        "  },",
+        "  {",
+        "    path: 'about', // This page is static, so we prerender it (SSG)",
+        "    renderMode: RenderMode.Prerender,",
+        "  },",
+        "  {",
+        "    path: 'profile', // This page requires user-specific data, so we use SSR",
+        "    renderMode: RenderMode.Server,",
+        "  },",
+        "  {",
+        "    path: '**', // All other routes will be rendered on the server (SSR)",
+        "    renderMode: RenderMode.Server,",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "You can add this config to your application with <code>provideServerRendering</code> using the <code>withRoutes</code> function:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideServerRendering, withRoutes } from '@angular/ssr';",
+        "import { serverRoutes } from './app.routes.server';",
+        "",
+        "const serverConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideServerRendering(withRoutes(serverRoutes)),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "When using the App shell pattern, specify the component to be used as the app shell with <code>withAppShell</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { provideServerRendering, withRoutes, withAppShell } from '@angular/ssr';",
+        "import { serverRoutes } from './app.routes.server';",
+        "import { AppShell } from './app-shell';",
+        "",
+        "const serverConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideServerRendering(withRoutes(serverRoutes), withAppShell(AppShell)),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "rendering-modes",
+      "text": "Rendering modes"
+    },
+    {
+      "type": "table",
+      "headers": ["Rendering mode", "Description"],
+      "rows": [
+        ["Server (SSR)", "Renders the application on the server for each request, sending a fully populated HTML page to the browser."],
+        ["Client (CSR)", "Renders the application in the browser. This is the default Angular behavior."],
+        ["Prerender (SSG)", "Prerenders the application at build time, generating static HTML files for each route."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "choosing-a-rendering-mode",
+      "text": "Choosing a rendering mode"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Client-side rendering (CSR):</strong> Simplest development model running entirely in the browser. Best for authenticated dashboards or offline experiences with Service Workers.",
+        "<strong>Server-side rendering (SSR):</strong> Faster initial page loads and excellent SEO, as crawlers receive fully rendered HTML documents. Code cannot depend strictly on browser APIs, and each request consumes server CPU.",
+        "<strong>Build-time prerendering (SSG):</strong> Fastest possible page loads and CDN caching. All information must be known at build-time with no user-specific data."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setting-headers-and-status-codes",
+      "text": "Setting headers and status codes"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can set custom headers and status codes for individual server routes using the <code>headers</code> and <code>status</code> properties in <code>ServerRoute</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { RenderMode, ServerRoute } from '@angular/ssr';",
+        "",
+        "export const serverRoutes: ServerRoute[] = [",
+        "  {",
+        "    path: 'profile',",
+        "    renderMode: RenderMode.Server,",
+        "    headers: {",
+        "      'X-My-Custom-Header': 'some-value',",
+        "    },",
+        "    status: 201,",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "redirects",
+      "text": "Redirects"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Server-Side Rendering (SSR):</strong> Redirects are performed using standard HTTP redirects (e.g., 301, 302) within the server-side rendering process.",
+        "<strong>Prerendering (SSG):</strong> Redirects are implemented as \"soft redirects\" using <code>&lt;meta http-equiv=\"refresh\"&gt;</code> tags in the prerendered HTML."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "customizing-build-time-prerendering-ssg",
+      "text": "Customizing build-time prerendering (SSG)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "parameterized-routes",
+      "text": "Parameterized routes"
+    },
+    {
+      "type": "paragraph",
+      "text": "For each route with <code>RenderMode.Prerender</code>, specify a <code>getPrerenderParams</code> function returning an array of parameter objects:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { RenderMode, ServerRoute } from '@angular/ssr';",
+        "import { inject } from '@angular/core';",
+        "import { PostService } from './post.service';",
+        "",
+        "export const serverRoutes: ServerRoute[] = [",
+        "  {",
+        "    path: 'post/:id',",
+        "    renderMode: RenderMode.Prerender,",
+        "    async getPrerenderParams() {",
+        "      const dataService = inject(PostService);",
+        "      const ids = await dataService.getIds(); // e.g. ['1', '2', '3']",
+        "      return ids.map((id) => ({ id })); // Generates: /post/1, /post/2, /post/3",
+        "    },",
+        "  },",
+        "  {",
+        "    path: 'post/:id/**',",
+        "    renderMode: RenderMode.Prerender,",
+        "    async getPrerenderParams() {",
+        "      return [",
+        "        { id: '1', '**': 'foo/3' },",
+        "        { id: '2', '**': 'bar/4' },",
+        "      ];",
+        "    },",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "When using <code>inject()</code> inside <code>getPrerenderParams</code>, it must be invoked synchronously before any <code>await</code> statements."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "fallback-strategies",
+      "text": "Fallback strategies"
+    },
+    {
+      "type": "paragraph",
+      "text": "When using <code>RenderMode.Prerender</code>, specify a fallback strategy to handle paths that haven't been prerendered:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>PrerenderFallback.Server</code>: Falls back to server-side rendering (default).",
+        "<code>PrerenderFallback.Client</code>: Falls back to client-side rendering.",
+        "<code>PrerenderFallback.None</code>: No fallback."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "app.routes.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { RenderMode, PrerenderFallback, ServerRoute } from '@angular/ssr';",
+        "",
+        "export const serverRoutes: ServerRoute[] = [",
+        "  {",
+        "    path: 'post/:id',",
+        "    renderMode: RenderMode.Prerender,",
+        "    fallback: PrerenderFallback.Client,",
+        "    async getPrerenderParams() {",
+        "      return [{ id: '1' }, { id: '2' }, { id: '3' }];",
+        "    },",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "authoring-server-compatible-components",
+      "text": "Authoring server-compatible components"
+    },
+    {
+      "type": "paragraph",
+      "text": "Browser globals like <code>window</code>, <code>document</code>, and <code>localStorage</code> do not exist on the server. Wrap browser-specific code in <code>afterNextRender</code> or <code>afterEveryRender</code> hooks:"
+    },
+    {
+      "type": "code",
+      "file": "safe-component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, ElementRef, viewChild, afterNextRender } from '@angular/core';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>SSR Overview</h1>`",
+        "  selector: 'my-cmp',",
+        "  template: `<span #content>{{ ... }}</span>`,",
         "})",
-        "export class ExampleComponent {}"
+        "export class MyComponent {",
+        "  contentRef = viewChild.required<ElementRef>('content');",
+        "",
+        "  constructor() {",
+        "    afterNextRender(() => {",
+        "      // Safe: only runs in the browser, not the server",
+        "      console.log('content height: ' + this.contentRef().nativeElement.scrollHeight);",
+        "    });",
+        "  }",
+        "}"
       ]
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Avoid using <code>isPlatformBrowser</code> in templates with <code>@if</code> to render different content on server and client. This causes hydration mismatches and layout shifts. Use <code>afterNextRender</code> instead."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setting-providers-on-the-server",
+      "text": "Setting providers on the server"
+    },
+    {
+      "type": "paragraph",
+      "text": "On the server side, providers configured with <code>useValue</code> keep their value across multiple requests until restart. If you want to generate a new value for each request, use a factory provider with <code>useFactory</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "providing-platform-specific-implementations",
+      "text": "Providing platform-specific implementations"
+    },
+    {
+      "type": "paragraph",
+      "text": "Provide separate service implementations for each platform by registering the browser implementation in <code>app.config.ts</code> and overriding it with the server implementation in <code>app.config.server.ts</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.server.ts",
+      "lang": "ts",
+      "code": [
+        "export const serverConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    { provide: AnalyticsService, useClass: ServerAnalyticsService },",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "accessing-document-via-di",
+      "text": "Accessing Document via DI"
+    },
+    {
+      "type": "paragraph",
+      "text": "Avoid directly referencing globals like <code>document</code>. Instead, inject the <code>DOCUMENT</code> token in a platform-agnostic way:"
+    },
+    {
+      "type": "code",
+      "file": "canonical-link.service.ts",
+      "lang": "ts",
+      "code": [
+        "import { inject, Injectable } from '@angular/core';",
+        "import { DOCUMENT } from '@angular/common';",
+        "",
+        "@Injectable({ providedIn: 'root' })",
+        "export class CanonicalLinkService {",
+        "  private readonly document = inject(DOCUMENT);",
+        "",
+        "  setCanonical(href: string): void {",
+        "    const link = this.document.createElement('link');",
+        "    link.rel = 'canonical';",
+        "    link.href = href;",
+        "    this.document.head.appendChild(link);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "accessing-request-and-response-via-di",
+      "text": "Accessing Request and Response via DI"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong><code>REQUEST</code>:</strong> Provides access to the current request object (standard Web API <code>Request</code>) to inspect headers, cookies, and URL.",
+        "<strong><code>RESPONSE_INIT</code>:</strong> Provides access to response initialization options (<code>ResponseInit</code>) to dynamically set status codes and headers at runtime.",
+        "<strong><code>REQUEST_CONTEXT</code>:</strong> Provides access to additional context passed to <code>handle()</code>."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "request-demo.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { REQUEST } from '@angular/core';",
+        "",
+        "@Component({ selector: 'app-demo', template: `<h1>Request Info</h1>` })",
+        "export class DemoComponent {",
+        "  private request = inject(REQUEST, { optional: true });",
+        "",
+        "  constructor() {",
+        "    console.log(this.request?.url);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "generate-a-fully-static-application",
+      "text": "Generate a fully static application"
+    },
+    {
+      "type": "paragraph",
+      "text": "To create a fully static site without requiring a Node.js server, set <code>outputMode: \"static\"</code> in <code>angular.json</code>:"
+    },
+    {
+      "type": "code",
+      "file": "angular.json",
+      "lang": "json",
+      "code": [
+        "{",
+        "  \"projects\": {",
+        "    \"my-app\": {",
+        "      \"architect\": {",
+        "        \"build\": {",
+        "          \"options\": {",
+        "            \"outputMode\": \"static\"",
+        "          }",
+        "        }",
+        "      }",
+        "    }",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "caching-data-when-using-httpclient",
+      "text": "Caching data when using HttpClient"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>HttpClient</code> caches outgoing network requests when running on the server. This data is serialized and transferred to the browser as part of the initial HTML to prevent duplicate HTTP requests during initial application rendering."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "configuring-the-response-body-size-limit",
+      "text": "Configuring the response body size limit"
+    },
+    {
+      "type": "paragraph",
+      "text": "When <code>HttpClient</code> uses the default fetch backend during SSR, Angular limits each response body to 1 MB. To fetch larger responses, set <code>maxResponseBodySize</code> in <code>provideServerRendering</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { provideServerRendering, withRoutes } from '@angular/ssr';",
+        "import { serverRoutes } from './app.routes.server';",
+        "",
+        "const serverConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideServerRendering(",
+        "      { maxResponseBodySize: 5 * 1024 * 1024 },",
+        "      withRoutes(serverRoutes)",
+        "    ),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "configuring-the-caching-options",
+      "text": "Configuring the caching options"
+    },
+    {
+      "type": "paragraph",
+      "text": "Customize transfer cache behavior using <code>withHttpTransferCacheOptions</code> in <code>provideClientHydration()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { bootstrapApplication, provideClientHydration, withHttpTransferCacheOptions } from '@angular/platform-browser';",
+        "import { AppComponent } from './app.component';",
+        "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideClientHydration(",
+        "      withHttpTransferCacheOptions({",
+        "        includeHeaders: ['ETag', 'Cache-Control'],",
+        "        filter: (req) => !req.url.includes('/api/profile'),",
+        "        includePostRequests: true,",
+        "        includeRequestsWithAuthHeaders: false,",
+        "      })",
+        "    ),",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "disabling-caching",
+      "text": "Disabling caching"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Globally:</strong> Use <code>withNoHttpTransferCache()</code>.",
+        "<strong>Filtering:</strong> Use the <code>filter</code> option in <code>withHttpTransferCacheOptions</code>.",
+        "<strong>Per-request:</strong> Specify <code>{ transferCache: false }</code> in <code>httpClient.get()</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configuring-a-server",
+      "text": "Configuring a server"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "nodejs",
+      "text": "Node.js (Express)"
+    },
+    {
+      "type": "code",
+      "file": "server.ts",
+      "lang": "ts",
+      "code": [
+        "import { AngularNodeAppEngine, createNodeRequestHandler, writeResponseToNodeResponse } from '@angular/ssr/node';",
+        "import express from 'express';",
+        "",
+        "const app = express();",
+        "const angularApp = new AngularNodeAppEngine();",
+        "",
+        "app.use('*', (req, res, next) => {",
+        "  angularApp",
+        "    .handle(req)",
+        "    .then((response) => response ? writeResponseToNodeResponse(response, res) : next())",
+        "    .catch(next);",
+        "});",
+        "",
+        "export const reqHandler = createNodeRequestHandler(app);"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "non-nodejs",
+      "text": "Non-Node.js"
+    },
+    {
+      "type": "code",
+      "file": "server.ts",
+      "lang": "ts",
+      "code": [
+        "import { AngularAppEngine, createRequestHandler } from '@angular/ssr';",
+        "",
+        "const angularApp = new AngularAppEngine();",
+        "",
+        "export const reqHandler = createRequestHandler(async (req: Request) => {",
+        "  const res: Response | null = await angularApp.handle(req);",
+        "  return res ?? new Response('Not Found', { status: 404 });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "security",
+      "text": "Security"
+    },
+    {
+      "type": "paragraph",
+      "text": "For SSR applications, safeguard against <strong>Server-Side Request Forgery (SSRF)</strong> by restricting allowed backend hosts and preventing client authentication tokens from being forwarded to untrusted third-party services."
     }
   ]
 }

@@ -1,21 +1,310 @@
 {
   "slug": "guide/templates/event-listeners",
-  "title": "Lắng nghe sự kiện (Event Binding)",
-  "description": "Lắng nghe các tương tác của người dùng như click, gõ bàn phím với cú pháp (event).",
+  "title": "Adding event listeners",
+  "description": "Angular hỗ trợ định nghĩa các event listeners trên một phần tử trong template bằng cách đặt tên sự kiện trong ngoặc đơn cùng với câu lệnh thực thi mỗi khi sự kiện xảy ra.",
   "source": "https://angular.dev/guide/templates/event-listeners",
   "status": "reviewed",
   "blocks": [
     {
       "type": "paragraph",
-      "text": "Sử dụng dấu ngoặc tròn `(event)` để lắng nghe sự kiện từ phần tử DOM hoặc Output từ một custom component."
+      "text": "Angular hỗ trợ việc định nghĩa các trình lắng nghe sự kiện (event listeners) trên một phần tử trong template bằng cách chỉ định tên sự kiện bên trong cặp dấu ngoặc đơn, kèm theo một biểu thức/câu lệnh sẽ được thực thi mỗi khi sự kiện đó diễn ra."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "listening-to-native-events",
+      "text": "Lắng nghe các sự kiện nguyên bản (Listening to native events)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi muốn thêm event listener vào một phần tử HTML, bạn bao bọc tên sự kiện bằng cặp dấu ngoặc đơn ( ), cho phép bạn chỉ định một câu lệnh xử lý sự kiện:"
     },
     {
       "type": "code",
-      "file": "action-button.component.html",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    <input type=\"text\" (keyup)=\"updateField()\" />",
+        "  `,",
+        "  ...",
+        "})",
+        "export class App {",
+        "  updateField(): void {",
+        "    console.log('Trường dữ liệu đã được cập nhật!');",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ này, Angular gọi phương thức updateField() mỗi khi phần tử <input> phát ra sự kiện keyup. Bạn có thể thêm listener cho bất kỳ sự kiện DOM nguyên bản nào như click, keydown, mouseover, v.v."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "accessing-the-event-argument",
+      "text": "Truy cập đối tượng sự kiện ($event)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong mọi event listener của template, Angular cung cấp một biến đặc biệt tên là $event chứa tham chiếu đến đối tượng sự kiện (event object):"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    <input type=\"text\" (keyup)=\"updateField($event)\" />",
+        "  `,",
+        "  ...",
+        "})",
+        "export class App {",
+        "  updateField(event: KeyboardEvent): void {",
+        "    console.log(`Người dùng đã nhấn phím: ${event.key}`);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-key-modifiers",
+      "text": "Sử dụng bộ điều chỉnh phím (Key Modifiers)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Thay vì phải kiểm tra phím bấm thủ công trong hàm TypeScript (ví dụ: if (event.key === 'Enter')), Angular cho phép bạn lọc sự kiện trực tiếp trong template bằng dấu chấm (.):"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    <input type=\"text\" (keyup.enter)=\"updateField($event)\" />",
+        "  `,",
+        "  ...",
+        "})",
+        "export class App {",
+        "  updateField(event: KeyboardEvent): void {",
+        "    console.log('Người dùng đã nhấn Enter trong ô nhập liệu.');",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể kết hợp thêm nhiều modifier phím khác nhau:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
       "lang": "html",
       "code": [
-        "<button (click)=\"handleClick($event)\">Nhấn vào đây</button>",
-        "<input (keydown.enter)=\"submitOnEnter()\" />"
+        "<!-- Khớp khi giữ đồng thời Shift và Enter -->",
+        "<input type=\"text\" (keyup.shift.enter)=\"updateField($event)\" />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ các modifier phím: alt, control, meta, và shift. Bạn có thể sử dụng giá trị phím (Key) hoặc mã phím phần cứng (Code) thông qua tiền tố code:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Khớp phím Alt và phím Shift bên trái theo mã code phần cứng -->",
+        "<input type=\"text\" (keydown.code.alt.shiftleft)=\"updateField($event)\" />"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Điều này rất hữu ích để xử lý phím bấm đồng nhất giữa các hệ điều hành (ví dụ: trên macOS khi nhấn Alt + S, thuộc tính key sẽ trả về 'ß', trong khi thuộc tính code vẫn phản ánh phím vật lý được ấn)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "listening-on-global-targets",
+      "text": "Lắng nghe sự kiện từ đối tượng toàn cục (Global targets)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể lắng nghe sự kiện trên các đối tượng toàn cục bằng cách thêm tiền tố target. Angular hỗ trợ 3 target toàn cục gồm: window, document và body thông qua thuộc tính host của component:"
+    },
+    {
+      "type": "code",
+      "file": "my-view.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  /* ... */",
+        "  host: {",
+        "    '(window:click)': 'onWindowClick()',",
+        "    '(document:click)': 'onDocumentClick()',",
+        "    '(body:click)': 'onBodyClick()',",
+        "  },",
+        "})",
+        "export class MyView {}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "preventing-event-default-behavior",
+      "text": "Ngăn chặn hành vi mặc định (preventDefault)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu muốn thay thế hành vi mặc định của trình duyệt, bạn có thể gọi hàm preventDefault() trên đối tượng sự kiện:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    <a href=\"#overlay\" (click)=\"showOverlay($event)\">Mở overlay</a>",
+        "  `,",
+        "  ...",
+        "})",
+        "export class App {",
+        "  showOverlay(event: PointerEvent): void {",
+        "    event.preventDefault();",
+        "    console.log('Hiển thị overlay mà không thay đổi URL!');",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Nếu biểu thức xử lý sự kiện trả về giá trị false, Angular cũng tự động gọi preventDefault(). Tuy nhiên, bạn nên gọi trực tiếp event.preventDefault() một cách rõ ràng trong mã nguồn."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "extend-event-handling",
+      "text": "Mở rộng hệ thống xử lý sự kiện (Event Plugins)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hệ thống sự kiện của Angular có thể mở rộng thông qua các custom Event Plugins được đăng ký với injection token EVENT_MANAGER_PLUGINS."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "implementing-event-plugin",
+      "text": "Tạo và cấu hình một Event Plugin tuỳ chỉnh"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kế thừa từ EventManagerPlugin và triển khai các hàm bắt buộc (ví dụ: tạo DebounceEventPlugin để trì hoãn sự kiện):"
+    },
+    {
+      "type": "code",
+      "file": "debounce-event-plugin.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Injectable } from '@angular/core';",
+        "import { EventManagerPlugin } from '@angular/platform-browser';",
+        "",
+        "@Injectable()",
+        "export class DebounceEventPlugin extends EventManagerPlugin {",
+        "  constructor() {",
+        "    super(document);",
+        "  }",
+        "",
+        "  // Xác định sự kiện nào được plugin này hỗ trợ",
+        "  override supports(eventName: string) {",
+        "    return /debounce/.test(eventName);",
+        "  }",
+        "",
+        "  // Đăng ký listener",
+        "  override addEventListener(element: HTMLElement, eventName: string, handler: Function) {",
+        "    // Ví dụ cú pháp: \"click.debounce.500\" -> event: \"click\", delay: 500",
+        "    const [event, , delay = '300'] = eventName.split('.');",
+        "    let timeoutId: ReturnType<typeof setTimeout>;",
+        "",
+        "    const listener = (e: Event) => {",
+        "      clearTimeout(timeoutId);",
+        "      timeoutId = setTimeout(() => {",
+        "        handler(e);",
+        "      }, Number(delay));",
+        "    };",
+        "",
+        "    element.addEventListener(event, listener);",
+        "",
+        "    // Trả về hàm dọn dẹp khi hủy listener",
+        "    return () => {",
+        "      clearTimeout(timeoutId);",
+        "      element.removeEventListener(event, listener);",
+        "    };",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Đăng ký plugin này trong providers khởi tạo của ứng dụng thông qua EVENT_MANAGER_PLUGINS token:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "typescript",
+      "code": [
+        "import { bootstrapApplication, EVENT_MANAGER_PLUGINS } from '@angular/platform-browser';",
+        "import { App } from './app';",
+        "import { DebounceEventPlugin } from './debounce-event-plugin';",
+        "",
+        "bootstrapApplication(App, {",
+        "  providers: [",
+        "    {",
+        "      provide: EVENT_MANAGER_PLUGINS,",
+        "      useClass: DebounceEventPlugin,",
+        "      multi: true,",
+        "    },",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau khi đăng ký, bạn có thể sử dụng cú pháp sự kiện debounce tuỳ chỉnh trực tiếp trong template cũng như trong thuộc tính host của component:"
+    },
+    {
+      "type": "code",
+      "file": "search.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    <input",
+        "      type=\"text\"",
+        "      (input.debounce.500)=\"onSearch($event.target.value)\"",
+        "      placeholder=\"Tìm kiếm...\"",
+        "    />",
+        "  `,",
+        "  host: {",
+        "    '(click.debounce.500)': 'handleDebouncedClick()',",
+        "  },",
+        "})",
+        "export class Search {",
+        "  onSearch(query: string): void {",
+        "    console.log('Đang tìm kiếm:', query);",
+        "  }",
+        "",
+        "  handleDebouncedClick(): void {",
+        "    console.log('Đã click sau debounce!');",
+        "  }",
+        "}"
       ]
     }
   ]

@@ -1,0 +1,95 @@
+{
+  "slug": "guide/templates/whitespace",
+  "title": "Whitespace in templates",
+  "description": "Mặc định, Angular tự động thu gọn và loại bỏ khoảng trắng không cần thiết trong template để tối ưu hoá hiệu năng và kích thước DOM node.",
+  "source": "https://angular.dev/guide/templates/whitespace",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Mặc định, template của Angular sẽ không giữ lại các ký tự khoảng trắng (whitespace, tab, xuống dòng) mà framework đánh giá là không cần thiết. Điều này thường diễn ra trong hai trường hợp: khoảng trắng giữa các thẻ phần tử và các chuỗi khoảng trắng liền kề có thể thu gọn bên trong văn bản."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "whitespace-between-elements",
+      "text": "Khoảng trắng giữa các phần tử HTML"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các lập trình viên thường thụt lề và xuống dòng để code dễ đọc. Nếu giữ lại tất cả các khoảng trắng này, trình duyệt sẽ phải tạo ra hàng loạt text node trống không cần thiết, làm tăng chi phí dựng hình của DOM. Bằng cách loại bỏ khoảng trắng dư thừa, Angular giúp DOM gọn nhẹ hơn và tăng tốc độ hiển thị."
+    },
+    {
+      "type": "code",
+      "file": "template-formatting.html",
+      "lang": "html",
+      "code": [
+        "<section>",
+        "  <h3>Hồ sơ người dùng</h3>",
+        "  <label>",
+        "    Tên đăng nhập",
+        "    <input />",
+        "  </label>",
+        "</section>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "collapsible-whitespace-inside-text",
+      "text": "Thu gọn khoảng trắng bên trong nội dung văn bản"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tương tự như cơ chế của trình duyệt web (HTML tự động gộp nhiều dấu cách liên tiếp thành 1 dấu cách duy nhất), trình biên dịch Angular sẽ chủ động gộp các khoảng trắng này lại ngay từ bước biên dịch template trước khi gửi tới trình duyệt."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "preserving-whitespace",
+      "text": "Giữ lại khoảng trắng khi cần thiết"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn thực sự muốn giữ nguyên khoảng trắng trong một template nhất định, bạn có thể thiết lập tuỳ chọn preserveWhitespaces: true trong decorator @Component:"
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "typescript",
+      "code": [
+        "@Component({",
+        "  /* ... */",
+        "  preserveWhitespaces: true,",
+        "  template: `",
+        "    <p>Xin chào        thế giới</p>",
+        "  `,",
+        "})",
+        "export class AppComponent {}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Tránh bật tuỳ chọn preserveWhitespaces: true trừ khi thực sự bắt buộc, vì việc giữ lại khoảng trắng sẽ khiến Angular tạo thêm rất nhiều DOM node, làm chậm ứng dụng."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "ngsp-entity",
+      "text": "Ký tự khoảng trắng đặc biệt: &ngsp;"
+    },
+    {
+      "type": "paragraph",
+      "text": "Ngoài ra, bạn có thể sử dụng thực thể HTML đặc thù của riêng Angular là &ngsp; (Angular Space). Thực thể này sẽ luôn được bảo toàn thành một dấu cách đơn nguyên bản trong kết quả biên dịch mà không cần bật preserveWhitespaces cho toàn bộ component:"
+    },
+    {
+      "type": "code",
+      "file": "example.html",
+      "lang": "html",
+      "code": [
+        "<span>Xin chào&ngsp;bạn!</span>"
+      ]
+    }
+  ]
+}

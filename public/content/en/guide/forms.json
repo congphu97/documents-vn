@@ -1,43 +1,47 @@
 {
   "slug": "guide/forms",
-  "title": "Overview",
-  "description": "Documentation guide for Overview in Angular.",
+  "title": "Forms in Angular",
+  "description": "An introduction to building forms in Angular: Reactive Forms, Template-driven Forms, and Modern Signal-based Forms.",
   "source": "https://angular.dev/guide/forms",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Official documentation from [angular.dev/guide/forms](https://angular.dev/guide/forms)."
-    },
-    {
       "type": "paragraph",
-      "text": "Overview is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+      "text": "Handling user input with forms is the cornerstone of many web applications. Applications use forms to enable users to log in, update a profile, enter sensitive information, and perform many other data-entry tasks."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Overview and Concepts"
+      "id": "choosing-an-approach",
+      "text": "Choosing a form approach"
     },
     {
       "type": "paragraph",
-      "text": "To master Overview, explore the core mechanisms and design patterns provided by Angular."
+      "text": "Angular provides distinct approaches to handling forms, each suited for different use cases:"
     },
     {
-      "type": "code",
-      "file": "example.ts",
-      "lang": "ts",
-      "code": [
-        "// Example demonstration for Overview",
-        "import { Component } from \"@angular/core\";",
-        "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Overview</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+      "type": "table",
+      "headers": ["Approach", "Setup", "Data Model", "Predictability & Testing"],
+      "rows": [
+        ["<strong>Reactive Forms</strong>", "More code in TypeScript class.", "Structured, explicit, and synchronous immutable stream.", "High predictability, straightforward unit testing."],
+        ["<strong>Template-driven Forms</strong>", "Declarative directives in HTML template.", "Implicit, asynchronous two-way data binding (ngModel).", "Simpler for simple forms, harder to test complex flows."],
+        ["<strong>Signal Forms (Modern)</strong>", "Built natively on Angular Signals.", "Fine-grained reactive signals.", "Zero Zone.js overhead, seamless reactivity with computed and effect."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "forms-guides",
+      "text": "Available Forms Guides"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/reactive-forms\">Reactive Forms</a>: Complete guide to FormControl, FormGroup, FormBuilder, and FormArray.",
+        "<a href=\"/docs/guide/forms/typed-forms\">Typed Forms</a>: Strictly typed reactive forms in modern Angular.",
+        "<a href=\"/docs/guide/forms/template-driven-forms\">Template-driven Forms</a>: Two-way data binding with ngModel and ngForm.",
+        "<a href=\"/docs/guide/forms/form-validation\">Form Validation</a>: Built-in validators, custom validators, cross-field validation, and async validators.",
+        "<a href=\"/docs/guide/forms/dynamic-forms\">Dynamic Forms</a>: Generating forms at runtime from metadata models."
       ]
     }
   ]

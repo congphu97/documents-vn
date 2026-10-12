@@ -1,0 +1,204 @@
+{
+  "slug": "guide/routing/route-transition-animations",
+  "title": "Hiệu ứng chuyển cảnh tuyến đường (Route transition animations)",
+  "description": "Tìm hiểu cách tích hợp View Transitions API bản địa của trình duyệt vào Angular Router với withViewTransitions, tùy chỉnh hoạt ảnh chuyển cảnh bằng CSS pseudo-elements và callback onViewTransitionCreated.",
+  "source": "https://angular.dev/guide/routing/route-transition-animations",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Hiệu ứng chuyển cảnh tuyến đường (Route transition animations) nâng cao trải nghiệm người dùng bằng cách cung cấp các hiệu ứng chuyển đổi thị giác mượt mà khi điều hướng giữa các trang khác nhau trong ứng dụng Angular. Angular Router tích hợp sẵn sự hỗ trợ cho View Transitions API của trình duyệt, cho phép tạo hiệu ứng hoạt ảnh liền mạch giữa các lần thay đổi route trên các trình duyệt được hỗ trợ."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Tính năng tích hợp View Transitions gốc của Angular Router hiện đang ở trạng thái Developer Preview. Native View Transitions là một tính năng trình duyệt tương đối mới và đang tiếp tục được mở rộng độ phủ hỗ trợ trên các trình duyệt hiện đại."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-view-transitions-work",
+      "text": "View Transitions hoạt động như thế nào? (How View Transitions work)"
+    },
+    {
+      "type": "paragraph",
+      "text": "View transitions sử dụng API bản địa <code>document.startViewTransition</code> của trình duyệt để tạo hoạt ảnh mượt mà giữa các trạng thái khác nhau của ứng dụng. API hoạt động theo 4 bước:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>1. Chụp ảnh trạng thái hiện tại (Capture current state):</strong> Trình duyệt chụp một ảnh chụp màn hình (screenshot) của trang hiện tại.",
+        "<strong>2. Thực thi cập nhật DOM:</strong> Hàm callback của bạn chạy để thay đổi và cập nhật cấu trúc DOM.",
+        "<strong>3. Chụp ảnh trạng thái mới (Capture new state):</strong> Trình duyệt ghi lại trạng thái trang sau khi đã cập nhật.",
+        "<strong>4. Thực thi hoạt ảnh chuyển cảnh (Play transition):</strong> Trình duyệt tự động tạo hiệu ứng chuyển tiếp giữa ảnh chụp cũ và giao diện mới."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "view-transition-basic.ts",
+      "lang": "ts",
+      "code": [
+        "document.startViewTransition(async () => {",
+        "  await updateTheDOMSomehow();",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-the-router-uses-view-transitions",
+      "text": "Cách Router sử dụng View Transitions"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular Router tích hợp chặt chẽ View Transitions vào vòng đời điều hướng. Trong quá trình điều hướng, Router:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Hoàn tất giai đoạn chuẩn bị: Khớp route, lazy loading, chạy guards, resolvers và nạp tài nguyên resources.",
+        "Khởi tạo view transition: Gọi <code>startViewTransition</code> ngay khi routes sẵn sàng kích hoạt.",
+        "Cập nhật DOM: Kích hoạt route mới và hủy bỏ route cũ bên trong callback chuyển cảnh.",
+        "Hoàn tất chuyển cảnh: Promise chuyển cảnh kết thúc khi Angular hoàn tất quá trình render."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Tính năng này đóng vai trò như một Progressive Enhancement (Cải tiến lũy tiến). Trên các trình duyệt chưa hỗ trợ View Transitions API, Router vẫn cập nhật DOM bình thường mà không có hiệu ứng hoạt họa, đảm bảo ứng dụng luôn chạy ổn định trên mọi môi trường."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "enabling-view-transitions-in-the-router",
+      "text": "Kích hoạt View Transitions trong Router (Enabling View Transitions)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn kích hoạt tính năng bằng cách thêm <code>withViewTransitions()</code> vào hàm <code>provideRouter</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideRouter, withViewTransitions } from '@angular/router';",
+        "import { routes } from './app.routes';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideRouter(routes, withViewTransitions()),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "customizing-transitions-with-css",
+      "text": "Tùy biến hiệu ứng chuyển cảnh bằng CSS (Customizing transitions with CSS)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trình duyệt tạo ra các phần tử chuyển cảnh giả định (pseudo-elements) mà bạn có thể định kiểu bằng CSS:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Gán thuộc tính <code>view-transition-name</code>: Đặt một định danh tên duy nhất cho phần tử bạn muốn tạo hiệu ứng.",
+        "Định nghĩa <code>@keyframes</code>: Tạo hiệu ứng hoạt ảnh trong file styles toàn cục.",
+        "Nhắm mục tiêu các pseudo-elements: Sử dụng <code>::view-transition-old()</code> và <code>::view-transition-new()</code>."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "styles.css",
+      "lang": "css",
+      "code": [
+        "/* Định nghĩa hoạt ảnh xoay */",
+        "@keyframes rotate-out {",
+        "  to { transform: rotate(90deg); }",
+        "}",
+        "@keyframes rotate-in {",
+        "  from { transform: rotate(-90deg); }",
+        "}",
+        "",
+        "/* Định kiểu cho phần tử có view-transition-name: count */",
+        "::view-transition-old(count),",
+        "::view-transition-new(count) {",
+        "  animation-duration: 200ms;",
+        "  animation-name: -ua-view-transition-fade-in, rotate-in;",
+        "}",
+        "",
+        "::view-transition-old(count) {",
+        "  animation-name: -ua-view-transition-fade-out, rotate-out;",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "QUAN TRỌNG: Hãy luôn định nghĩa các hoạt ảnh View Transition trong tệp CSS toàn cục (styles.css), không đặt trong style nội bộ của component. Tính năng View Encapsulation của Angular sẽ cô lập CSS và ngăn các selector nhắm mục tiêu đến các pseudo-elements của View Transitions."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "advanced-transition-control-with-onviewtransitioncreated",
+      "text": "Kiểm soát nâng cao với onViewTransitionCreated"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>withViewTransitions</code> nhận vào một đối tượng cấu hình với callback <code>onViewTransitionCreated</code> chạy trong Injection Context. Callback nhận đối tượng <code>ViewTransitionInfo</code> chứa thể hiện ViewTransition cùng thông tin snapshot route đi và route đến."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ: Bỏ qua hiệu ứng chuyển cảnh nếu việc điều hướng chỉ thay đổi fragment hoặc query parameter (như nhấp vào liên kết neo nội bộ trong cùng một trang):"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { inject } from '@angular/core';",
+        "import { Router, withViewTransitions, isActive, IsActiveMatchOptions } from '@angular/router';",
+        "",
+        "withViewTransitions({",
+        "  onViewTransitionCreated: ({ transition }) => {",
+        "    const router = inject(Router);",
+        "    const targetUrl = router.currentNavigation()!.finalUrl!;",
+        "",
+        "    // Bỏ qua chuyển cảnh nếu chỉ đổi fragment hoặc query params",
+        "    const config: Partial<IsActiveMatchOptions> = {",
+        "      paths: 'exact',",
+        "      matrixParams: 'exact',",
+        "      fragment: 'ignored',",
+        "      queryParams: 'ignored',",
+        "    };",
+        "",
+        "    const isTargetRouteCurrent = isActive(targetUrl, router, config);",
+        "    if (isTargetRouteCurrent()) {",
+        "      transition.skipTransition(); // Hủy bỏ hoạt ảnh nhưng vẫn hoàn thành điều hướng",
+        "    }",
+        "  },",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "examples-from-the-chrome-explainer-adapted-to-angular",
+      "text": "Các kỹ thuật chuyển cảnh nâng cao"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Phần tử chuyển cảnh không nhất thiết phải là cùng một phần tử DOM:</strong> Miễn là hai phần tử trên hai trang chia sẻ cùng giá trị <code>view-transition-name</code>, trình duyệt sẽ tự động nội suy vị trí và kích thước giữa chúng.",
+        "<strong>Hoạt ảnh xuất hiện và biến mất tùy chỉnh (Custom entry/exit animations):</strong> Tùy biến chuyển động trượt ngang, mờ dần hoặc thu phóng khi chuyển trang.",
+        "<strong>Không trì hoãn chuyển cảnh vì nội dung bất đồng bộ:</strong> Angular Router ưu tiên kích hoạt chuyển cảnh ngay lập tức thay vì chờ nạp thêm dữ liệu để tránh làm đóng băng giao diện người dùng.",
+        "<strong>Phân loại hiệu ứng với View Transition Types:</strong> Áp dụng các kiểu hoạt họa khác nhau (ví dụ: trượt sang trái khi đi tới, trượt sang phải khi ấn Back) bằng cách chỉ định các types tương ứng.",
+        "<strong>Hoạt họa bằng JavaScript:</strong> Điều khiển hoạt ảnh theo lập trình bằng Web Animations API để xử lý các kịch bản chuyển cảnh phức tạp."
+      ]
+    }
+  ]
+}

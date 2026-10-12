@@ -1,4 +1,4 @@
-import { Component, inject, signal, output, computed } from '@angular/core';
+import { Component, inject, signal, output, computed, effect } from '@angular/core';
 import { RouterLink, Router, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs/operators';
@@ -26,7 +26,7 @@ import { NavItem, NavGroup } from '../models';
             @for (sub of activeSubmenu()!.children; track sub.label) {
               <li class="submenu-item">
                 <a
-                  [routerLink]="['/docs', sub.path]"
+                  [routerLink]="'/docs/' + sub.path"
                   [class.is-active]="isActive(sub.path)"
                   class="submenu-link"
                   (click)="onLinkClick()"
@@ -79,7 +79,7 @@ import { NavItem, NavGroup } from '../models';
                     } @else {
                       <!-- Single direct link -->
                       <a
-                        [routerLink]="['/docs', i.path]"
+                        [routerLink]="'/docs/' + i.path"
                         [class.is-active]="isActive(i.path)"
                         class="nav-link"
                         (click)="onLinkClick()"
@@ -264,8 +264,30 @@ export class SidebarComponent {
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((e) => {
-        this.currentUrl.set(e.urlAfterRedirects || e.url);
+        const url = e.urlAfterRedirects || e.url;
+        this.currentUrl.set(url);
       });
+
+    effect(() => {
+      const url = this.currentUrl();
+      const navGroups = this.nav();
+      if (!navGroups || navGroups.length === 0) return;
+
+      const cleanUrl = url.split('?')[0].split('#')[0];
+      for (const g of navGroups) {
+        for (const item of g.items) {
+          if (item.children && item.children.length > 0) {
+            const match = item.children.some(
+              (c) => `/docs/${c.path}` === cleanUrl
+            );
+            if (match) {
+              this.activeSubmenu.set(item);
+              return;
+            }
+          }
+        }
+      }
+    });
   }
 
   isActive(path?: string): boolean {

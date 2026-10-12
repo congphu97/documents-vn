@@ -1,0 +1,280 @@
+{
+  "slug": "guide/di/creating-and-using-services",
+  "title": "Tạo và sử dụng services (Creating and using services)",
+  "description": "Services là các đoạn mã có thể tái sử dụng mà bạn có thể chia sẻ trên toàn bộ ứng dụng Angular, dùng để xử lý nạp dữ liệu, business logic và trạng thái.",
+  "source": "https://angular.dev/guide/di/creating-and-using-services",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Services là các phần mã nguồn có thể tái sử dụng mà bạn có thể chia sẻ xuyên suốt ứng dụng Angular của mình. Bạn thường sử dụng chúng để xử lý việc nạp dữ liệu từ backend, thực hiện business logic hoặc cung cấp các chức năng chung mà nhiều component khác nhau cần truy cập."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-a-service",
+      "text": "Tạo một Service (Creating a service)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể tạo một service bằng lệnh Angular CLI sau:"
+    },
+    {
+      "type": "code",
+      "file": "terminal",
+      "lang": "bash",
+      "code": [
+        "ng generate service CUSTOM_NAME"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Lệnh này sẽ tự động sinh file `CUSTOM_NAME.ts` chuyên dụng trong thư mục `src`. Bạn cũng có thể tự tạo service thủ công bằng cách gắn decorator `@Service()` vào một class TypeScript. Điều này báo cho Angular biết class đó có thể được sử dụng làm dependency có thể inject được:"
+    },
+    {
+      "type": "code",
+      "file": "src/app/basic-data-store.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Service } from '@angular/core';",
+        "",
+        "@Service()",
+        "export class BasicDataStore {",
+        "  private data: string[] = [];",
+        "",
+        "  addData(item: string): void {",
+        "    this.data.push(item);",
+        "  }",
+        "",
+        "  getData(): string[] {",
+        "    return [...this.data];",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-services-become-available",
+      "text": "Cơ chế phân phối và tính khả dụng của Services (How services become available)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Services mặc định được cung cấp ở cấp độ root (root level). Khi một service được cung cấp trên phạm vi toàn cục, Angular đảm bảo ba lợi ích cốt lõi:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Singleton Instance: Tạo một thực thể duy nhất, được chia sẻ dùng chung cho toàn bộ ứng dụng.",
+        "Khả dụng toàn cục (Global Availability): Tự động truy cập được ở mọi nơi mà không cần đăng ký thủ công vào mảng providers.",
+        "Tree-shakability: Đảm bảo service sẽ bị loại bỏ hoàn toàn khỏi bundle bản build production cuối cùng nếu mã nguồn không bao giờ gọi hoặc sử dụng tới nó."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-the-service-vs-injectable-decorator",
+      "text": "Sử dụng decorator @Service so với @Injectable"
+    },
+    {
+      "type": "paragraph",
+      "text": "Decorator `@Service` đóng vai trò là cú pháp viết tắt hiện đại, tiện lợi thay thế cho cú pháp truyền thống `@Injectable({ providedIn: 'root' })`."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bảng đối chiếu nhanh giữa hai decorator:"
+    },
+    {
+      "type": "table",
+      "headers": ["Tính năng / Yêu cầu", "@Service", "@Injectable"],
+      "rows": [
+        ["Hỗ trợ hàm inject()", "Có", "Có"],
+        ["DI dựa trên Constructor", "❌ Không", "Có"],
+        ["Tự động là root singleton provider", "Có", "❌ Không (cần { providedIn: 'root' })"],
+        ["Các khóa provider nâng cao (useClass, v.v.)", "❌ Không", "Có"],
+        ["Tùy biến hàm khởi tạo (factory)", "Có", "Có"],
+        ["Các phạm vi không phải root (platform, v.v.)", "❌ Không", "Có"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "replacing-the-implementation-with-a-factory",
+      "text": "Thay thế triển khai bằng hàm Factory (Replacing the implementation with a factory)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn cần kiểm soát cách tạo singleton (ví dụ: chuyển đổi triển khai khác nhau tùy theo môi trường), hãy truyền vào một hàm factory. Hàm factory chạy trong một Injection Context, nên bạn có thể gọi `inject()` bên trong nó để đọc các dependency khác:"
+    },
+    {
+      "type": "code",
+      "file": "src/app/analytics.ts",
+      "lang": "typescript",
+      "code": [
+        "import { inject, InjectionToken, Service } from '@angular/core';",
+        "import { ANALYTICS_ENABLED } from './token';",
+        "",
+        "@Service({",
+        "  factory: () => (inject(ANALYTICS_ENABLED) ? new GoogleAnalytics() : new Analytics()),",
+        "})",
+        "export class Analytics {",
+        "  track(event: string, payload?: Record<string, unknown>) {",
+        "    // Mặc định không làm gì ở môi trường dev local",
+        "  }",
+        "}",
+        "",
+        "class GoogleAnalytics extends Analytics {",
+        "  override track(event: string, payload?: Record<string, unknown>) {",
+        "    // Gửi sự kiện phân tích tới Google Analytics thực tế",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Tùy chọn factory trong @Service thay thế cho các tùy chọn useClass, useValue, useExisting và useFactory của @Injectable. Nếu bạn cần các tùy chọn chi tiết này, hãy tiếp tục dùng @Injectable."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "opting-out-of-automatic-provisioning",
+      "text": "Hủy tự động cung cấp (Opting out of automatic provisioning)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, `@Service` sẽ cung cấp class ở root injector. Nếu bạn muốn tự cấu hình thủ công (ví dụ: giới hạn phạm vi cho một route hoặc component cụ thể), hãy thiết lập `autoProvided: false`:"
+    },
+    {
+      "type": "code",
+      "file": "src/app/analytics-logger.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Service } from '@angular/core';",
+        "",
+        "@Service({ autoProvided: false })",
+        "export class AnalyticsLogger {",
+        "  trackEvent(name: string) {",
+        "    console.log('event:', name);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi đó, bạn chịu trách nhiệm thêm service vào mảng `providers` của component hoặc route tương ứng, giống hệt như với `@Injectable()` thông thường."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "when-to-use-service-vs-injectable",
+      "text": "Khi nào nên dùng @Service so với @Injectable"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hãy chọn `@Service` khi bạn đang tạo một singleton class mới và sử dụng hàm `inject()` để nạp các dependency. Hãy tiếp tục sử dụng `@Injectable` khi bạn thuộc các trường hợp sau:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Dependency injection dựa trên tham số constructor (Constructor-based DI). @Service chỉ hỗ trợ hàm inject().",
+        "Cấu hình provider nâng cao như useClass, useValue, useExisting hoặc useFactory.",
+        "Phạm vi injector không phải root, ví dụ như providedIn: 'platform'."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "injecting-a-service",
+      "text": "Inject một Service (Injecting a service)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi service đã được cung cấp, bạn có thể inject nó ở bất kỳ đâu trong ứng dụng bằng hàm `inject()` từ `@angular/core`."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "injecting-into-a-component",
+      "text": "Inject vào một Component"
+    },
+    {
+      "type": "code",
+      "file": "src/app/example.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { BasicDataStore } from './basic-data-store';",
+        "",
+        "@Component({",
+        "  selector: 'app-example',",
+        "  template: `",
+        "    <div>",
+        "      <p>{{ dataStore.getData() }}</p>",
+        "      <button (click)=\"dataStore.addData('Thêm dữ liệu mới')\">Thêm dữ liệu</button>",
+        "    </div>",
+        "  `,",
+        "})",
+        "export class Example {",
+        "  dataStore = inject(BasicDataStore);",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "injecting-into-another-service",
+      "text": "Inject vào một Service khác"
+    },
+    {
+      "type": "code",
+      "file": "src/app/composite-store.service.ts",
+      "lang": "typescript",
+      "code": [
+        "import { inject, Service } from '@angular/core';",
+        "import { AdvancedDataStore } from './advanced-data-store';",
+        "",
+        "@Service()",
+        "export class BasicDataStore {",
+        "  private advancedDataStore = inject(AdvancedDataStore);",
+        "  private data: string[] = [];",
+        "",
+        "  addData(item: string): void {",
+        "    this.data.push(item);",
+        "  }",
+        "",
+        "  getData(): string[] {",
+        "    return [...this.data, ...this.advancedDataStore.getData()];",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc dù providedIn: 'root' hay @Service đáp ứng được phần lớn các nhu cầu, Angular còn cung cấp các kỹ thuật cấu hình provider chuyên sâu cho các tình huống đặc biệt:"
+    },
+    {
+      "type": "links",
+      "items": [
+        {
+          "text": "Defining dependency providers — Cấu hình providers chi tiết (useClass, useValue, useFactory)",
+          "href": "/docs/guide/di/defining-dependency-providers"
+        },
+        {
+          "text": "Lazy loading services — Tối ưu bundle với injectAsync()",
+          "href": "/docs/guide/di/lazy-loading-services"
+        },
+        {
+          "text": "Hierarchical injectors — Tìm hiểu sâu về hệ thống phân cấp injector trong Angular",
+          "href": "/docs/guide/di/hierarchical-dependency-injection"
+        }
+      ]
+    }
+  ]
+}

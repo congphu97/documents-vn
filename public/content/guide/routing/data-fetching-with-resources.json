@@ -1,0 +1,380 @@
+{
+  "slug": "guide/routing/data-fetching-with-resources",
+  "title": "Nạp dữ liệu với Resources (Data fetching with resources)",
+  "description": "Tìm hiểu cách tích hợp Angular Signals và Route Resources để nạp dữ liệu phản ứng song song, hỗ trợ tải không chặn (non-blocking), tự làm mới dữ liệu tại chỗ mà không cần chuyển trang và xử lý huỷ yêu cầu mạng.",
+  "source": "https://angular.dev/guide/routing/data-fetching-with-resources",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular Router tích hợp trực tiếp với Angular Signals thông qua thuộc tính cấu hình tuyến đường <code>resources</code>. Cơ chế này cho phép bạn nạp dữ liệu theo phương thức phản ứng (reactively) bằng cách sử dụng các API <code>Resource</code> hiện đại."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "why-use-route-resources",
+      "text": "Tại sao nên sử dụng Route Resources? (Why use route resources?)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Route resources mang lại nhiều ưu điểm vượt trội so với các Data Resolvers truyền thống:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Thực thi song song (Parallel execution):</strong> Các tài nguyên xuyên suốt phân cấp các route được khớp sẽ được tải đồng thời, thay vì thực thi tuần tự từng route một từ cha xuống con.",
+        "<strong>Nạp dữ liệu không chặn điều hướng (Non-blocking data loading):</strong> Cho phép dùng hàm <code>nonBlocking()</code> để kích hoạt route ngay lập tức và render khung xương (skeleton loader) hoặc trạng thái UI trong khi dữ liệu tải dưới nền.",
+        "<strong>Làm mới không cần chuyển trang (Reload without renavigation):</strong> Gọi trực tiếp <code>.reload()</code> trên tài nguyên hoặc cập nhật signal tham số để làm mới dữ liệu mà không cần chạy lại guards hay khớp lại route.",
+        "<strong>Nạp dữ liệu phản ứng (Reactive data fetching):</strong> Tài nguyên liên kết chặt chẽ với Signal, tự động tính toán lại khi signal phụ thuộc thay đổi và cung cấp sẵn các tín hiệu trạng thái như <code>isLoading()</code> và <code>error()</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "enabling-route-resources",
+      "text": "Kích hoạt Route Resources (Enabling route resources)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để kích hoạt tính năng này, hãy thêm <code>withRouterResources()</code> vào cấu hình khởi tạo Router trong <code>app.config.ts</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import {",
+        "  provideRouter,",
+        "  withComponentInputBinding,",
+        "  withRouterResources,",
+        "} from '@angular/router';",
+        "import { routes } from './app.routes';",
+        "",
+        "export const appConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideRouter(",
+        "      routes,",
+        "      withComponentInputBinding(),",
+        "      withRouterResources(),",
+        "    ),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Nên kích hoạt đồng thời <code>withComponentInputBinding()</code> để Router có thể tự động liên kết các tài nguyên đã nạp trực tiếp vào các component input."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "defining-route-resources",
+      "text": "Định nghĩa Route Resources (Defining route resources)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn định nghĩa tài nguyên trên một route bằng hàm <code>resources</code>. Hàm này chạy trong ngữ cảnh injection (injection context), vì vậy bạn có thể gọi <code>inject()</code> để lấy các service, API client hoặc store ngay trong cấu hình:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject, input, resource } from '@angular/core';",
+        "import { Routes } from '@angular/router';",
+        "import { UserService, User } from './user.service';",
+        "",
+        "export const routes: Routes = [",
+        "  {",
+        "    path: 'user/:id',",
+        "    component: UserProfile,",
+        "    resources: (ctx) => {",
+        "      const userService = inject(UserService);",
+        "      return {",
+        "        user: resource({",
+        "          params: () => ctx.params()['id'],",
+        "          loader: ({ params: id }) => userService.getUser(id),",
+        "        }),",
+        "      };",
+        "    },",
+        "  },",
+        "];",
+        "",
+        "@Component({",
+        "  template: `<p>User: {{ user().name }}</p>`,",
+        "})",
+        "export class UserProfile {",
+        "  // Router tự động gán giá trị của tài nguyên dạng blocking vào input",
+        "  user = input.required<User>();",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "the-resourcecontext-object",
+      "text": "Đối tượng ResourceContext (The ResourceContext object)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>resources</code> nhận vào một đối tượng <code>ResourceContext</code> (ký hiệu <code>ctx</code>) cung cấp quyền truy cập vào các signal phản ứng của route: <code>params</code>, <code>queryParams</code>, <code>fragment</code>, và <code>data</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "supported-resource-implementations",
+      "text": "Các triển khai Resource được hỗ trợ (Supported implementations)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>resources</code> có thể trả về bất kỳ triển khai <code>Resource</code> nào của Angular, chẳng hạn như <code>resource()</code>, <code>rxResource()</code>, hoặc tài nguyên tùy biến:"
+    },
+    {
+      "type": "code",
+      "file": "rx-resource-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { rxResource } from '@angular/core/rxjs-interop';",
+        "",
+        "const routes: Routes = [",
+        "  {",
+        "    path: 'user/:id',",
+        "    component: UserProfile,",
+        "    resources: (ctx) => ({",
+        "      user: rxResource({",
+        "        params: () => ctx.params()['id'],",
+        "        stream: ({ params: id }) => fetchUserObservable(id),",
+        "      }),",
+        "    }),",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>resources</code> cũng có thể là hàm bất đồng bộ (<code>async</code>) nếu bạn cần import động hoặc thiết lập bất đồng bộ trước:"
+    },
+    {
+      "type": "code",
+      "file": "async-resources.ts",
+      "lang": "ts",
+      "code": [
+        "resources: async (ctx) => {",
+        "  const { fetchUserData } = await import('./user-api');",
+        "  return {",
+        "    user: resource({",
+        "      params: () => ctx.params()['id'],",
+        "      loader: ({ params: id }) => fetchUserData(id),",
+        "    }),",
+        "  };",
+        "},"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "fine-grained-change-tracking-with-signals",
+      "text": "Theo dõi thay đổi tinh chỉnh với Signals (Fine-grained tracking)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một resource theo dõi chính xác các signal mà hàm <code>params</code> của nó đọc. Hãy chỉ đọc đúng giá trị cụ thể bạn cần để tài nguyên chỉ tải lại khi giá trị đó thực sự thay đổi:"
+    },
+    {
+      "type": "code",
+      "file": "fine-grained-example.ts",
+      "lang": "ts",
+      "code": [
+        "resources: (ctx) => ({",
+        "  products: resource({",
+        "    // Chỉ theo dõi query parameter 'category'",
+        "    params: () => ctx.queryParams()['category'],",
+        "    loader: ({ params: category }) => fetchProducts(category),",
+        "  }),",
+        "}),"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi người dùng điều hướng thay đổi các query params không liên quan như <code>?sort=desc</code> hay <code>?page=2</code>, giá trị <code>category</code> không đổi nên tài nguyên sẽ không bị tải lại một cách lãng phí."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Nên đọc cụ thể từng thuộc tính như <code>ctx.params()['id']</code> thay vì trả về toàn bộ đối tượng <code>ctx.params()</code>, bởi vì Router tạo một đối tượng tham chiếu mới trong mỗi lần điều hướng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "parallel-execution",
+      "text": "Thực thi song song (Parallel execution)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Data resolvers truyền thống thực thi tuần tự từ cha xuống con. Nếu cha mất 200ms và con mất 300ms, điều hướng bị chặn 500ms. Ngược lại, Route Resources trên toàn bộ cây route được khớp sẽ <strong>chạy đồng thời</strong>, do đó tổng thời gian chờ chỉ bằng tài nguyên chậm nhất: 300ms."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "blocking-and-non-blocking-resources",
+      "text": "Tài nguyên chặn (Blocking) và Không chặn (Non-blocking)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Theo mặc định, mọi tài nguyên đều ở chế độ <strong>blocking (chặn)</strong>: Router chờ cho đến khi dữ liệu nạp xong hoàn toàn rồi mới kích hoạt route và component. Khi đó, kiểu của input component là <code>T</code> thuần túy."
+    },
+    {
+      "type": "paragraph",
+      "text": "Để hiển thị trạng thái loading trong giao diện người dùng ngay lập tức, hãy bọc resource bằng hàm <code>nonBlocking()</code>. Router sẽ kích hoạt component ngay lập tức và truyền toàn bộ đối tượng <code>Resource&lt;T&gt;</code> vào component input, cho phép bạn đọc các tín hiệu <code>isLoading()</code>, <code>error()</code> và <code>value()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "reports.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, input, Resource, resource } from '@angular/core';",
+        "import { Routes, nonBlocking } from '@angular/router';",
+        "",
+        "export const routes: Routes = [",
+        "  {",
+        "    path: 'reports',",
+        "    component: Reports,",
+        "    resources: () => ({",
+        "      reportData: nonBlocking(",
+        "        resource({",
+        "          loader: () => fetchHeavyReportData(),",
+        "        }),",
+        "      ),",
+        "    }),",
+        "  },",
+        "];",
+        "",
+        "@Component({",
+        "  template: `",
+        "    @if (reportData().isLoading()) {",
+        "      <p>Đang tải dữ liệu báo cáo...</p>",
+        "    } @else if (reportData().error()) {",
+        "      <p>Lỗi khi tải báo cáo.</p>",
+        "    } @else if (reportData().hasValue()) {",
+        "      <report-view [data]=\"reportData().value()\" />",
+        "    }",
+        "  `,",
+        "})",
+        "export class Reports {",
+        "  reportData = input.required<Resource<ReportData>>();",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "redirecting-from-a-resource",
+      "text": "Chuyển hướng từ Resource (Redirecting from a resource)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu một blocking resource cần chuyển hướng người dùng (chẳng hạn khi không tìm thấy mục tương ứng), hãy ném ra (throw) một <code>RedirectCommand</code> bên trong loader:"
+    },
+    {
+      "type": "code",
+      "file": "redirect-resource.ts",
+      "lang": "ts",
+      "code": [
+        "import { inject, resource } from '@angular/core';",
+        "import { RedirectCommand, Router, Routes } from '@angular/router';",
+        "",
+        "const routes: Routes = [",
+        "  {",
+        "    path: 'user/:id',",
+        "    component: UserProfile,",
+        "    resources: (ctx) => {",
+        "      const router = inject(Router);",
+        "      return {",
+        "        user: resource({",
+        "          params: () => ctx.params()['id'],",
+        "          loader: async ({ params: id }) => {",
+        "            const user = await fetchUser(id);",
+        "            if (!user) {",
+        "              throw new RedirectCommand(router.parseUrl('/not-found'));",
+        "            }",
+        "            return user;",
+        "          },",
+        "        }),",
+        "      };",
+        "    },",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reloading-resources-without-renavigation",
+      "text": "Làm mới tài nguyên không cần chuyển trang (Reloading without renavigation)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể làm mới dữ liệu tại chỗ theo hai cách:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Gọi lệnh lập trình:</strong> Gọi phương thức <code>.reload()</code> trên thể hiện <code>Resource</code>.",
+        "<strong>Cập nhật phản ứng:</strong> Cập nhật giá trị của signal mà hàm <code>params</code> của tài nguyên đang đọc."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject, input } from '@angular/core';",
+        "import { ActivatedRoute } from '@angular/router';",
+        "",
+        "@Component({",
+        "  template: `",
+        "    <p>User: {{ user().name }}</p>",
+        "    <button (click)=\"refreshUser()\">Làm mới</button>",
+        "  `,",
+        "})",
+        "export class UserProfile {",
+        "  user = input.required<User>();",
+        "  private userResource = inject(ActivatedRoute).resources?.['user'];",
+        "",
+        "  refreshUser() {",
+        "    // Làm mới riêng tài nguyên này mà không kích hoạt điều hướng lại toàn bộ trang",
+        "    this.userResource?.reload();",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "transitional-states-during-pending-navigations",
+      "text": "Trạng thái chuyển tiếp trong quá trình điều hướng (Transitional states)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi một quá trình điều hướng đang chờ hoàn tất, router sẽ đóng băng (freeze) các tài nguyên trên <code>ActivatedRoute</code> nhằm che giấu trạng thái tải trung gian. Ví dụ chuyển từ <code>/user/1</code> sang <code>/user/2</code>, component giữ nguyên hiển thị dữ liệu của user 1 cho đến khi dữ liệu user 2 sẵn sàng, sau đó chuyển cảnh ngay lập tức mà không bị nháy màn hình."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "rollback-recovery-on-cancellation",
+      "text": "Khôi phục và hoàn tác khi điều hướng bị hủy (Rollback recovery)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu một lần điều hướng bị hủy (ví dụ bởi route guard), router sẽ khôi phục cây trạng thái về trạng thái trước đó. Nhờ cơ chế lưu snapshot giao diện, UI không bị nháy lại trạng thái tải cho dữ liệu cũ."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Hãy luôn truyền <code>abortSignal</code> từ resource loader vào các lệnh gọi mạng (chẳng hạn như <code>fetch(url, { signal: abortSignal })</code>). Khi việc điều hướng bị hủy bỏ hoặc bị thay thế bởi thao tác mới, yêu cầu HTTP cũ sẽ được tự động hủy ngay lập tức, tiết kiệm tài nguyên mạng."
+    }
+  ]
+}

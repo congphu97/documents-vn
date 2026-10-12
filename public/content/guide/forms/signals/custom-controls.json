@@ -1,0 +1,317 @@
+{
+  "slug": "guide/forms/signals/custom-controls",
+  "title": "Điều khiển tùy chỉnh (Custom Controls)",
+  "description": "Hướng dẫn xây dựng Form Controls tùy chỉnh trong Signal Forms: triển khai FormValueControl và FormCheckboxControl, tích hợp directive [formField], chuyển đổi giá trị với transformedValue, xử lý parse errors, hỗ trợ debounce('blur') và đóng gói companion schema tái sử dụng.",
+  "source": "https://angular.dev/guide/forms/signals/custom-controls",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Các thẻ điều khiển biểu mẫu tích hợp sẵn của trình duyệt (như <code>input</code>, <code>select</code>, <code>textarea</code>) đáp ứng tốt các nhu cầu cơ bản, nhưng các ứng dụng thực tế thường đòi hỏi các thành phần nhập liệu chuyên biệt: bộ chọn ngày tháng kèm lịch (date picker), trình soạn thảo văn bản phong phú (rich text editor), hoặc bộ chọn tag kèm tự động gợi ý (autocomplete). Tất cả đều cần các <strong>Custom Controls (Điều khiển tùy chỉnh)</strong>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal Forms hoạt động mượt mà với bất kỳ Angular component nào triển khai các interface điều khiển chuẩn. Khi component của bạn triển khai một trong các interface này, chỉ thị <code>[formField]</code> sẽ tự động liên kết control với trạng thái biểu mẫu, validation và cơ chế data binding hai chiều."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Các Custom Control được xây dựng theo chuẩn Signal Forms có thể sử dụng liền mạch trên cả 3 mô hình biểu mẫu của Angular: Signal Forms, Reactive Forms và Template-driven Forms mà không cần viết thêm bất kỳ mã tương thích trung gian nào."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-a-basic-custom-control",
+      "text": "Tạo Control cơ bản (Basic custom control)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "minimal-input-control",
+      "text": "1. Control nhập liệu cơ bản (FormValueControl)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một control nhập liệu giá trị đơn chỉ cần triển khai interface <code>FormValueControl&lt;T&gt;</code> và cung cấp một signal <code>value = model()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "basic-input.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, model } from '@angular/core';",
+        "import { FormValueControl } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  selector: 'app-basic-input',",
+        "  template: `",
+        "    <div class=\"basic-input\">",
+        "      <input",
+        "        type=\"text\"",
+        "        [value]=\"value()\"",
+        "        (input)=\"value.set($event.target.value)\"",
+        "        placeholder=\"Nhập văn bản...\"",
+        "      />",
+        "    </div>",
+        "  `,",
+        "})",
+        "export class BasicInput implements FormValueControl<string> {",
+        "  /** Giá trị hiện tại của ô nhập liệu (bắt buộc) */",
+        "  value = model('');",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "minimal-checkbox-control",
+      "text": "2. Control dạng bật/tắt Checkbox (FormCheckboxControl)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một control kiểu hộp kiểm hoặc nút gạt boolean cần triển khai interface <code>FormCheckboxControl</code> và cung cấp một signal <code>checked = model&lt;boolean&gt;()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "basic-toggle.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, model } from '@angular/core';",
+        "import { FormCheckboxControl } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  selector: 'app-basic-toggle',",
+        "  template: `",
+        "    <button type=\"button\" [class.active]=\"checked()\" (click)=\"toggle()\">",
+        "      <span class=\"toggle-slider\"></span>",
+        "    </button>",
+        "  `,",
+        "})",
+        "export class BasicToggle implements FormCheckboxControl {",
+        "  /** Trạng thái bật/tắt (bắt buộc) */",
+        "  checked = model<boolean>(false);",
+        "",
+        "  toggle() {",
+        "    this.checked.update((val) => !val);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-your-custom-control",
+      "text": "Sử dụng Custom Control với [formField]"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau khi tạo xong, bạn sử dụng custom control hoàn toàn tương tự như các thẻ HTML nguyên bản bằng chỉ thị <code>[formField]</code>:"
+    },
+    {
+      "type": "code",
+      "file": "registration-with-custom-controls.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  imports: [FormField, BasicInput, BasicToggle],",
+        "  template: `",
+        "    <form novalidate>",
+        "      <label>",
+        "        Email",
+        "        <app-basic-input [formField]=\"registrationForm.email\" />",
+        "      </label>",
+        "      <label>",
+        "        Đồng ý điều khoản",
+        "        <app-basic-toggle [formField]=\"registrationForm.acceptTerms\" />",
+        "      </label>",
+        "      <button type=\"submit\" [disabled]=\"registrationForm().invalid()\">Đăng ký</button>",
+        "    </form>",
+        "  `,",
+        "})",
+        "export class Registration {",
+        "  registrationModel = signal({ email: '', acceptTerms: false });",
+        "  registrationForm = form(this.registrationModel, (path) => {",
+        "    required(path.email, { message: 'Email là bắt buộc' });",
+        "    required(path.acceptTerms, { message: 'Bạn phải đồng ý với điều khoản' });",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "understanding-control-interfaces",
+      "text": "Các Interface Điều khiển (Control Interfaces)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal Forms phân biệt rõ hai loại control:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>FormValueControl&lt;T&gt;:</strong> Áp dụng cho phần lớn các ô nhập liệu (text, number, date, dropdown...). Bắt buộc có thuộc tính <code>value = model&lt;T&gt;()</code>. <em>Không được phép</em> có thuộc tính <code>checked</code>.",
+        "<strong>FormCheckboxControl:</strong> Áp dụng cho các control dạng công tắc boolean bật/tắt. Bắt buộc có thuộc tính <code>checked = model&lt;boolean&gt;()</code>. <em>Không được phép</em> có thuộc tính <code>value</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "optional-state-properties",
+      "text": "Các thuộc tính trạng thái tùy chọn (FormUiControl)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cả hai interface trên đều kế thừa từ <code>FormUiControl</code>. Bạn có thể khai báo thêm các signal input tùy chọn để control tự động phản ứng với form:"
+    },
+    {
+      "type": "table",
+      "headers": ["Nhóm thuộc tính", "Tên thuộc tính", "Mục đích sử dụng trong Control"],
+      "rows": [
+        ["<strong>Tương tác</strong>", "<code>touched = input&lt;boolean&gt;()</code><br><code>touch = output&lt;void&gt;()</code>", "Nhận biết người dùng đã focus/blur, và phát sự kiện khi control mất tiêu điểm."],
+        ["<strong>Kiểm thực</strong>", "<code>invalid = input&lt;boolean&gt;()</code><br><code>errors = input&lt;ValidationError[]&gt;()</code><br><code>pending = input&lt;boolean&gt;()</code>", "Hiển thị viền đỏ báo lỗi, danh sách lỗi hoặc spinner đang kiểm tra."],
+        ["<strong>Khả dụng</strong>", "<code>disabled = input&lt;boolean&gt;()</code><br><code>disabledReasons = input&lt;DisabledReason[]&gt;()</code><br><code>readonly = input&lt;boolean&gt;()</code><br><code>hidden = input&lt;boolean&gt;()</code>", "Vô hiệu hóa thẻ input, hiển thị lý do cấm sửa, hoặc ẩn control."],
+        ["<strong>Ràng buộc Schema</strong>", "<code>required = input&lt;boolean&gt;()</code><br><code>min, max = input&lt;number&gt;()</code><br><code>minLength, maxLength = input&lt;number&gt;()</code>", "Hiển thị dấu hoa thị bắt buộc (*), giới hạn min/max trên giao diện HTML."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "working-with-debounceblur",
+      "text": "Hỗ trợ quy tắc debounce('blur')"
+    },
+    {
+      "type": "paragraph",
+      "text": "Quy tắc <code>debounce('blur')</code> trì hoãn việc đồng bộ giá trị vào model cho đến khi người dùng rời khỏi ô nhập liệu (blur). Để custom control của bạn tham gia vào cơ chế này, bạn <strong>bắt buộc phải phát sự kiện qua <code>touch.emit()</code></strong> khi sự kiện <code>(blur)</code> của phần tử DOM xảy ra:"
+    },
+    {
+      "type": "code",
+      "file": "custom-blur-touch.ts",
+      "lang": "ts",
+      "code": [
+        "export class CustomInput implements FormValueControl<string> {",
+        "  value = model('');",
+        "  // Bắt buộc khai báo touch output:",
+        "  touch = output<void>();",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "custom-input.template.html",
+      "lang": "html",
+      "code": [
+        "<!-- Phát touch.emit() khi người dùng rời khỏi ô nhập (blur) -->",
+        "<input",
+        "  type=\"text\"",
+        "  [value]=\"value()\"",
+        "  (input)=\"value.set($event.target.value)\"",
+        "  (blur)=\"touch.emit()\"",
+        "/>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "value-transformation",
+      "text": "Chuyển đổi giá trị hiển thị với transformedValue()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đôi khi giá trị hiển thị trên giao diện (raw value) khác với giá trị lưu trữ trong model (ví dụ: model lưu số <code>1234.56</code> nhưng UI hiển thị chuỗi <code>$1,234.56</code>). Hãy sử dụng hàm tiện ích <code>transformedValue()</code> từ <code>@angular/forms/signals</code>:"
+    },
+    {
+      "type": "code",
+      "file": "transformed-value-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, model } from '@angular/core';",
+        "import { FormValueControl, transformedValue } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  selector: 'number-input',",
+        "  template: `",
+        "    <input type=\"text\" [value]=\"rawValue()\" (input)=\"rawValue.set($event.target.value)\" />",
+        "  `,",
+        "})",
+        "export class NumberInput implements FormValueControl<number | null> {",
+        "  readonly value = model.required<number | null>();",
+        "",
+        "  protected readonly rawValue = transformedValue(this.value, {",
+        "    // Chuyển chuỗi người dùng gõ thành số lưu trong model:",
+        "    parse: (val: string) => {",
+        "      const parsed = val ? Number(val) : null;",
+        "      return Number.isNaN(parsed)",
+        "        ? { error: { kind: 'parse', message: `${val} không phải là một số hợp lệ` } }",
+        "        : { value: parsed };",
+        "    },",
+        "    // Chuyển giá trị từ model thành chuỗi hiển thị lên thẻ input:",
+        "    format: (val: number | null) => val?.toString() ?? '',",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "reporting-parse-errors",
+      "text": "Báo cáo lỗi cú pháp (Parse Errors)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi người dùng gõ ký tự không thể phân tích thành model (như chữ 'abc' vào ô nhập số), hàm <code>parse</code> có thể trả về <code>{ error: { kind: 'parse', message: '...' } }</code>. Lỗi này sẽ tự động xuất hiện trong signal <code>errors()</code> của trường và chặn submit tương tự như một quy tắc kiểm thực thất bại."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "making-controls-reusable",
+      "text": "Đóng gói Companion Schema để tái sử dụng"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một control chuyên dụng (như email input) thường đi kèm các quy tắc kiểm thực mặc định. Thay vì bắt mọi component sử dụng nó phải tự khai báo lại các validator đó, hãy đóng gói một <strong>Companion Schema</strong> và xuất cùng file:"
+    },
+    {
+      "type": "code",
+      "file": "email-input.ts",
+      "lang": "ts",
+      "code": [
+        "import { schema, required, email } from '@angular/forms/signals';",
+        "",
+        "// Đóng gói schema đi kèm:",
+        "export const emailFieldSchema = schema<string>((path) => {",
+        "  required(path, { message: 'Email là bắt buộc' });",
+        "  email(path, { message: 'Địa chỉ email không đúng định dạng' });",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Phía người dùng chỉ cần import và áp dụng bằng hàm <code>apply()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "use-companion-schema.ts",
+      "lang": "ts",
+      "code": [
+        "registrationForm = form(this.registrationModel, (path) => {",
+        "  apply(path.email, emailFieldSchema);",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/field-state-management\">Quản lý trạng thái trường (Field state management)</a>",
+        "<a href=\"/docs/guide/forms/signals/schemas\">Lược đồ và Khả năng kết hợp Schema (Schemas & composability)</a>",
+        "<a href=\"/docs/guide/forms/signals/validation\">Kiểm thực dữ liệu trong Signal Forms (Validation)</a>"
+      ]
+    }
+  ]
+}

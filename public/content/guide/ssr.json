@@ -1,44 +1,701 @@
 {
   "slug": "guide/ssr",
-  "title": "SSR Overview",
-  "description": "Tài liệu hướng dẫn về SSR Overview trong Angular.",
+  "title": "Server and Hybrid Rendering trong Angular",
+  "description": "Hướng dẫn toàn diện về Server-side Rendering (SSR) và Hybrid Rendering trong Angular: Server Routing (app.routes.server.ts), RenderMode (Server, Client, Prerender), getPrerenderParams, chuyển hướng, viết component tương thích server, tiêm REQUEST/RESPONSE_INIT, HttpTransferCache và triển khai server.",
   "source": "https://angular.dev/guide/ssr",
-  "status": "reviewed",
+  "status": "ready",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/ssr](https://angular.dev/guide/ssr)."
-    },
-    {
       "type": "paragraph",
-      "text": "SSR Overview là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Mặc định, Angular biên dịch ứng dụng dưới dạng Client-side Rendered (CSR). Dù cách tiếp cận này tạo ra gói mã ban đầu gọn nhẹ, nó phải đánh đổi bằng thời gian tải trang chậm hơn, điểm số hiệu năng (Core Web Vitals) bị ảnh hưởng và đòi hỏi nhiều tài nguyên xử lý từ thiết bị người dùng. Bằng cách tích hợp <strong>Server-side Rendering (SSR)</strong> vào chiến lược <strong>Hybrid Rendering</strong>, ứng dụng có thể đạt được những bước nhảy vọt về hiệu năng và trải nghiệm người dùng."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "what-is-hybrid-rendering",
+      "text": "Hybrid Rendering là gì?"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững SSR Overview, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "<strong>Hybrid Rendering</strong> cho phép lập trình viên kết hợp linh hoạt những lợi thế tốt nhất của cả ba mô hình: <strong>Server-side Rendering (SSR)</strong>, <strong>Prerendering (SSG)</strong> và <strong>Client-side Rendering (CSR)</strong> trong cùng một ứng dụng. Bạn có toàn quyền kiểm soát chi tiết cách thức từng tuyến đường (route) cụ thể được kết xuất để mang lại trải nghiệm tối ưu nhất."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setting-up-hybrid-rendering",
+      "text": "Thiết lập Hybrid Rendering"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể khởi tạo một dự án mới kích hoạt sẵn SSR bằng cờ <code>--ssr</code> của Angular CLI:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "terminal",
+      "lang": "shell",
+      "code": [
+        "ng new my-app --ssr"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hoặc thêm SSR vào dự án Angular hiện có bằng lệnh <code>ng add</code>:"
+    },
+    {
+      "type": "code",
+      "file": "terminal",
+      "lang": "shell",
+      "code": [
+        "ng add @angular/ssr"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "note",
+      "title": "Hành vi mặc định của Angular",
+      "text": "Theo mặc định, Angular sẽ prerender toàn bộ ứng dụng và tạo một file server để phục vụ. Để tắt server và tạo ứng dụng tĩnh hoàn toàn, bạn có thể thiết lập <code>outputMode: \"static\"</code> trong file <code>angular.json</code>. Để kích hoạt SSR cho từng trang động, hãy cập nhật cấu hình server routes sang <code>RenderMode.Server</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "server-routing",
+      "text": "Định tuyến Server (Server Routing)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Định tuyến phía server được cấu hình trong file <code>app.routes.server.ts</code> thông qua mảng các đối tượng <code>ServerRoute</code>. Mỗi tuyến đường được gán một <code>RenderMode</code> riêng biệt:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.server.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho SSR Overview",
-        "import { Component } from \"@angular/core\";",
+        "import { RenderMode, ServerRoute } from '@angular/ssr';",
+        "",
+        "export const serverRoutes: ServerRoute[] = [",
+        "  {",
+        "    path: '', // Trang chủ chạy trên client (CSR)",
+        "    renderMode: RenderMode.Client,",
+        "  },",
+        "  {",
+        "    path: 'about', // Trang tĩnh ít thay đổi, kết xuất trước tại build-time (SSG)",
+        "    renderMode: RenderMode.Prerender,",
+        "  },",
+        "  {",
+        "    path: 'profile', // Trang chứa dữ liệu cá nhân theo người dùng, chạy SSR",
+        "    renderMode: RenderMode.Server,",
+        "  },",
+        "  {",
+        "    path: '**', // Tất cả các route còn lại mặc định chạy SSR",
+        "    renderMode: RenderMode.Server,",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Cấu hình này được đăng ký trong <code>app.config.server.ts</code> với hàm <code>provideServerRendering</code> và <code>withRoutes</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { ApplicationConfig } from '@angular/core';",
+        "import { provideServerRendering, withRoutes } from '@angular/ssr';",
+        "import { serverRoutes } from './app.routes.server';",
+        "",
+        "export const serverConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideServerRendering(withRoutes(serverRoutes)),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi áp dụng mẫu kiến trúc <strong>App shell pattern</strong>, bạn có thể chỉ định component làm vỏ ứng dụng cho các route CSR bằng tính năng <code>withAppShell</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { provideServerRendering, withRoutes, withAppShell } from '@angular/ssr';",
+        "import { serverRoutes } from './app.routes.server';",
+        "import { AppShellComponent } from './app-shell.component';",
+        "",
+        "export const serverConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideServerRendering(",
+        "      withRoutes(serverRoutes),",
+        "      withAppShell(AppShellComponent)",
+        "    ),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "rendering-modes",
+      "text": "Các chế độ kết xuất (Rendering Modes)"
+    },
+    {
+      "type": "table",
+      "headers": ["Chế độ kết xuất", "Mô tả cơ chế"],
+      "rows": [
+        ["<strong>Server (SSR)</strong>", "Kết xuất ứng dụng trên server theo từng request và gửi trang HTML hoàn chỉnh về trình duyệt."],
+        ["<strong>Client (CSR)</strong>", "Kết xuất ứng dụng hoàn toàn trên trình duyệt người dùng. Đây là hành vi mặc định của Angular."],
+        ["<strong>Prerender (SSG)</strong>", "Kết xuất trước ứng dụng tại thời điểm build (build-time), tạo ra các file HTML tĩnh cho từng route."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "choosing-a-rendering-mode",
+      "text": "Lựa chọn chế độ kết xuất phù hợp"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Client-side rendering (CSR):</strong> Mô hình phát triển đơn giản nhất vì luôn chạy trên browser. Thích hợp cho các dashboard quản trị bảo mật, ứng dụng nội bộ hoặc Progressive Web App (PWA) hỗ trợ offline qua Service Worker. Nhược điểm là thời gian tải ban đầu chậm và hạn chế khả năng cào dữ liệu của bot tìm kiếm.",
+        "<strong>Server-side rendering (SSR):</strong> Tải trang tức thì, chỉ cần thời gian server lấy dữ liệu và kết xuất HTML. Tối ưu SEO vượt trội vì bot tìm kiếm nhận HTML đầy đủ. Cần chú ý không sử dụng trực tiếp các API chỉ có trên browser và server sẽ tốn chi phí CPU theo mỗi request.",
+        "<strong>Build-time prerendering (SSG):</strong> Tốc độ phản hồi nhanh nhất vì server hoặc CDN chỉ việc trả về file HTML tĩnh có sẵn. Chi phí máy chủ gần như bằng 0 và tối ưu SEO tuyệt đối. Nhược điểm là dữ liệu phải cố định tại thời điểm build (không chứa thông tin động theo từng user cụ thể) và làm tăng thời gian build nếu có quá nhiều trang tĩnh."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setting-headers-and-status-codes",
+      "text": "Thiết lập Headers và Mã trạng thái HTTP"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể thiết lập trực tiếp custom headers và mã phản hồi HTTP cho từng server route cụ thể trong <code>ServerRoute</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { RenderMode, ServerRoute } from '@angular/ssr';",
+        "",
+        "export const serverRoutes: ServerRoute[] = [",
+        "  {",
+        "    path: 'profile',",
+        "    renderMode: RenderMode.Server,",
+        "    headers: {",
+        "      'X-My-Custom-Header': 'some-value',",
+        "    },",
+        "    status: 201,",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "redirects",
+      "text": "Chuyển hướng (Redirects)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular xử lý thuộc tính <code>redirectTo</code> theo cách khác nhau tùy thuộc vào chế độ kết xuất phía server:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Server-Side Rendering (SSR):</strong> Thực hiện chuyển hướng chuẩn HTTP (ví dụ: HTTP 301 hoặc 302) trực tiếp trong chu kỳ phản hồi của server.",
+        "<strong>Prerendering (SSG):</strong> Thực hiện chuyển hướng mềm (\"soft redirect\") bằng thẻ meta <code>&lt;meta http-equiv=\"refresh\"&gt;</code> nhúng sẵn trong file HTML tĩnh được tạo ra."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "customizing-build-time-prerendering-ssg",
+      "text": "Tùy biến Prerendering tĩnh (SSG)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "parameterized-routes",
+      "text": "Định tuyến có tham số với getPrerenderParams"
+    },
+    {
+      "type": "paragraph",
+      "text": "Với các route có tham số (ví dụ <code>post/:id</code>), bạn có thể dùng hàm <code>getPrerenderParams</code> để trả về danh sách các tham số sẽ được xuất thành file tĩnh tương ứng. Bạn có thể sử dụng hàm <code>inject()</code> để lấy dữ liệu từ service:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { RenderMode, ServerRoute } from '@angular/ssr';",
+        "import { inject } from '@angular/core';",
+        "import { PostService } from './post.service';",
+        "",
+        "export const serverRoutes: ServerRoute[] = [",
+        "  {",
+        "    path: 'post/:id',",
+        "    renderMode: RenderMode.Prerender,",
+        "    async getPrerenderParams() {",
+        "      const dataService = inject(PostService);",
+        "      const ids = await dataService.getIds(); // Giả sử trả về ['1', '2', '3']",
+        "      return ids.map((id) => ({ id })); // Sinh ra các trang: /post/1, /post/2, /post/3",
+        "    },",
+        "  },",
+        "  {",
+        "    path: 'post/:id/**',",
+        "    renderMode: RenderMode.Prerender,",
+        "    async getPrerenderParams() {",
+        "      return [",
+        "        { id: '1', '**': 'foo/3' },",
+        "        { id: '2', '**': 'bar/4' },",
+        "      ]; // Sinh ra: /post/1/foo/3, /post/2/bar/4",
+        "    },",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "important",
+      "title": "Quy tắc khi dùng inject() trong getPrerenderParams",
+      "text": "Hàm <code>inject()</code> phải được gọi đồng bộ (synchronous) trước bất kỳ lệnh <code>await</code> hoặc callback bất đồng bộ nào."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "fallback-strategies",
+      "text": "Chiến lược dự phòng (Fallback strategies)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi người dùng truy cập một đường dẫn chưa được prerender trước tại build-time, bạn có thể thiết lập thuộc tính <code>fallback</code> với các lựa chọn:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>PrerenderFallback.Server</code>: (Mặc định) Server sẽ kết xuất động bằng SSR cho request đó.",
+        "<code>PrerenderFallback.Client</code>: Chuyển giao việc kết xuất về phía trình duyệt (CSR).",
+        "<code>PrerenderFallback.None</code>: Không xử lý (trả về lỗi 404 nếu không tìm thấy file tĩnh)."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "app.routes.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { RenderMode, PrerenderFallback, ServerRoute } from '@angular/ssr';",
+        "",
+        "export const serverRoutes: ServerRoute[] = [",
+        "  {",
+        "    path: 'post/:id',",
+        "    renderMode: RenderMode.Prerender,",
+        "    fallback: PrerenderFallback.Client, // Dự phòng về CSR nếu ID chưa prerender",
+        "    async getPrerenderParams() {",
+        "      return [{ id: '1' }, { id: '2' }, { id: '3' }];",
+        "      // Đường dẫn /post/4 sẽ tự động rơi vào cơ chế fallback CSR",
+        "    },",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "authoring-server-compatible-components",
+      "text": "Viết Component tương thích với Server"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trên server, các biến toàn cục của trình duyệt như <code>window</code>, <code>document</code>, <code>navigator</code>, <code>location</code> không tồn tại. Mọi tác vụ phụ thuộc vào trình duyệt cần được bao bọc trong các lifecycle hooks <code>afterNextRender</code> hoặc <code>afterEveryRender</code> (các hook này chỉ chạy trên browser và tự động bỏ qua trên server):"
+    },
+    {
+      "type": "code",
+      "file": "safe-component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, ElementRef, viewChild, afterNextRender } from '@angular/core';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>SSR Overview</h1>`",
+        "  selector: 'my-cmp',",
+        "  template: `<span #content>Nội dung</span>`,",
         "})",
-        "export class ExampleComponent {}"
+        "export class MyComponent {",
+        "  contentRef = viewChild.required<ElementRef>('content');",
+        "",
+        "  constructor() {",
+        "    afterNextRender(() => {",
+        "      // An toàn khi đọc scrollHeight vì hook này chỉ chạy trên browser",
+        "      console.log('Chiều cao:', this.contentRef().nativeElement.scrollHeight);",
+        "    });",
+        "  }",
+        "}"
       ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "caution",
+      "title": "Tránh dùng isPlatformBrowser trong Template",
+      "text": "Không nên dùng <code>@if (isBrowser)</code> trong template để hiển thị nội dung khác nhau giữa server và client. Điều này sẽ gây ra lỗi <strong>DOM Mismatch</strong> khi hydrate và làm tụt điểm Core Web Vitals (CLS)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "setting-providers-on-the-server",
+      "text": "Thiết lập Provider trên Server"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trên server, các giá trị provider gốc chỉ được đánh giá một lần khi mã nguồn khởi chạy. Do đó, các provider cấu hình dạng <code>useValue</code> sẽ giữ nguyên giá trị qua nhiều request khác nhau. Nếu bạn muốn tạo giá trị mới độc lập cho từng request (ví dụ context, session), hãy sử dụng <code>useFactory</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "providing-platform-specific-implementations",
+      "text": "Cung cấp Service riêng cho từng Platform"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi ứng dụng cần hành vi khác nhau giữa browser và server (ví dụ công cụ phân tích sự kiện analytics), hãy định nghĩa một abstract class và cung cấp implementation tương ứng:"
+    },
+    {
+      "type": "code",
+      "file": "analytics.service.ts",
+      "lang": "ts",
+      "code": [
+        "export abstract class AnalyticsService {",
+        "  abstract trackEvent(name: string): void;",
+        "}",
+        "",
+        "@Injectable()",
+        "export class BrowserAnalyticsService implements AnalyticsService {",
+        "  trackEvent(name: string): void {",
+        "    // Gửi sự kiện qua thư viện client của bên thứ ba (Google Analytics, v.v.)",
+        "  }",
+        "}",
+        "",
+        "@Injectable()",
+        "export class ServerAnalyticsService implements AnalyticsService {",
+        "  trackEvent(name: string): void {",
+        "    // Ghi log sự kiện hoặc gọi API trực tiếp trên server",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Đăng ký class browser trong <code>app.config.ts</code> và ghi đè bằng class server trong <code>app.config.server.ts</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.server.ts",
+      "lang": "ts",
+      "code": [
+        "export const serverConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    { provide: AnalyticsService, useClass: ServerAnalyticsService },",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "accessing-document-via-di",
+      "text": "Truy cập Document an toàn qua DI"
+    },
+    {
+      "type": "paragraph",
+      "text": "Thay vì truy cập trực tiếp biến toàn cục <code>document</code>, hãy inject token <code>DOCUMENT</code> để đảm bảo an toàn trên cả server và client:"
+    },
+    {
+      "type": "code",
+      "file": "canonical-link.service.ts",
+      "lang": "ts",
+      "code": [
+        "import { inject, Injectable } from '@angular/core';",
+        "import { DOCUMENT } from '@angular/common';",
+        "",
+        "@Injectable({ providedIn: 'root' })",
+        "export class CanonicalLinkService {",
+        "  private readonly document = inject(DOCUMENT);",
+        "",
+        "  setCanonical(href: string): void {",
+        "    const link = this.document.createElement('link');",
+        "    link.rel = 'canonical';",
+        "    link.href = href;",
+        "    this.document.head.appendChild(link);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "accessing-request-and-response-via-di",
+      "text": "Truy cập Request và Response qua DI"
+    },
+    {
+      "type": "paragraph",
+      "text": "Gói <code>@angular/core</code> cung cấp các injection tokens hữu ích khi chạy SSR:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong><code>REQUEST</code>:</strong> Cho phép truy cập đối tượng <code>Request</code> (chuẩn Web API) của request hiện tại để đọc headers, cookies, query string.",
+        "<strong><code>RESPONSE_INIT</code>:</strong> Cho phép tùy chỉnh các thuộc tính phản hồi như <code>headers</code> và <code>status</code> động tại runtime.",
+        "<strong><code>REQUEST_CONTEXT</code>:</strong> Chứa ngữ cảnh bổ sung được truyền vào hàm <code>handle()</code> từ server runtime (ví dụ Express)."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "request-demo.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { REQUEST } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'app-request-demo',",
+        "  template: `<h1>Thông tin Request</h1>`,",
+        "})",
+        "export class RequestDemoComponent {",
+        "  private request = inject(REQUEST, { optional: true });",
+        "",
+        "  constructor() {",
+        "    if (this.request) {",
+        "      console.log('URL hiện tại:', this.request.url);",
+        "      console.log('User Agent:', this.request.headers.get('user-agent'));",
+        "    }",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "note",
+      "title": "Thời điểm các Token có giá trị null",
+      "text": "Các token trên sẽ có giá trị <code>null</code> trong các trường hợp: Khi build ứng dụng, khi chạy trên trình duyệt (CSR), khi tạo trang tĩnh (SSG), hoặc khi trích xuất routes trong môi trường dev."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "generate-a-fully-static-application",
+      "text": "Tạo ứng dụng hoàn toàn tĩnh (Static SSG)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn muốn triển khai toàn bộ ứng dụng lên CDN hoặc máy chủ hosting tĩnh mà không cần môi trường Node.js server, hãy thiết lập <code>outputMode: \"static\"</code> trong file <code>angular.json</code>:"
+    },
+    {
+      "type": "code",
+      "file": "angular.json",
+      "lang": "json",
+      "code": [
+        "{",
+        "  \"projects\": {",
+        "    \"my-app\": {",
+        "      \"architect\": {",
+        "        \"build\": {",
+        "          \"options\": {",
+        "            \"outputMode\": \"static\"",
+        "          }",
+        "        }",
+        "      }",
+        "    }",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "caching-data-when-using-httpclient",
+      "text": "Truyền bộ nhớ đệm HTTP sang Client (HttpTransferCache)"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>HttpClient</code> tự động lưu vào bộ nhớ cache các yêu cầu mạng phát sinh trên server. Dữ liệu này được tuần tự hóa và nhúng vào tài liệu HTML ban đầu gửi về cho client. Khi chạy trên trình duyệt, <code>HttpClient</code> kiểm tra cache này và tái sử dụng dữ liệu thay vì gửi lại một request mới qua mạng. Cache này sẽ ngừng hoạt động khi ứng dụng đạt trạng thái ổn định (<em>stable</em>) trên browser."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "configuring-the-response-body-size-limit",
+      "text": "Cấu hình giới hạn kích thước Response Body (maxResponseBodySize)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi <code>HttpClient</code> sử dụng backend Fetch mặc định trong SSR, Angular giới hạn dung lượng body của mỗi response tối đa là <strong>1 MB</strong> nhằm chống nghẽn bộ nhớ. Nếu response vượt quá giới hạn này, request sẽ báo lỗi <code>NG02825</code>. Bạn có thể điều chỉnh lại giới hạn này trong <code>provideServerRendering</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.server.ts",
+      "lang": "ts",
+      "code": [
+        "import { provideServerRendering, withRoutes } from '@angular/ssr';",
+        "import { serverRoutes } from './app.routes.server';",
+        "",
+        "export const serverConfig: ApplicationConfig = {",
+        "  providers: [",
+        "    provideServerRendering(",
+        "      {",
+        "        maxResponseBodySize: 5 * 1024 * 1024, // 5MB",
+        "      },",
+        "      withRoutes(serverRoutes)",
+        "    ),",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "configuring-the-caching-options",
+      "text": "Cấu hình các tùy chọn bộ nhớ đệm (HttpTransferCacheOptions)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể tùy biến cơ chế cache bằng hàm <code>withHttpTransferCacheOptions</code> bên trong <code>provideClientHydration()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { bootstrapApplication } from '@angular/platform-browser';",
+        "import { provideClientHydration, withHttpTransferCacheOptions } from '@angular/platform-browser';",
+        "import { AppComponent } from './app/app.component';",
+        "",
+        "bootstrapApplication(AppComponent, {",
+        "  providers: [",
+        "    provideClientHydration(",
+        "      withHttpTransferCacheOptions({",
+        "        includeHeaders: ['ETag', 'Cache-Control'],",
+        "        filter: (req) => !req.url.includes('/api/profile'),",
+        "        includePostRequests: true, // Cho phép cache các request POST mang tính đọc (ví dụ GraphQL)",
+        "        includeRequestsWithAuthHeaders: false,",
+        "      })",
+        "    ),",
+        "  ],",
+        "});"
+      ]
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong><code>includeHeaders</code>:</strong> Chỉ định những response header nào sẽ được giữ lại trong bộ nhớ cache chuyển giao (mặc định không header nào được lưu).",
+        "<strong><code>includePostRequests</code>:</strong> Mặc định chỉ cache GET và HEAD. Bật tùy chọn này cho các request POST an toàn và có tính lũy thừa (idempotent) như GraphQL.",
+        "<strong><code>includeRequestsWithAuthHeaders</code>:</strong> Quyết định có cache các request chứa Authorization/Cookie hay không (mặc định là false để bảo mật thông tin cá nhân).",
+        "<strong><code>includeRequestsWithCredentials</code>:</strong> Cho phép cache các request gửi cùng thông tin định danh (credentials).",
+        "<strong><code>includeNonCacheableRequests</code>:</strong> Cho phép bỏ qua các chỉ thị <code>no-store</code> hoặc <code>no-cache</code> của Cache-Control."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "disabling-caching",
+      "text": "Vô hiệu hóa bộ nhớ đệm HTTP"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể tắt cache theo nhiều mức độ:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Toàn cục (Globally):</strong> Sử dụng <code>withNoHttpTransferCache()</code> trong <code>provideClientHydration()</code>.",
+        "<strong>Theo bộ lọc (Filtering):</strong> Sử dụng hàm <code>filter: (req) => boolean</code> trong <code>withHttpTransferCacheOptions</code> để loại trừ các API nhạy cảm.",
+        "<strong>Theo từng request đơn lẻ:</strong> Truyền tùy chọn <code>{ transferCache: false }</code> vào lời gọi <code>httpClient.get()</code>."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "disable-cache-request.ts",
+      "lang": "ts",
+      "code": [
+        "// Tắt cache cho một request cụ thể",
+        "httpClient.get('/api/sensitive-data', { transferCache: false });"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "configuring-a-server",
+      "text": "Cấu hình Server Runtime"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "nodejs",
+      "text": "Môi trường Node.js với Express"
+    },
+    {
+      "type": "paragraph",
+      "text": "Gói <code>@angular/ssr/node</code> cung cấp <code>AngularNodeAppEngine</code> tích hợp mượt mà với Express server trong file <code>server.ts</code>:"
+    },
+    {
+      "type": "code",
+      "file": "server.ts",
+      "lang": "ts",
+      "code": [
+        "import { AngularNodeAppEngine, createNodeRequestHandler, writeResponseToNodeResponse } from '@angular/ssr/node';",
+        "import express from 'express';",
+        "",
+        "const app = express();",
+        "const angularApp = new AngularNodeAppEngine();",
+        "",
+        "app.use('*', (req, res, next) => {",
+        "  angularApp.handle(req)",
+        "    .then((response) => {",
+        "      if (response) {",
+        "        writeResponseToNodeResponse(response, res);",
+        "      } else {",
+        "        next();",
+        "      }",
+        "    })",
+        "    .catch(next);",
+        "});",
+        "",
+        "export const reqHandler = createNodeRequestHandler(app);"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "non-nodejs",
+      "text": "Môi trường Non-Node.js (Edge Workers, Deno, Bun)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với các môi trường server khác tuân thủ tiêu chuẩn Web API (sử dụng <code>Request</code> và <code>Response</code> gốc), bạn dùng <code>AngularAppEngine</code> từ <code>@angular/ssr</code>:"
+    },
+    {
+      "type": "code",
+      "file": "server.ts",
+      "lang": "ts",
+      "code": [
+        "import { AngularAppEngine, createRequestHandler } from '@angular/ssr';",
+        "",
+        "const angularApp = new AngularAppEngine();",
+        "",
+        "export const reqHandler = createRequestHandler(async (req: Request) => {",
+        "  const res: Response | null = await angularApp.handle(req);",
+        "  return res ?? new Response('Not Found', { status: 404 });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "security",
+      "text": "Bảo mật trong Server-side Rendering"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi chạy SSR, ứng dụng Angular đóng vai trò là một máy chủ có thể gửi yêu cầu mạng ra bên ngoài. Để phòng ngừa các cuộc tấn công <strong>Server-Side Request Forgery (SSRF)</strong>, bạn cần cấu hình danh sách máy chủ được phép (allowed hosts), không chuyển tiếp các header xác thực của người dùng tới các API bên ngoài không tin cậy, và áp dụng chặt chẽ các chỉ thị bảo mật mạng."
     }
   ]
 }

@@ -1,43 +1,250 @@
 {
   "slug": "guide/forms/form-validation",
-  "title": "Validation",
-  "description": "Documentation guide for Validation in Angular.",
+  "title": "Validating form input",
+  "description": "Improve overall data quality by validating user input for accuracy and completeness in both reactive and template-driven forms in Angular.",
   "source": "https://angular.dev/guide/forms/form-validation",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Official documentation from [angular.dev/guide/forms/form-validation](https://angular.dev/guide/forms/form-validation)."
-    },
-    {
       "type": "paragraph",
-      "text": "Validation is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+      "text": "You can improve overall data quality by validating user input for accuracy and completeness. This page shows how to validate user input from the UI and display useful validation messages, in both reactive and template-driven forms."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Overview and Concepts"
+      "id": "validating-input-in-template-driven-forms",
+      "text": "Validating input in template-driven forms"
     },
     {
       "type": "paragraph",
-      "text": "To master Validation, explore the core mechanisms and design patterns provided by Angular."
+      "text": "To add validation to a template-driven form, you add the same validation attributes you would use with native HTML form validation. Angular uses directives to match these attributes with validator functions in the framework."
+    },
+    {
+      "type": "paragraph",
+      "text": "Every time the value of a form control changes, Angular runs validation and generates either a list of validation errors that results in an <code>INVALID</code> status, or null, which results in a <code>VALID</code> status."
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "template-validation.html",
+      "lang": "html",
+      "code": [
+        "<input",
+        "  type=\"text\"",
+        "  id=\"name\"",
+        "  name=\"name\"",
+        "  class=\"form-control\"",
+        "  required",
+        "  minlength=\"4\"",
+        "  appForbiddenName=\"bob\"",
+        "  [(ngModel)]=\"hero.name\"",
+        "  #name=\"ngModel\"",
+        "/>",
+        "",
+        "@if (name.invalid && (name.dirty || name.touched)) {",
+        "  <div class=\"alert alert-danger\">",
+        "    @if (name.hasError('required')) {",
+        "      <div>Name is required.</div>",
+        "    }",
+        "    @if (name.hasError('minlength')) {",
+        "      <div>Name must be at least 4 characters long.</div>",
+        "    }",
+        "    @if (name.hasError('forbiddenName')) {",
+        "      <div>Name cannot be Bob.</div>",
+        "    }",
+        "  </div>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "validating-input-in-reactive-forms",
+      "text": "Validating input in reactive forms"
+    },
+    {
+      "type": "paragraph",
+      "text": "In a reactive form, the source of truth is the component class. Instead of adding validators through attributes in the template, you add validator functions directly to the form control model in the component class."
+    },
+    {
+      "type": "code",
+      "file": "hero-form-reactive.component.ts",
       "lang": "ts",
       "code": [
-        "// Example demonstration for Validation",
-        "import { Component } from \"@angular/core\";",
+        "import { Component, OnInit } from '@angular/core';",
+        "import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
+        "  selector: 'app-hero-form-reactive',",
         "  standalone: true,",
-        "  template: `<h1>Validation</h1>`",
+        "  imports: [ReactiveFormsModule],",
+        "  templateUrl: './hero-form-reactive.component.html',",
         "})",
-        "export class ExampleComponent {}"
+        "export class HeroFormReactiveComponent implements OnInit {",
+        "  heroForm!: FormGroup;",
+        "",
+        "  ngOnInit(): void {",
+        "    this.heroForm = new FormGroup({",
+        "      name: new FormControl('', [",
+        "        Validators.required,",
+        "        Validators.minLength(4),",
+        "        forbiddenNameValidator(/bob/i),",
+        "      ]),",
+        "      alterEgo: new FormControl(''),",
+        "      power: new FormControl('', Validators.required),",
+        "    });",
+        "  }",
+        "",
+        "  get name() {",
+        "    return this.heroForm.get('name')!;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "built-in-validator-functions",
+      "text": "Built-in validator functions"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular provides a collection of built-in validators out of the box via the <code>Validators</code> class:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>Validators.required</code>: Requires the control have a non-empty value.",
+        "<code>Validators.requiredTrue</code>: Requires the control value be true (commonly used for agreement checkboxes).",
+        "<code>Validators.min(min)</code> & <code>Validators.max(max)</code>: Requires numerical input to be within range.",
+        "<code>Validators.minLength(length)</code> & <code>Validators.maxLength(length)</code>: Validates string length.",
+        "<code>Validators.email</code>: Validates that the input matches email syntax.",
+        "<code>Validators.pattern(regex)</code>: Validates that the input matches a regular expression."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "defining-custom-validators",
+      "text": "Defining custom validators"
+    },
+    {
+      "type": "paragraph",
+      "text": "Custom validators are functions that implement the <code>ValidatorFn</code> interface. They take an <code>AbstractControl</code> and return either an error object or null:"
+    },
+    {
+      "type": "code",
+      "file": "forbidden-name.directive.ts",
+      "lang": "ts",
+      "code": [
+        "import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';",
+        "",
+        "export function forbiddenNameValidator(nameRe: RegExp): ValidatorFn {",
+        "  return (control: AbstractControl): ValidationErrors | null => {",
+        "    const forbidden = nameRe.test(control.value);",
+        "    return forbidden ? { forbiddenName: { value: control.value } } : null;",
+        "  };",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "adding-to-template-driven-forms",
+      "text": "Adding custom validators to template-driven forms"
+    },
+    {
+      "type": "paragraph",
+      "text": "In template-driven forms, wrap the validator function in a directive and register it with the <code>NG_VALIDATORS</code> multi-provider token:"
+    },
+    {
+      "type": "code",
+      "file": "forbidden-name.directive.ts",
+      "lang": "ts",
+      "code": [
+        "import { Directive, Input } from '@angular/core';",
+        "import { AbstractControl, NG_VALIDATORS, ValidationErrors, Validator } from '@angular/forms';",
+        "",
+        "@Directive({",
+        "  selector: '[appForbiddenName]',",
+        "  standalone: true,",
+        "  providers: [{",
+        "    provide: NG_VALIDATORS,",
+        "    useExisting: ForbiddenValidatorDirective,",
+        "    multi: true",
+        "  }]",
+        "})",
+        "export class ForbiddenValidatorDirective implements Validator {",
+        "  @Input('appForbiddenName') forbiddenName = '';",
+        "",
+        "  validate(control: AbstractControl): ValidationErrors | null {",
+        "    return this.forbiddenName",
+        "      ? forbiddenNameValidator(new RegExp(this.forbiddenName, 'i'))(control)",
+        "      : null;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "cross-field-validation",
+      "text": "Cross-field validation"
+    },
+    {
+      "type": "paragraph",
+      "text": "A cross-field validator compares the values of different controls in a single form group. For example, verifying password confirmation:"
+    },
+    {
+      "type": "code",
+      "file": "identity-revealed.validator.ts",
+      "lang": "ts",
+      "code": [
+        "import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';",
+        "",
+        "export const identityRevealedValidator: ValidatorFn = (",
+        "  control: AbstractControl",
+        "): ValidationErrors | null => {",
+        "  const name = control.get('name');",
+        "  const alterEgo = control.get('alterEgo');",
+        "",
+        "  return name && alterEgo && name.value === alterEgo.value",
+        "    ? { identityRevealed: true }",
+        "    : null;",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-async-validators",
+      "text": "Creating asynchronous validators"
+    },
+    {
+      "type": "paragraph",
+      "text": "Asynchronous validators implement the <code>AsyncValidatorFn</code> interface and return an Observable or Promise that emits null or an error map, commonly used to check if a username is already taken:"
+    },
+    {
+      "type": "code",
+      "file": "unique-alter-ego.validator.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable, inject } from '@angular/core';",
+        "import { AsyncValidator, AbstractControl, ValidationErrors } from '@angular/forms';",
+        "import { Observable, of } from 'rxjs';",
+        "import { map, catchError } from 'rxjs/operators';",
+        "import { HeroesService } from './heroes.service';",
+        "",
+        "@Injectable({ providedIn: 'root' })",
+        "export class UniqueAlterEgoValidator implements AsyncValidator {",
+        "  private heroesService = inject(HeroesService);",
+        "",
+        "  validate(control: AbstractControl): Observable<ValidationErrors | null> {",
+        "    return this.heroesService.isAlterEgoTaken(control.value).pipe(",
+        "      map(isTaken => (isTaken ? { uniqueAlterEgo: true } : null)),",
+        "      catchError(() => of(null))",
+        "    );",
+        "  }",
+        "}"
       ]
     }
   ]

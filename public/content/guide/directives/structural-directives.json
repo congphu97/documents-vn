@@ -1,43 +1,348 @@
 {
   "slug": "guide/directives/structural-directives",
-  "title": "Structural Directives",
-  "description": "Tài liệu hướng dẫn về Structural Directives trong Angular.",
+  "title": "Structural directives",
+  "description": "Structural directives là các directive được áp dụng cho phần tử <ng-template> để render có điều kiện hoặc lặp lại nội dung của <ng-template> đó.",
   "source": "https://angular.dev/guide/directives/structural-directives",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/directives/structural-directives](https://angular.dev/guide/directives/structural-directives)."
+      "type": "paragraph",
+      "text": "Structural directives là các directive được áp dụng cho phần tử `<ng-template>` nhằm render nội dung có điều kiện hoặc lặp lại nội dung của `<ng-template>` đó."
     },
     {
       "type": "paragraph",
-      "text": "Structural Directives là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Đối với nhu cầu render có điều kiện hoặc lặp lại hằng ngày, hãy ưu tiên sử dụng cú pháp built-in control flow (@if, @for và @switch) của Angular. Hãy viết structural directive tùy chỉnh khi bạn cần các hành vi render có thể tái sử dụng mà control flow chưa bao quát, chẳng hạn như kiểm soát hiển thị nội dung theo phân quyền người dùng (permission check) hoặc cung cấp dữ liệu cho template từ một nguồn dữ liệu bên ngoài."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "example-use-case",
+      "text": "Trường hợp sử dụng ví dụ (Example use case)"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Structural Directives, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Hướng dẫn này sử dụng directive `SelectDirective` làm ví dụ xuyên suốt. Directive này lấy dữ liệu từ một nguồn cung cấp nhất định và render template khi dữ liệu đã sẵn sàng. Nó được đặt tên theo từ khóa SQL `SELECT` và khớp với attribute selector `[select]`."
+    },
+    {
+      "type": "paragraph",
+      "text": "SelectDirective có một input đặt tên là nguồn dữ liệu cần dùng: `selectFrom`. Tiền tố `select` cho input này rất quan trọng đối với cú pháp viết tắt (shorthand syntax). Directive sẽ khởi tạo `<ng-template>` của nó kèm theo template context cung cấp dữ liệu đã chọn."
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng directive này trực tiếp trên `<ng-template>` như sau:"
     },
     {
       "type": "code",
-      "file": "example.ts",
-      "lang": "ts",
+      "file": "example.component.html",
+      "lang": "html",
       "code": [
-        "// Ví dụ minh họa cho Structural Directives",
-        "import { Component } from \"@angular/core\";",
+        "<ng-template select let-data [selectFrom]=\"source\">",
+        "  <p>Dữ liệu là: {{ data }}</p>",
+        "</ng-template>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Structural directive có thể chờ đợi cho đến khi dữ liệu khả dụng rồi mới tiến hành render `<ng-template>`."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Thẻ <ng-template> của Angular định nghĩa một template mặc định sẽ không render bất kỳ nội dung nào ra DOM. Nếu bạn bọc các phần tử bên trong <ng-template> mà không áp dụng structural directive, các phần tử đó sẽ không được hiển thị."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "structural-directive-shorthand",
+      "text": "Cú pháp viết tắt (Structural directive shorthand)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ cú pháp viết tắt (shorthand syntax hay microsyntax) cho structural directive, giúp bạn không cần phải tự tay khai báo thẻ `<ng-template>` tường minh."
+    },
+    {
+      "type": "paragraph",
+      "text": "Structural directives có thể được áp dụng trực tiếp lên một phần tử bằng cách thêm dấu sao (*) phía trước attribute selector của directive, ví dụ: `*select`. Angular sẽ tự động chuyển đổi dấu sao đó thành một thẻ `<ng-template>` chứa directive và bao quanh phần tử cùng các con của nó:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<p *select=\"let data; from: source\">Dữ liệu là: {{ data }}</p>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi sử dụng theo cách này, chỉ có structural directive và các binding của nó được áp dụng cho `<ng-template>`. Mọi thuộc tính hoặc binding khác trên thẻ `<p>` vẫn được giữ nguyên. Hai cú pháp sau là hoàn toàn tương đương:"
+    },
+    {
+      "type": "code",
+      "file": "comparison.html",
+      "lang": "html",
+      "code": [
+        "<!-- Cú pháp viết tắt (Shorthand syntax): -->",
+        "<p class=\"data-view\" *select=\"let data; from: source\">Dữ liệu là: {{ data }}</p>",
         "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Structural Directives</h1>`",
+        "<!-- Cú pháp đầy đủ (Long-form syntax): -->",
+        "<ng-template select let-data [selectFrom]=\"source\">",
+        "  <p class=\"data-view\">Dữ liệu là: {{ data }}</p>",
+        "</ng-template>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Cách Angular chuyển đổi cú pháp viết tắt: Phần đầu tiên của biểu thức `*select` là `let data`, khai báo biến template `data`. Vì không có gán giá trị theo sau nên biến này tự động liên kết với thuộc tính context `$implicit`. Phần thứ hai là cặp key-expression `from: source`. Key `from` được ghép với selector thành `selectFrom` (theo quy tắc PascalCase) và liên kết với biểu thức `source`."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "one-structural-directive-per-element",
+      "text": "Mỗi phần tử chỉ được dùng một structural directive (One structural directive per element)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn chỉ có thể áp dụng duy nhất một structural directive trên mỗi phần tử khi sử dụng cú pháp viết tắt (*). Lý do là vì chỉ có một phần tử `<ng-template>` được mở ra bao bọc. Nhiều directive sẽ đòi hỏi nhiều thẻ `<ng-template>` lồng nhau và không thể xác định thứ tự ưu tiên nào trước. Khi cần kết hợp nhiều structural directive xung quanh cùng một phần tử, bạn có thể dùng thẻ `<ng-container>` để tạo các tầng bọc lồng nhau."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-a-structural-directive",
+      "text": "Tạo một structural directive (Creating a structural directive)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một structural directive là một class directive thực hiện inject hai dependencies cốt lõi:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "TemplateRef: Cung cấp quyền truy cập vào nội dung của <ng-template> được áp dụng.",
+        "ViewContainerRef: Đại diện cho vị trí container trong DOM nơi directive có thể render template đó."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Directive điều khiển việc hiển thị bằng cách gọi lệnh tạo embedded view từ template vào view container. Dưới đây là mã nguồn hoàn chỉnh của SelectDirective:"
+    },
+    {
+      "type": "code",
+      "file": "select.directive.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Directive, TemplateRef, ViewContainerRef, inject, input, OnInit } from '@angular/core';",
+        "",
+        "export interface DataSource<T> {",
+        "  load(): Promise<T>;",
+        "}",
+        "",
+        "@Directive({",
+        "  selector: '[select]',",
         "})",
-        "export class ExampleComponent {}"
+        "export class SelectDirective implements OnInit {",
+        "  private templateRef = inject(TemplateRef);",
+        "  private viewContainerRef = inject(ViewContainerRef);",
+        "",
+        "  selectFrom = input.required<DataSource<unknown>>();",
+        "",
+        "  async ngOnInit() {",
+        "    const data = await this.selectFrom().load();",
+        "    this.viewContainerRef.createEmbeddedView(this.templateRef, {",
+        "      // Tạo embedded view với context chứa dữ liệu qua key `$implicit`",
+        "      $implicit: data,",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Input `selectFrom` sử dụng `input.required()` vì directive không thể hoạt động nếu thiếu nguồn dữ liệu. Hàm `createEmbeddedView()` nhận tham số thứ hai là context object — các giá trị mà template có thể bind tới thông qua cú pháp `let`. Gán dữ liệu cho `$implicit` sẽ biến nó thành giá trị mặc định mà `let-data` nhận được."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "structural-directive-syntax-reference",
+      "text": "Tham chiếu cú pháp structural directive (Syntax reference)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi tự viết các structural directive, cú pháp microsyntax tuân theo quy tắc văn phạm sau:"
+    },
+    {
+      "type": "code",
+      "file": "grammar.txt",
+      "lang": "text",
+      "code": [
+        "*: prefix = \"( :let | :expression ) (';' | ',')? ( :let | :as | :keyExp )*\";",
+        "as = :export \"as\" :local \";\"?",
+        "keyExp = :key \":\"? :expression (\"as\" :local)? \";\"?",
+        "let = \"let\" :local \"=\" :export \";\"?"
+      ]
+    },
+    {
+      "type": "table",
+      "headers": ["Từ khóa", "Chi tiết"],
+      "rows": [
+        ["prefix", "Tên attribute HTML (selector của directive)."],
+        ["key", "Tên khóa binding HTML attribute."],
+        ["local", "Tên biến cục bộ được sử dụng trong template."],
+        ["export", "Giá trị được directive export ra dưới một tên cụ thể trong context."],
+        ["expression", "Biểu thức Angular tiêu chuẩn."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-angular-translates-shorthand",
+      "text": "Cách Angular chuyển đổi cú pháp viết tắt (How Angular translates shorthand)"
+    },
+    {
+      "type": "table",
+      "headers": ["Cú pháp viết tắt (Shorthand)", "Cú pháp chuyển đổi tương đương (Translation)"],
+      "rows": [
+        ["prefix and naked expression", "[prefix]=\"expression\""],
+        ["keyExp", "[prefixKey]=\"expression\" (Tiền tố prefix được ghép vào trước key)"],
+        ["let local", "let-local=\"export\""]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "shorthand-examples",
+      "text": "Các ví dụ về cú pháp viết tắt (Shorthand examples)"
+    },
+    {
+      "type": "table",
+      "headers": ["Cú pháp viết tắt (Shorthand)", "Cách Angular thông dịch ra thẻ <ng-template>"],
+      "rows": [
+        ["*myDir=\"let item of [1,2,3]\"", "<ng-template myDir let-item [myDirOf]=\"[1, 2, 3]\">"],
+        ["*myDir=\"let item of [1,2,3] as items; trackBy: myTrack; index as i\"", "<ng-template myDir let-item [myDirOf]=\"[1,2,3]\" let-items=\"myDirOf\" [myDirTrackBy]=\"myTrack\" let-i=\"index\">"],
+        ["*ngComponentOutlet=\"componentClass\"", "<ng-template [ngComponentOutlet]=\"componentClass\">"],
+        ["*ngComponentOutlet=\"componentClass; inputs: myInputs\"", "<ng-template [ngComponentOutlet]=\"componentClass\" [ngComponentOutletInputs]=\"myInputs\">"],
+        ["*myDir=\"exp as value\"", "<ng-template [myDir]=\"exp\" let-value=\"myDir\">"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "improving-template-type-checking-for-custom-directives",
+      "text": "Nâng cao kiểm tra kiểu template cho custom directive"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể cải thiện khả năng type-checking cho directive bằng cách thêm template guard. Các guard này giúp trình biên dịch Angular phát hiện lỗi ngay trong lúc build thay vì runtime error. Có hai loại guard chính:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "ngTemplateGuard_(input): Cho phép thu hẹp kiểu của biểu thức input dựa trên một input cụ thể.",
+        "ngTemplateContextGuard: Dùng để xác định kiểu của context object cho template dựa trên chính kiểu của directive."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "type-narrowing-with-template-guards",
+      "text": "Thu hẹp kiểu với template guards (Type narrowing with template guards)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để thu hẹp kiểu của biểu thức input bằng cách định nghĩa một hàm type assertion trong TypeScript:"
+    },
+    {
+      "type": "code",
+      "file": "actor-is-user.directive.ts",
+      "lang": "typescript",
+      "code": [
+        "// Directive này chỉ render template nếu actor là một user.",
+        "// Ta muốn thu hẹp kiểu của biểu thức `actor` bên trong template về kiểu `User`.",
+        "@Directive({",
+        "  selector: '[actorIsUser]',",
+        "})",
+        "class ActorIsUser {",
+        "  actor = input<User | Robot>();",
+        "",
+        "  static ngTemplateGuard_actor(dir: ActorIsUser, expr: User | Robot): expr is User {",
+        "    // Lệnh return thực tế không chạy tại runtime, nhưng cần có để TypeScript hợp lệ.",
+        "    return true;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Một số directive chỉ render khi input mang giá trị truthy. Bạn có thể sử dụng kiểu literal `'binding'` để báo cho template type-checker rằng chính biểu thức binding sẽ được dùng làm guard:"
+    },
+    {
+      "type": "code",
+      "file": "custom-if.directive.ts",
+      "lang": "typescript",
+      "code": [
+        "@Directive({",
+        "  selector: '[customIf]',",
+        "})",
+        "class CustomIf {",
+        "  condition = input.required<boolean>();",
+        "  static ngTemplateGuard_condition: 'binding';",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "typing-the-directives-context",
+      "text": "Định kiểu cho context của directive (Typing the directive's context)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu structural directive cung cấp context cho template được tạo ra, bạn có thể định kiểu chặt chẽ (strictly type) bên trong template bằng phương thức tĩnh `ngTemplateContextGuard`. Điều này cực kỳ hữu ích khi directive là generic class:"
+    },
+    {
+      "type": "code",
+      "file": "select-typed.directive.ts",
+      "lang": "typescript",
+      "code": [
+        "// Khai báo interface cho template context:",
+        "export interface SelectTemplateContext<T> {",
+        "  $implicit: T;",
+        "}",
+        "",
+        "@Directive({",
+        "  selector: '[select]',",
+        "})",
+        "export class SelectDirective<T> {",
+        "  // Kiểu generic `T` của directive sẽ được suy luận từ `DataSource<T>` truyền vào input.",
+        "  selectFrom = input.required<DataSource<T>>();",
+        "",
+        "  // Thu hẹp kiểu của context bằng kiểu generic của directive.",
+        "  static ngTemplateContextGuard<T>(dir: SelectDirective<T>, ctx: any): ctx is SelectTemplateContext<T> {",
+        "    return true;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "whats-next",
+      "text": "Bước tiếp theo (What's next)"
+    },
+    {
+      "type": "links",
+      "items": [
+        {
+          "text": "Directive composition API — Kết hợp hành vi directive cho component",
+          "href": "/docs/guide/directives/directive-composition-api"
+        },
+        {
+          "text": "ng-template — Tìm hiểu chi tiết thẻ template của Angular",
+          "href": "/docs/guide/templates/ng-template"
+        },
+        {
+          "text": "Control flow — Cú pháp điều khiển hiển thị @if, @for, @switch",
+          "href": "/docs/guide/templates/control-flow"
+        }
       ]
     }
   ]

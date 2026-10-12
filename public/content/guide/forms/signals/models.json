@@ -1,0 +1,591 @@
+{
+  "slug": "guide/forms/signals/models",
+  "title": "Mô hình biểu mẫu (Form Models in Signal Forms)",
+  "description": "Tìm hiểu cách tạo, cập nhật và thiết kế Form Models trong Signal Forms - nền tảng đóng vai trò là nguồn chân lý duy nhất (single source of truth) cho dữ liệu form.",
+  "source": "https://angular.dev/guide/forms/signals/models",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<strong>Form models (Mô hình biểu mẫu)</strong> là nền tảng cốt lõi của Signal Forms, đóng vai trò là nguồn dữ liệu chuẩn xác duy nhất (single source of truth) cho toàn bộ dữ liệu biểu mẫu của bạn. Hướng dẫn này giải thích cách tạo form model, cập nhật chúng và thiết kế cấu trúc dữ liệu sao cho dễ bảo trì."
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "<strong>Lưu ý:</strong> Form model hoàn toàn tách biệt với signal <code>model()</code> của Angular (vốn dùng để liên kết hai chiều giữa component cha và component con). Một form model là một writable signal lưu trữ dữ liệu form, trong khi <code>model()</code> tạo các input/output phục vụ giao tiếp giữa các component."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "what-form-models-solve",
+      "text": "Form models giải quyết vấn đề gì? (What form models solve)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Biểu mẫu luôn đòi hỏi việc quản lý dữ liệu thay đổi liên tục theo thời gian. Nếu không có một cấu trúc rõ ràng, dữ liệu này có thể bị phân tán rải rác trên nhiều thuộc tính của component, khiến việc theo dõi thay đổi, kiểm thực đầu vào hoặc gửi dữ liệu lên server trở nên rất khó khăn."
+    },
+    {
+      "type": "paragraph",
+      "text": "Form models giải quyết vấn đề này bằng cách tập trung toàn bộ dữ liệu form vào một <strong>writable signal duy nhất</strong>. Khi model cập nhật, biểu mẫu sẽ tự động phản ánh những thay đổi đó. Ngược lại, khi người dùng tương tác trên giao diện, model cũng sẽ tự động được cập nhật tương ứng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-models",
+      "text": "Khởi tạo Models (Creating models)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một form model là một writable signal được tạo bằng hàm <code>signal()</code> của Angular. Signal này chứa một object biểu diễn cấu trúc dữ liệu của biểu mẫu:"
+    },
+    {
+      "type": "code",
+      "file": "login.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal } from '@angular/core';",
+        "import { form, FormField } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  selector: 'app-login',",
+        "  imports: [FormField],",
+        "  template: `",
+        "    <input type=\"email\" [formField]=\"loginForm.email\" />",
+        "    <input type=\"password\" [formField]=\"loginForm.password\" />",
+        "  `,",
+        "})",
+        "export class LoginComponent {",
+        "  loginModel = signal({",
+        "    email: '',",
+        "    password: '',",
+        "  });",
+        "",
+        "  loginForm = form(this.loginModel);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>form()</code> nhận vào model signal và tạo ra một <strong>cây trường dữ liệu (field tree)</strong> — một cấu trúc đối tượng đặc biệt phản ánh chính xác hình dạng dữ liệu trong model của bạn. Field tree vừa có thể điều hướng (truy cập các trường con bằng cú pháp dấu chấm như <code>loginForm.email</code>) vừa có thể gọi như hàm (gọi field dưới dạng hàm để đọc trạng thái của nó)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Directive <code>[formField]</code> liên kết từng phần tử nhập liệu HTML với trường tương ứng trong field tree, kích hoạt tính năng đồng bộ hai chiều hoàn toàn tự động giữa giao diện và data model."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "supported-model-structures",
+      "text": "Cấu trúc Model được hỗ trợ (Supported model structures)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal Forms xây dựng field tree bằng cách duyệt qua model của bạn. Các đối tượng và mảng mà nó duyệt qua (lớp cấu trúc) phải là <strong>các JavaScript Object và Array thuần túy (plain objects và arrays)</strong>. Các giá trị tại lá (leaf values - vị trí không có trường con lồng nhau) thường là các kiểu dữ liệu nguyên thủy (primitive như <code>string</code>, <code>number</code>, <code>boolean</code>) hoặc <code>null</code>. Các thẻ input ngày tháng nguyên bản (date, month, time, week) cũng hỗ trợ <code>Date</code>, và các custom controls có thể nhận bất kỳ kiểu giá trị nào mà chúng hỗ trợ xử lý."
+    },
+    {
+      "type": "code",
+      "file": "user-form.model.ts",
+      "lang": "ts",
+      "code": [
+        "// Cấu trúc thuần túy được khuyến khích (Prefer plain structure)",
+        "interface UserFormModel {",
+        "  name: string;",
+        "  birthday: Date | null;",
+        "  preferences: {",
+        "    theme: string;",
+        "    notifications: boolean;",
+        "  };",
+        "  tags: string[];",
+        "}",
+        "",
+        "const userModel = signal<UserFormModel>({",
+        "  name: '',",
+        "  birthday: null,",
+        "  preferences: {",
+        "    theme: 'dark',",
+        "    notifications: true,",
+        "  },",
+        "  tags: [],",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "<strong>QUAN TRỌNG:</strong> Các thể hiện của Class (Class instances), <code>Map</code> và <code>Set</code> <strong>không được hỗ trợ</strong> trong lớp cấu trúc, mặc dù TypeScript có thể chấp nhận kiểu của chúng. Signal Forms không kiểm tra runtime shape của model, do đó framework sẽ nhận các giá trị này mà không báo lỗi ngay, nhưng sẽ dẫn đến hành vi sai khác:<br>• <strong>Class instances</strong> sẽ mất toàn bộ prototype trong lần ghi đầu tiên vì Signal Forms thực hiện shallow-copy các đối tượng cha khi cập nhật. Các methods, getters và kiểm tra <code>instanceof</code> sẽ bị mất sau đó.<br>• Các đối tượng bị đóng băng (<code>Object.freeze</code>) hoặc không thể mở rộng nằm bên trong mảng sẽ ném ra ngoại lệ khi Signal Forms gán symbol định danh theo dõi (tracking symbol) để duy trì căn tính của item khi sắp xếp lại.<br>• <code>Map</code> và <code>Set</code> sẽ tạo ra field tree rỗng vì Signal Forms duyệt thuộc tính con bằng <code>Object.keys</code>.<br>Nếu ứng dụng của bạn sử dụng Class cho domain model, hãy chuyển đổi chúng thành plain objects ở ranh giới của form."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-typescript-types",
+      "text": "Sử dụng kiểu TypeScript (Using TypeScript types)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc dù TypeScript có thể tự suy luận kiểu dữ liệu từ object literal, việc định nghĩa các interface tường minh giúp nâng cao chất lượng mã nguồn và mang lại trải nghiệm IntelliSense tốt hơn:"
+    },
+    {
+      "type": "code",
+      "file": "login-types.ts",
+      "lang": "ts",
+      "code": [
+        "interface LoginData {",
+        "  email: string;",
+        "  password: string;",
+        "}",
+        "",
+        "export class LoginComponent {",
+        "  loginModel = signal<LoginData>({",
+        "    email: '',",
+        "    password: '',",
+        "  });",
+        "",
+        "  loginForm = form(this.loginModel);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Với kiểu dữ liệu tường minh, field tree cung cấp sự an toàn kiểu dữ liệu tuyệt đối. Truy cập <code>loginForm.email</code> sẽ mang kiểu <code>FieldTree<string></code>, và nếu cố gắng truy cập một thuộc tính không tồn tại, bạn sẽ nhận được lỗi ngay lúc biên dịch:"
+    },
+    {
+      "type": "code",
+      "file": "type-check.ts",
+      "lang": "ts",
+      "code": [
+        "// TypeScript hiểu đây là FieldTree<string>",
+        "const emailField = loginForm.email;",
+        "",
+        "// Lỗi TypeScript: Property 'username' does not exist",
+        "const usernameField = loginForm.username;"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "initializing-all-fields",
+      "text": "Khởi tạo đầy đủ tất cả các trường (Initializing all fields)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Form models cần cung cấp giá trị ban đầu cho tất cả các trường mà bạn muốn có mặt trong field tree:"
+    },
+    {
+      "type": "code",
+      "file": "init-fields.ts",
+      "lang": "ts",
+      "code": [
+        "// NÊN DÙNG: Tất cả các trường đều được khởi tạo",
+        "const userModel = signal({",
+        "  name: '',",
+        "  email: '',",
+        "  age: 0,",
+        "});",
+        "",
+        "// TRÁNH: Thiếu giá trị khởi tạo",
+        "const userModel = signal({",
+        "  name: '',",
+        "  email: '',",
+        "  // Trường age không được khai báo - không thể truy cập userForm.age",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với các trường tùy chọn (optional), hãy gán rõ ràng giá trị rỗng hoặc <code>null</code>:"
+    },
+    {
+      "type": "code",
+      "file": "optional-fields.ts",
+      "lang": "ts",
+      "code": [
+        "interface UserData {",
+        "  name: string;",
+        "  email: string;",
+        "  phoneNumber: string | null;",
+        "}",
+        "",
+        "const userModel = signal<UserData>({",
+        "  name: '',",
+        "  email: '',",
+        "  phoneNumber: null,",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Các thẻ điều khiển văn bản thuần như <code>&lt;input type=\"text\"&gt;</code> và <code>&lt;textarea&gt;</code> không hỗ trợ giá trị <code>null</code>, hãy sử dụng chuỗi rỗng <code>''</code> để biểu thị trạng thái chưa nhập giá trị."
+    },
+    {
+      "type": "paragraph",
+      "text": "Các trường có giá trị là <code>undefined</code> sẽ bị loại bỏ khỏi field tree. Một model với <code>{value: undefined}</code> hoạt động hoàn toàn giống như <code>{}</code> — truy cập vào trường đó sẽ trả về <code>undefined</code> thay vì một <code>FieldTree</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reading-model-values",
+      "text": "Đọc giá trị từ Model (Reading model values)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể đọc giá trị của biểu mẫu theo hai cách: trực tiếp từ model signal hoặc thông qua từng trường riêng biệt trong field tree. Mỗi cách phục vụ một mục đích khác nhau."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "reading-from-the-model",
+      "text": "1. Đọc trực tiếp từ Model (Reading from the model)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Truy cập model signal khi bạn cần toàn bộ dữ liệu hoàn chỉnh của biểu mẫu, chẳng hạn như khi submit form:"
+    },
+    {
+      "type": "code",
+      "file": "submit.ts",
+      "lang": "ts",
+      "code": [
+        "async onSubmit() {",
+        "  const formData = this.loginModel();",
+        "  console.log(formData.email, formData.password);",
+        "  ",
+        "  // Gửi dữ liệu lên máy chủ",
+        "  await this.authService.login(formData);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal của model trả về toàn bộ đối tượng dữ liệu, rất lý tưởng cho các thao tác xử lý toàn thể trạng thái form."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "reading-from-field-state",
+      "text": "2. Đọc từ trạng thái của trường (Reading from field state)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi trường trong field tree thực chất là một hàm. Khi gọi trường đó như một hàm, nó trả về đối tượng <code>FieldState</code> chứa các reactive signal biểu thị giá trị của trường, trạng thái kiểm thực (validation) và tương tác của người dùng:"
+    },
+    {
+      "type": "code",
+      "file": "reading-state.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    <p>Email hiện tại: {{ loginForm.email().value() }}</p>",
+        "    <p>Độ dài mật khẩu: {{ passwordLength() }}</p>",
+        "  `,",
+        "})",
+        "export class LoginComponent {",
+        "  loginModel = signal({ email: '', password: '' });",
+        "  loginForm = form(this.loginModel);",
+        "",
+        "  passwordLength = computed(() => {",
+        "    return this.loginForm.password().value().length;",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Trạng thái trường (<code>FieldState</code>) bao gồm rất nhiều signal ngoài <code>value()</code>, chẳng hạn như trạng thái kiểm thực (<code>valid</code>, <code>invalid</code>, <code>errors</code>), theo dõi tương tác (<code>touched</code>, <code>dirty</code>), và hiển thị (<code>hidden</code>, <code>disabled</code>)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "updating-form-models-programmatically",
+      "text": "Cập nhật Form Models bằng code (Updating form models programmatically)"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "replacing-form-models-with-set",
+      "text": "Thay thế toàn bộ Form Model với set()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dùng phương thức <code>set()</code> trên form model signal để thay thế toàn bộ giá trị:"
+    },
+    {
+      "type": "code",
+      "file": "set-model.ts",
+      "lang": "ts",
+      "code": [
+        "loadUserData() {",
+        "  this.userModel.set({",
+        "    name: 'Alice',",
+        "    email: 'alice@example.com',",
+        "    age: 30,",
+        "  });",
+        "}",
+        "",
+        "resetForm() {",
+        "  this.userModel.set({",
+        "    name: '',",
+        "    email: '',",
+        "    age: 0,",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "update-a-single-field-directly-with-set-or-update",
+      "text": "Cập nhật trực tiếp từng trường với set() hoặc update()"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dùng <code>set()</code> hoặc <code>update()</code> trên giá trị của từng trường riêng lẻ để cập nhật trực tiếp field state:"
+    },
+    {
+      "type": "code",
+      "file": "update-fields.ts",
+      "lang": "ts",
+      "code": [
+        "clearEmail() {",
+        "  this.userForm.email().value.set('');",
+        "}",
+        "",
+        "incrementAge() {",
+        "  this.userForm.age().value.update(currentAge => currentAge + 1);",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Các cập nhật này (field-level updates) sẽ tự động lan truyền ngược về model signal và giữ cho cả hai luôn đồng bộ."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "example-loading-data-from-an-api",
+      "text": "Ví dụ: Tải dữ liệu từ API"
+    },
+    {
+      "type": "code",
+      "file": "api-load.component.ts",
+      "lang": "ts",
+      "code": [
+        "export class UserProfileComponent {",
+        "  userModel = signal({",
+        "    name: '',",
+        "    email: '',",
+        "    bio: '',",
+        "  });",
+        "  userForm = form(this.userModel);",
+        "",
+        "  private userService = inject(UserService);",
+        "",
+        "  ngOnInit() {",
+        "    this.loadUserProfile();",
+        "  }",
+        "",
+        "  async loadUserProfile() {",
+        "    const userData = await this.userService.getUserProfile();",
+        "    this.userModel.set(userData);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Các trường nhập liệu trên giao diện sẽ tự động cập nhật ngay khi model thay đổi mà không cần viết thêm bất kỳ đoạn mã đồng bộ nào."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "two-way-data-binding",
+      "text": "Liên kết dữ liệu hai chiều (Two-way data binding)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Directive <code>[formField]</code> thiết lập cơ chế đồng bộ hai chiều tự động giữa model, form state và giao diện người dùng (UI)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "how-data-flows",
+      "text": "Dòng chảy dữ liệu (How data flows)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Từ người dùng → Model:</strong> Người dùng gõ vào thẻ input → Directive <code>[formField]</code> phát hiện thay đổi → Trạng thái trường (field state) cập nhật → Model signal cập nhật.",
+        "<strong>Từ code → UI:</strong> Code cập nhật model qua <code>set()</code> hoặc <code>update()</code> → Model signal thông báo cho các consumer lắng nghe → Trạng thái trường cập nhật → Directive <code>[formField]</code> hiển thị giá trị mới lên thẻ input."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "example-both-directions",
+      "text": "Ví dụ: Đồng bộ cả hai chiều"
+    },
+    {
+      "type": "code",
+      "file": "two-way-example.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({",
+        "  template: `",
+        "    <input type=\"text\" [formField]=\"userForm.name\" />",
+        "    <button (click)=\"setName('Bob')\">Đặt tên thành Bob</button>",
+        "    <p>Tên hiện tại: {{ userModel().name }}</p>",
+        "  `,",
+        "})",
+        "export class UserComponent {",
+        "  userModel = signal({ name: '' });",
+        "  userForm = form(this.userModel);",
+        "",
+        "  setName(name: string) {",
+        "    this.userForm.name().value.set(name);",
+        "    // Thẻ input sẽ tự động hiển thị 'Bob'",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "model-structure-patterns",
+      "text": "Các mẫu cấu trúc Model (Model structure patterns)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Form model có thể là đối tượng phẳng (flat objects) hoặc chứa các đối tượng lồng nhau (nested objects) và mảng (arrays)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "flat-vs-nested-models",
+      "text": "Mô hình phẳng so với Mô hình lồng nhau (Flat vs nested models)"
+    },
+    {
+      "type": "code",
+      "file": "flat-vs-nested.ts",
+      "lang": "ts",
+      "code": [
+        "// Cấu trúc phẳng (Flat structure)",
+        "const userModel = signal({",
+        "  name: '',",
+        "  email: '',",
+        "  street: '',",
+        "  city: '',",
+        "  state: '',",
+        "  zip: '',",
+        "});",
+        "",
+        "// Cấu trúc lồng nhau (Nested structure)",
+        "const userModel = signal({",
+        "  name: '',",
+        "  email: '',",
+        "  address: {",
+        "    street: '',",
+        "    city: '',",
+        "    state: '',",
+        "    zip: '',",
+        "  },",
+        "});"
+      ]
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Sử dụng cấu trúc phẳng khi:</strong> Các trường không có sự phân nhóm khái niệm rõ ràng, bạn muốn truy cập ngắn gọn (<code>userForm.city</code> thay vì <code>userForm.address.city</code>), hoặc quy tắc kiểm thực dàn trải giữa các nhóm.",
+        "<strong>Sử dụng cấu trúc lồng nhau khi:</strong> Các trường tạo thành một nhóm khái niệm chặt chẽ (như địa chỉ), cấu trúc nhóm khớp với schema của API backend, hoặc bạn muốn kiểm thực nhóm đó như một đơn vị độc lập."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "working-with-nested-objects",
+      "text": "Làm việc với đối tượng lồng nhau (Working with nested objects)"
+    },
+    {
+      "type": "code",
+      "file": "nested-access.ts",
+      "lang": "ts",
+      "code": [
+        "const userModel = signal({",
+        "  profile: {",
+        "    firstName: '',",
+        "    lastName: '',",
+        "  },",
+        "  settings: {",
+        "    theme: 'light',",
+        "    notifications: true,",
+        "  },",
+        "});",
+        "",
+        "const userForm = form(userModel);",
+        "",
+        "// Truy cập các trường lồng nhau thông qua cú pháp dấu chấm:",
+        "userForm.profile.firstName; // FieldTree<string>",
+        "userForm.settings.theme;     // FieldTree<string>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong template, bạn gắn các trường lồng nhau hoàn toàn tương tự như các trường cấp cao nhất:"
+    },
+    {
+      "type": "code",
+      "file": "nested-template.html",
+      "lang": "html",
+      "code": [
+        "<input [formField]=\"userForm.profile.firstName\" />",
+        "<input [formField]=\"userForm.profile.lastName\" />",
+        "<select [formField]=\"userForm.settings.theme\">",
+        "  <option value=\"light\">Light</option>",
+        "  <option value=\"dark\">Dark</option>",
+        "</select>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "working-with-arrays",
+      "text": "Làm việc với mảng (Working with arrays)"
+    },
+    {
+      "type": "code",
+      "file": "arrays-model.ts",
+      "lang": "ts",
+      "code": [
+        "const orderModel = signal({",
+        "  customerName: '',",
+        "  items: [{ product: '', quantity: 0, price: 0 }],",
+        "});",
+        "",
+        "const orderForm = form(orderModel);",
+        "",
+        "// Truy cập phần tử mảng bằng chỉ mục (index):",
+        "orderForm.items[0].product;  // FieldTree<string>",
+        "orderForm.items[0].quantity; // FieldTree<number>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Các phần tử mảng chứa object sẽ tự động nhận danh tính theo dõi (tracking identities), giúp bảo toàn trạng thái trường ngay cả khi thứ tự các item trong mảng thay đổi. Điều này đảm bảo trạng thái kiểm thực (validation state) và tương tác người dùng không bị xáo trộn khi sắp xếp lại danh sách."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals/field-state-management\">Quản lý trạng thái trường (Field state management)</a>",
+        "<a href=\"/docs/guide/forms/signals/validation\">Kiểm thực dữ liệu trong Signal Forms (Validation)</a>",
+        "<a href=\"/docs/guide/forms/signals/custom-controls\">Điều khiển tùy chỉnh (Custom controls)</a>"
+      ]
+    }
+  ]
+}

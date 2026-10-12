@@ -1,43 +1,173 @@
 {
   "slug": "guide/forms/reactive-forms",
   "title": "Reactive Forms",
-  "description": "Documentation guide for Reactive Forms in Angular.",
+  "description": "Learn how to build reactive forms in Angular: FormControl, FormGroup, FormArray, FormBuilder, typed forms, dynamic inputs, and immutability.",
   "source": "https://angular.dev/guide/forms/reactive-forms",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Official documentation from [angular.dev/guide/forms/reactive-forms](https://angular.dev/guide/forms/reactive-forms)."
-    },
-    {
       "type": "paragraph",
-      "text": "Reactive Forms is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
+      "text": "Reactive forms provide a model-driven approach to handling form inputs whose values change over time. This guide shows you how to create and manage basic form controls, group multiple controls in a form group, track form value changes, and build dynamic forms."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Overview and Concepts"
+      "id": "overview-of-reactive-forms",
+      "text": "Overview of reactive forms"
     },
     {
       "type": "paragraph",
-      "text": "To master Reactive Forms, explore the core mechanisms and design patterns provided by Angular."
+      "text": "Reactive forms are built around observable streams, where form inputs and values are provided as streams of input values, which can be accessed synchronously. Reactive forms offer greater predictability and are easier to unit test."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "adding-a-basic-form-control",
+      "text": "Adding a basic form control"
+    },
+    {
+      "type": "paragraph",
+      "text": "To register a single form control, import <code>ReactiveFormsModule</code> and instantiate a <code>FormControl</code> in your component:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "name-editor.component.ts",
       "lang": "ts",
       "code": [
-        "// Example demonstration for Reactive Forms",
-        "import { Component } from \"@angular/core\";",
+        "import { Component } from '@angular/core';",
+        "import { FormControl, ReactiveFormsModule } from '@angular/forms';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
+        "  selector: 'app-name-editor',",
         "  standalone: true,",
-        "  template: `<h1>Reactive Forms</h1>`",
+        "  imports: [ReactiveFormsModule],",
+        "  template: `",
+        "    <label for=\"name\">Name: </label>",
+        "    <input id=\"name\" type=\"text\" [formControl]=\"nameControl\">",
+        "    <p>Value: {{ nameControl.value }}</p>",
+        "  `",
         "})",
-        "export class ExampleComponent {}"
+        "export class NameEditorComponent {",
+        "  nameControl = new FormControl('');",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "grouping-form-controls",
+      "text": "Grouping form controls with FormGroup"
+    },
+    {
+      "type": "paragraph",
+      "text": "Forms typically contain several related controls. A <code>FormGroup</code> tracks the status and value of an entire group of <code>FormControl</code> instances:"
+    },
+    {
+      "type": "code",
+      "file": "profile-editor.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';",
+        "",
+        "@Component({",
+        "  selector: 'app-profile-editor',",
+        "  standalone: true,",
+        "  imports: [ReactiveFormsModule],",
+        "  template: `",
+        "    <form [formGroup]=\"profileForm\" (ngSubmit)=\"onSubmit()\">",
+        "      <label for=\"first-name\">First Name: </label>",
+        "      <input id=\"first-name\" type=\"text\" formControlName=\"firstName\">",
+        "",
+        "      <label for=\"last-name\">Last Name: </label>",
+        "      <input id=\"last-name\" type=\"text\" formControlName=\"lastName\">",
+        "",
+        "      <button type=\"submit\" [disabled]=\"!profileForm.valid\">Submit</button>",
+        "    </form>",
+        "  `",
+        "})",
+        "export class ProfileEditorComponent {",
+        "  profileForm = new FormGroup({",
+        "    firstName: new FormControl(''),",
+        "    lastName: new FormControl(''),",
+        "  });",
+        "",
+        "  onSubmit() {",
+        "    console.warn(this.profileForm.value);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "generating-controls-with-formbuilder",
+      "text": "Generating form controls with FormBuilder"
+    },
+    {
+      "type": "paragraph",
+      "text": "Creating form control instances manually can become repetitive. The <code>FormBuilder</code> service provides convenient methods for generating controls, groups, and arrays:"
+    },
+    {
+      "type": "code",
+      "file": "profile-editor.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject } from '@angular/core';",
+        "import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';",
+        "",
+        "@Component({",
+        "  selector: 'app-profile-editor',",
+        "  standalone: true,",
+        "  imports: [ReactiveFormsModule],",
+        "  templateUrl: './profile-editor.component.html'",
+        "})",
+        "export class ProfileEditorComponent {",
+        "  private formBuilder = inject(FormBuilder);",
+        "",
+        "  profileForm = this.formBuilder.group({",
+        "    firstName: ['', Validators.required],",
+        "    lastName: [''],",
+        "    address: this.formBuilder.group({",
+        "      street: [''],",
+        "      city: [''],",
+        "      state: [''],",
+        "      zip: ['']",
+        "    }),",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "managing-dynamic-controls-with-formarray",
+      "text": "Managing dynamic controls with FormArray"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>FormArray</code> is an alternative to <code>FormGroup</code> for managing an arbitrary number of unnamed controls, such as dynamic lists of phone numbers or aliases:"
+    },
+    {
+      "type": "code",
+      "file": "form-array-example.ts",
+      "lang": "ts",
+      "code": [
+        "profileForm = this.formBuilder.group({",
+        "  firstName: ['', Validators.required],",
+        "  lastName: [''],",
+        "  aliases: this.formBuilder.array([",
+        "    this.formBuilder.control('')",
+        "  ])",
+        "});",
+        "",
+        "get aliases() {",
+        "  return this.profileForm.get('aliases') as FormArray;",
+        "}",
+        "",
+        "addAlias() {",
+        "  this.aliases.push(this.formBuilder.control(''));",
+        "}"
       ]
     }
   ]

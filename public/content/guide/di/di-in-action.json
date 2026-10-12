@@ -1,43 +1,132 @@
 {
   "slug": "guide/di/di-in-action",
-  "title": "DI in Action",
-  "description": "Tài liệu hướng dẫn về DI in Action trong Angular.",
+  "title": "DI trong thực tế (DI in action)",
+  "description": "Khám phá các tính năng bổ sung của Dependency Injection trong Angular: inject phần tử DOM với ElementRef, lấy tên thẻ với HOST_TAG_NAME và giải quyết phụ thuộc vòng với forwardRef().",
   "source": "https://angular.dev/guide/di/di-in-action",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/di/di-in-action](https://angular.dev/guide/di/di-in-action)."
-    },
-    {
       "type": "paragraph",
-      "text": "DI in Action là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Hướng dẫn này khám phá các tính năng bổ sung nâng cao của Dependency Injection (DI) trong Angular khi làm việc với DOM và giải quyết các trường hợp tham chiếu vòng."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "inject-the-components-dom-element",
+      "text": "Inject phần tử DOM của component (ElementRef)"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững DI in Action, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Mặc dù lập trình viên thường hạn chế thao tác trực tiếp với DOM, một số hiệu ứng thị giác (visual effects) và các thư viện bên thứ ba vẫn yêu cầu quyền truy cập DOM trực tiếp. Trong những trường hợp này, bạn có thể inject phần tử DOM của component."
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular cung cấp phần tử DOM bên dưới của một `@Component` hoặc `@Directive` thông qua việc inject token `ElementRef`:"
     },
     {
       "type": "code",
-      "file": "example.ts",
-      "lang": "ts",
+      "file": "highlight.directive.ts",
+      "lang": "typescript",
       "code": [
-        "// Ví dụ minh họa cho DI in Action",
-        "import { Component } from \"@angular/core\";",
+        "import { Directive, ElementRef, inject } from '@angular/core';",
+        "",
+        "@Directive({",
+        "  selector: '[appHighlight]',",
+        "})",
+        "export class HighlightDirective {",
+        "  private element = inject(ElementRef);",
+        "",
+        "  update() {",
+        "    this.element.nativeElement.style.color = 'red';",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "inject-the-host-elements-tag-name",
+      "text": "Inject tên thẻ của phần tử host (HOST_TAG_NAME)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để lấy tên thẻ (tag name) của phần tử host mà directive đang gắn vào, bạn có thể inject token `HOST_TAG_NAME`:"
+    },
+    {
+      "type": "code",
+      "file": "role-button.directive.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Directive, HOST_TAG_NAME, inject } from '@angular/core';",
+        "",
+        "@Directive({",
+        "  selector: '[roleButton]',",
+        "})",
+        "export class RoleButtonDirective {",
+        "  private tagName = inject(HOST_TAG_NAME);",
+        "",
+        "  onAction() {",
+        "    switch (this.tagName) {",
+        "      case 'button':",
+        "        // Xử lý hành động cho thẻ <button>",
+        "        break;",
+        "      case 'a':",
+        "        // Xử lý hành động cho thẻ liên kết <a>",
+        "        break;",
+        "      default:",
+        "        // Xử lý cho các thẻ khác",
+        "        break;",
+        "    }",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Nếu phần tử host có thể không có tên thẻ (ví dụ thẻ ảo <ng-container> hoặc <ng-template>), hãy đặt tùy chọn inject({ optional: true })."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resolve-circular-dependencies-with-a-forward-reference",
+      "text": "Giải quyết phụ thuộc vòng bằng forwardRef() (Circular dependencies)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong TypeScript, thứ tự khai báo class là rất quan trọng. Bạn không thể tham chiếu trực tiếp tới một class trước khi nó được định nghĩa trong file."
+    },
+    {
+      "type": "paragraph",
+      "text": "Thông thường điều này không phải vấn đề nếu bạn tuân thủ quy tắc mỗi file một class. Tuy nhiên, trong một số trường hợp, các tham chiếu vòng (circular references) là không thể tránh khỏi — ví dụ class A cần tham chiếu tới class B và class B lại tham chiếu ngược lại class A."
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm `forwardRef()` của Angular tạo ra một tham chiếu gián tiếp dạng callback `() => ClassName` để Angular có thể phân giải sau khi toàn bộ mã nguồn của file đã được định nghĩa xong."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng gặp tình huống tương tự khi một component tự tham chiếu đến chính bản thân nó bên trong decorator `@Component()`, ví dụ trong mảng providers (decorator được thực thi trước khi class định nghĩa xong):"
+    },
+    {
+      "type": "code",
+      "file": "menu-item.component.ts",
+      "lang": "typescript",
+      "code": [
+        "import { Component, forwardRef } from '@angular/core';",
+        "import { PARENT_MENU_ITEM } from './tokens';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>DI in Action</h1>`",
+        "  selector: 'app-menu-item',",
+        "  providers: [",
+        "    {",
+        "      provide: PARENT_MENU_ITEM,",
+        "      useExisting: forwardRef(() => MenuItemComponent),",
+        "    },",
+        "  ],",
+        "  template: `<ng-content />`,",
         "})",
-        "export class ExampleComponent {}"
+        "export class MenuItemComponent {}",
       ]
     }
   ]

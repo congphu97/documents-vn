@@ -1,0 +1,318 @@
+{
+  "slug": "guide/routing/customizing-route-behavior",
+  "title": "Tùy biến hành vi tuyến đường (Customizing route behavior)",
+  "description": "Hướng dẫn tùy biến sâu hành vi của Angular Router: các tùy chọn RouterConfigOptions, chiến lược tái sử dụng route (RouteReuseStrategy), tải trước module (PreloadingStrategy), xử lý URL ngoài (UrlHandlingStrategy) và bộ so khớp tùy chỉnh.",
+  "source": "https://angular.dev/guide/routing/customizing-route-behavior",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular Router cung cấp các điểm mở rộng (extension points) mạnh mẽ cho phép bạn tùy chỉnh cách các tuyến đường hoạt động trong ứng dụng của mình. Trong khi hành vi mặc định phục vụ tốt cho hầu hết các trường hợp, các yêu cầu đặc thù thường đòi hỏi giải pháp riêng để tối ưu hóa hiệu năng, xử lý URL chuyên biệt hoặc thực hiện logic định tuyến phức tạp."
+    },
+    {
+      "type": "paragraph",
+      "text": "Việc tùy chỉnh route trở nên giá trị khi ứng dụng của bạn cần:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Lưu giữ trạng thái component qua các lần điều hướng để tránh phải tải lại dữ liệu từ đầu.",
+        "Chiến lược tải trước (preload) các module tải lười dựa trên hành vi người dùng hoặc điều kiện mạng.",
+        "Tích hợp URL với các hệ thống bên ngoài hoặc chạy song song Angular Router với các hệ thống cũ (legacy).",
+        "Khớp route động dựa trên các điều kiện lúc chạy (runtime) vượt ngoài cú pháp mẫu đường dẫn thông thường."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Trước khi tự triển khai các chiến lược tùy biến, hãy đảm bảo rằng hành vi mặc định không đáp ứng được yêu cầu của bạn. Định tuyến mặc định của Angular đã được tối ưu hóa cho các kịch bản phổ biến nhất. Việc tùy chỉnh sâu có thể làm tăng độ phức tạp của mã nguồn và tiềm ẩn rủi ro chiếm dụng bộ nhớ nếu không được quản lý cẩn trọng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "router-configuration-options",
+      "text": "Các tùy chọn cấu hình Router (Router configuration options)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>withRouterConfig</code> trong <code>provideRouter</code> cho phép cung cấp các tùy chọn <code>RouterConfigOptions</code> bổ sung để tinh chỉnh hành vi của Router."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "handle-canceled-navigations",
+      "text": "Xử lý điều hướng bị hủy (canceledNavigationResolution)"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>canceledNavigationResolution</code> kiểm soát cách Router khôi phục lịch sử trình duyệt khi một điều hướng bị hủy. Mặc định là <code>'replace'</code> (ghi đè mục lịch sử hiện tại bằng URL trước đó qua <code>location.replaceState</code>). Chuyển sang <code>'computed'</code> sẽ giữ cho chỉ số lịch sử đồng bộ với điều hướng của Angular, đặc biệt hữu ích khi dùng <code>urlUpdateStrategy: 'eager'</code> hoặc khi guards thường xuyên hủy điều hướng nút Back/Forward của trình duyệt:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "provideRouter(routes, withRouterConfig({ canceledNavigationResolution: 'computed' }));"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "react-to-same-url-navigations",
+      "text": "Phản ứng với điều hướng cùng URL (onSameUrlNavigation)"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>onSameUrlNavigation</code> cấu hình điều gì sẽ xảy ra khi người dùng yêu cầu điều hướng đến URL hiện tại. Mặc định là <code>'ignore'</code> (bỏ qua). Đặt thành <code>'reload'</code> sẽ chỉ thị Router chạy lại toàn bộ pipeline điều hướng (chạy lại guards/resolvers theo <code>runGuardsAndResolvers</code>). Rất tiện lợi khi người dùng nhấp lại vào bộ lọc danh sách hoặc nút làm mới:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "provideRouter(routes, withRouterConfig({ onSameUrlNavigation: 'reload' }));"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể chỉ định tùy chọn này trên từng lần gọi điều hướng cụ thể: <code>router.navigate(['/path'], { onSameUrlNavigation: 'reload' })</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "control-parameter-inheritance",
+      "text": "Kiểm soát kế thừa tham số (paramsInheritanceStrategy)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định (<code>'always'</code>), các route con tự động kế thừa toàn bộ tham số, route data và resolved values từ route cha. Nếu muốn khôi phục hành vi kiểu cũ (chỉ kế thừa khi path là chuỗi rỗng), hãy chọn <code>'emptyOnly'</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "provideRouter(routes, withRouterConfig({ paramsInheritanceStrategy: 'emptyOnly' }));"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "decide-when-the-url-updates",
+      "text": "Quyết định thời điểm cập nhật URL (urlUpdateStrategy)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định là <code>'deferred'</code> (chờ điều hướng thành công mới ghi URL lên thanh địa chỉ). Đặt thành <code>'eager'</code> sẽ ghi URL ngay khi điều hướng bắt đầu, hữu ích cho các hệ thống analytics cần ghi nhận URL người dùng cố truy cập kể cả khi guard chặn lại sau đó."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "choose-default-query-parameter-handling",
+      "text": "Xử lý Query Parameters mặc định (defaultQueryParamsHandling)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cấu hình hành vi mặc định khi tạo cây URL với <code>Router.createUrlTree</code>: <code>'replace'</code> (thay thế), <code>'merge'</code> (kết hợp với params hiện tại), hoặc <code>'preserve'</code> (giữ nguyên)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "configure-trailing-slash-handling",
+      "text": "Xử lý dấu gạch chéo ở cuối URL (trailing slash)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể ép buộc tất cả các URL viết ra trình duyệt luôn có dấu gạch chéo bằng <code>TrailingSlashPathLocationStrategy</code> hoặc không bao giờ có dấu gạch chéo bằng <code>NoTrailingSlashPathLocationStrategy</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "import { LocationStrategy, TrailingSlashPathLocationStrategy } from '@angular/common';",
+        "",
+        "export const appConfig = {",
+        "  providers: [",
+        "    { provide: LocationStrategy, useClass: TrailingSlashPathLocationStrategy },",
+        "  ],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "route-reuse-strategy",
+      "text": "Chiến lược tái sử dụng Route (Route reuse strategy)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Theo mặc định, Angular sẽ hủy (destroy) component khi rời khỏi route và khởi tạo component mới khi quay lại. <code>RouteReuseStrategy</code> cho phép lưu trữ thể hiện component trong bộ nhớ (dưới dạng <strong>detached route handles</strong>) để tái sử dụng lại nguyên vẹn trạng thái (form đang nhập dở, vị trí cuộn scroll, dữ liệu lớn, giao diện dạng tab)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Các phương thức trong <code>RouteReuseStrategy</code>:"
+    },
+    {
+      "type": "table",
+      "headers": ["Phương thức (Method)", "Mô tả (Description)"],
+      "rows": [
+        ["<code>shouldDetach</code>", "Xác định xem route có nên được tách ra và lưu trữ lại khi rời đi hay không."],
+        ["<code>store</code>", "Lưu trữ <code>DetachedRouteHandle</code> khi <code>shouldDetach</code> trả về true."],
+        ["<code>shouldAttach</code>", "Kiểm tra xem route đã lưu trước đó có nên được gắn lại khi điều hướng tới hay không."],
+        ["<code>retrieve</code>", "Trả về handle đã lưu để gắn lại vào view."],
+        ["<code>shouldReuseRoute</code>", "Xác định xem có nên tái sử dụng route hiện tại thay vì hủy đi trong quá trình điều hướng hay không."],
+        ["<code>shouldDestroyInjector</code>", "Xác định xem injector của route tách rời có nên bị hủy khi không còn lưu trữ nữa hay không."]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "custom-route-reuse-strategy.ts",
+      "lang": "ts",
+      "code": [
+        "import {",
+        "  RouteReuseStrategy,",
+        "  Route,",
+        "  ActivatedRouteSnapshot,",
+        "  DetachedRouteHandle,",
+        "} from '@angular/router';",
+        "import { Injectable } from '@angular/core';",
+        "",
+        "@Injectable()",
+        "export class CustomRouteReuseStrategy implements RouteReuseStrategy {",
+        "  private handlers = new Map<Route | null, DetachedRouteHandle>();",
+        "",
+        "  shouldDetach(route: ActivatedRouteSnapshot): boolean {",
+        "    return route.data['reuse'] === true;",
+        "  }",
+        "",
+        "  store(route: ActivatedRouteSnapshot, handle: DetachedRouteHandle | null): void {",
+        "    if (handle && route.data['reuse'] === true) {",
+        "      this.handlers.set(route.routeConfig, handle);",
+        "    }",
+        "  }",
+        "",
+        "  shouldAttach(route: ActivatedRouteSnapshot): boolean {",
+        "    return route.data['reuse'] === true && this.handlers.has(route.routeConfig);",
+        "  }",
+        "",
+        "  retrieve(route: ActivatedRouteSnapshot): DetachedRouteHandle | null {",
+        "    return route.data['reuse'] === true ? (this.handlers.get(route.routeConfig) ?? null) : null;",
+        "  }",
+        "",
+        "  shouldReuseRoute(future: ActivatedRouteSnapshot, curr: ActivatedRouteSnapshot): boolean {",
+        "    return future.routeConfig === curr.routeConfig;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "manually-destroying-detached-route-handles",
+      "text": "Hủy thủ công Detached Route Handles tránh rò rỉ bộ nhớ"
+    },
+    {
+      "type": "paragraph",
+      "text": "Vì <code>DetachedRouteHandle</code> là kiểu dữ liệu ẩn, bạn không thể gọi trực tiếp phương thức hủy trên nó. Hãy sử dụng hàm <code>destroyDetachedRouteHandle(handle)</code> khi bạn muốn xóa cache vượt quá kích thước cho phép:"
+    },
+    {
+      "type": "code",
+      "file": "cleanup-handles.ts",
+      "lang": "ts",
+      "code": [
+        "import { destroyDetachedRouteHandle } from '@angular/router';",
+        "",
+        "if (this.handlers.size > MAX_CACHE_SIZE) {",
+        "  const handle = this.handlers.get(oldestKey);",
+        "  if (handle) {",
+        "    destroyDetachedRouteHandle(handle);",
+        "    this.handlers.delete(oldestKey);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn cũng có thể bật tính năng tự động dọn dẹp các injector không còn sử dụng bằng <code>withAutoCleanupInjectors()</code> trong cấu hình <code>provideRouter</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "preloading-strategy",
+      "text": "Chiến lược tải trước (Preloading strategy)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Chiến lược tải trước quyết định thời điểm Angular tải ngầm các module lười (lazy-loaded chunks) ở chế độ nền. Angular cung cấp sẵn <code>NoPreloading</code> (mặc định) và <code>PreloadAllModules</code> (tải trước tất cả sau lần chuyển trang đầu)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể tạo một chiến lược tải trước có chọn lọc (Selective Preloading Strategy):"
+    },
+    {
+      "type": "code",
+      "file": "selective-preloading.strategy.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable } from '@angular/core';",
+        "import { PreloadingStrategy, Route } from '@angular/router';",
+        "import { Observable, of } from 'rxjs';",
+        "",
+        "@Injectable({ providedIn: 'root' })",
+        "export class SelectivePreloadingStrategy implements PreloadingStrategy {",
+        "  preload(route: Route, load: () => Observable<any>): Observable<any> {",
+        "    // Chỉ tải trước những route có đánh dấu data: { preload: true }",
+        "    return route.data?.['preload'] ? load() : of(null);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "url-handling-strategy",
+      "text": "Chiến lược xử lý URL (UrlHandlingStrategy)"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>UrlHandlingStrategy</code> phân định ranh giới giữa các URL do Angular quản lý và các URL do hệ thống khác quản lý (ví dụ: chuyển đổi từng phần ứng dụng AngularJS / server-side cũ sang Angular):"
+    },
+    {
+      "type": "code",
+      "file": "custom-url-handling.strategy.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable } from '@angular/core';",
+        "import { UrlHandlingStrategy, UrlTree } from '@angular/router';",
+        "",
+        "@Injectable()",
+        "export class CustomUrlHandlingStrategy implements UrlHandlingStrategy {",
+        "  shouldProcessUrl(url: UrlTree): boolean {",
+        "    // Chỉ xử lý các URL bắt đầu bằng /app hoặc /admin",
+        "    const str = url.toString();",
+        "    return str.startsWith('/app') || str.startsWith('/admin');",
+        "  }",
+        "",
+        "  extract(url: UrlTree): UrlTree {",
+        "    return url;",
+        "  }",
+        "",
+        "  merge(newUrlPart: UrlTree, rawUrl: UrlTree): UrlTree {",
+        "    return newUrlPart;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "custom-route-matchers",
+      "text": "Bộ so khớp tuyến đường tùy chỉnh (Custom route matchers)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bộ so khớp tùy biến nhận mảng các <code>UrlSegment</code> và trả về <code>UrlMatchResult</code> hoặc <code>null</code>. Kỹ thuật này cực kỳ hữu ích cho việc định tuyến theo phiên bản API (<code>/v1.0/docs</code>), định tuyến theo ngôn ngữ đa quốc gia (<code>/en/products</code>, <code>/vi/products</code>) hoặc các quy tắc mã hàng sản phẩm phức tạp trong thương mại điện tử (sách theo ISBN, điện tử theo SKU)."
+    }
+  ]
+}

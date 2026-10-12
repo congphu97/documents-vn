@@ -1,26 +1,144 @@
 {
   "slug": "guide/templates/defer",
-  "title": "Tải trì hoãn với @defer (Deferred Loading)",
-  "description": "Tối ưu tốc độ tải trang bằng cách trì hoãn tải các component nặng cho đến khi thỏa mãn điều kiện nhất định.",
+  "title": "Deferred loading with @defer",
+  "description": "Deferrable views (@defer) giúp giảm kích thước bundle ban đầu bằng cách trì hoãn tải các component, directive, pipe không cần thiết ngay lập tức, cải thiện vượt bậc Core Web Vitals.",
   "source": "https://angular.dev/guide/templates/defer",
   "status": "reviewed",
   "blocks": [
     {
       "type": "paragraph",
-      "text": "Khối `@defer` cho phép trì hoãn việc tải mã nguồn JavaScript của các component con cho đến khi có trigger tương tác (ví dụ khi người dùng cuộn tới phần tử đó hoặc sau khi trang chính đã rảnh)."
+      "text": "Deferrable views, hay khối @defer, giúp giảm thiểu dung lượng gói mã JavaScript ban đầu (initial bundle size) bằng cách trì hoãn việc tải các đoạn mã không thực sự cần thiết trong lần render đầu tiên. Kỹ thuật này cải thiện rõ rệt tốc độ tải trang và các chỉ số Core Web Vitals (đặc biệt là LCP và TTFB)."
     },
     {
       "type": "code",
-      "file": "heavy-chart.component.html",
+      "file": "example.component.html",
       "lang": "html",
       "code": [
-        "@defer (on viewport) {",
-        "  <app-heavy-chart />",
-        "} @placeholder {",
-        "  <div>Đang chuẩn bị biểu đồ...</div>",
-        "} @loading (minimum 500ms) {",
-        "  <app-spinner />",
+        "@defer {",
+        "  <large-component />",
         "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Tất cả các component, directive, pipe và CSS bên trong khối @defer sẽ tự động được tách thành file chunk JavaScript riêng biệt và chỉ tải về khi cần thiết."
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Điều kiện để dependency được tách lazy-load: Chúng phải là Standalone và không được tham chiếu trực tiếp bên ngoài khối @defer trong cùng file (ví dụ: không dùng trong ViewChild ngoài @defer)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "how-to-manage-different-stages-of-deferred-loading",
+      "text": "Các giai đoạn xử lý trong @defer"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khối @defer cung cấp 4 khối con để quản lý trải nghiệm người dùng liền mạch trong suốt vòng đời tải trì hoãn:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "@defer: Khối nội dung chính cần tải lười (lazy load).",
+        "@placeholder: Nội dung tạm thời hiển thị trước khi @defer được kích hoạt. Có thể đặt thời gian tối thiểu (minimum 500ms) để chống nhấp nháy giao diện.",
+        "@loading: Giao diện hiển thị trong lúc đang tải mã nguồn (spinner/skeleton). Hỗ trợ tham số (after 100ms; minimum 1s).",
+        "@error: Giao diện hiển thị dự phòng nếu quá trình tải file chunk qua mạng thất bại."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "@defer {",
+        "  <large-component />",
+        "} @loading (after 100ms; minimum 1s) {",
+        "  <img alt=\"đang tải...\" src=\"loading.gif\" />",
+        "} @placeholder (minimum 500ms) {",
+        "  <p>Nội dung giữ chỗ</p>",
+        "} @error {",
+        "  <p>Tải component thất bại!</p>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "controlling-deferred-content-loading-with-triggers",
+      "text": "Kiểm soát thời điểm tải với Triggers (on & when)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular cung cấp 2 loại trigger: on (sự kiện tích hợp) và when (biểu thức điều kiện boolean tuỳ chỉnh):"
+    },
+    {
+      "type": "table",
+      "headers": ["Trigger (on)", "Mô tả"],
+      "rows": [
+        ["on idle", "Mặc định. Kích hoạt khi trình duyệt rơi vào trạng thái rảnh rỗi (requestIdleCallback). Hỗ trợ timeout: on idle(500)."],
+        ["on viewport", "Kích hoạt khi phần tử (placeholder hoặc biến tham chiếu #ref) cuộn vào màn hình (Intersection Observer)."],
+        ["on interaction", "Kích hoạt khi người dùng tương tác như click hoặc keydown vào placeholder/phần tử."],
+        ["on hover", "Kích hoạt khi rê chuột (mouseover) hoặc focus vào khu vực quy định."],
+        ["on immediate", "Tải ngay lập tức sau khi phần còn lại của template hoàn tất render."],
+        ["on timer(500ms)", "Kích hoạt sau một khoảng thời gian nhất định (ms hoặc s)."]
+      ]
+    },
+    {
+      "type": "code",
+      "file": "triggers-example.html",
+      "lang": "html",
+      "code": [
+        "<!-- Kích hoạt khi cuộn vào viewport kèm tuỳ chọn rootMargin -->",
+        "@defer (on viewport({ rootMargin: '100px', threshold: 0.5 })) {",
+        "  <greetings-cmp />",
+        "} @placeholder {",
+        "  <div>Placeholder</div>",
+        "}",
+        "",
+        "<!-- Kích hoạt bằng điều kiện tuỳ chỉnh -->",
+        "@defer (when isUserAuthenticated()) {",
+        "  <admin-panel />",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "prefetching-data-with-prefetch",
+      "text": "Tải trước mã nguồn với Prefetch"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể tải trước file JavaScript trước khi hiển thị giao diện để khi người dùng tương tác, nội dung xuất hiện ngay tức thì mà không phải chờ mạng:"
+    },
+    {
+      "type": "code",
+      "file": "example.component.html",
+      "lang": "html",
+      "code": [
+        "<!-- Tải trước mã lúc browser rảnh (prefetch on idle), chỉ render khi người dùng click (on interaction) -->",
+        "@defer (on interaction; prefetch on idle) {",
+        "  <large-cmp />",
+        "} @placeholder {",
+        "  <button>Bấm để xem nội dung</button>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "best-practices-for-deferring-views",
+      "text": "Kinh nghiệm thực tế & Best Practices"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Tránh Barrel file (index.ts): Import trực tiếp từ file component (import { HeavyCmp } from './heavy.component';) thay vì qua file index.ts, nếu không bundler sẽ gom chung vào bundle chính.",
+        "Tránh Layout Shift (CLS): Không áp dụng @defer cho các thành phần hiển thị ngay trên màn hình đầu tiên (Above the fold). Đặt chiều cao hợp lý cho @placeholder.",
+        "Tránh thác tải (Cascading loads): Tránh lồng các khối @defer có cùng trigger vào nhau.",
+        "Hỗ trợ Accessibility (A11y): Bao bọc khối @defer bằng <div aria-live=\"polite\" aria-atomic=\"true\"> để các thiết bị đọc màn hình (screen reader) thông báo khi nội dung thay đổi."
       ]
     }
   ]

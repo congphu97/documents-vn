@@ -115,24 +115,57 @@
             "path": "guide/templates"
           },
           {
-            "label": "Data Binding",
+            "label": "Binding dynamic text, properties and attributes",
             "path": "guide/templates/binding"
           },
           {
-            "label": "Control Flow",
-            "path": "guide/templates/control-flow"
+            "label": "Adding event listeners",
+            "path": "guide/templates/event-listeners"
           },
           {
-            "label": "Deferred Loading (@defer)",
-            "path": "guide/templates/defer"
+            "label": "Two-way binding",
+            "path": "guide/templates/two-way-binding"
+          },
+          {
+            "label": "Control flow",
+            "path": "guide/templates/control-flow"
           },
           {
             "label": "Pipes",
             "path": "guide/templates/pipes"
           },
           {
-            "label": "Variables",
+            "label": "Slotting child content with ng-content",
+            "path": "guide/templates/content-projection"
+          },
+          {
+            "label": "Create template fragments with ng-template",
+            "path": "guide/templates/ng-template"
+          },
+          {
+            "label": "Grouping elements with ng-container",
+            "path": "guide/templates/ng-container"
+          },
+          {
+            "label": "Variables in templates",
             "path": "guide/templates/variables"
+          },
+          {
+            "label": "Deferred loading with @defer",
+            "path": "guide/templates/defer"
+          },
+          {
+            "label": "Error boundaries with @boundary",
+            "badge": "New",
+            "path": "guide/templates/boundary"
+          },
+          {
+            "label": "Expression syntax",
+            "path": "guide/templates/expression-syntax"
+          },
+          {
+            "label": "Whitespace in templates",
+            "path": "guide/templates/whitespace"
           }
         ]
       },
@@ -144,12 +177,20 @@
             "path": "guide/directives"
           },
           {
-            "label": "Attribute Directives",
+            "label": "Attribute directives",
             "path": "guide/directives/attribute-directives"
           },
           {
-            "label": "Structural Directives",
+            "label": "Structural directives",
             "path": "guide/directives/structural-directives"
+          },
+          {
+            "label": "Directive composition API",
+            "path": "guide/directives/directive-composition-api"
+          },
+          {
+            "label": "Optimizing images with NgOptimizedImage",
+            "path": "guide/image-optimization"
           }
         ]
       },
@@ -162,16 +203,38 @@
             "path": "guide/di"
           },
           {
-            "label": "Providers",
-            "path": "guide/di/dependency-injection-providers"
+            "label": "Creating and using services",
+            "path": "guide/di/creating-and-using-services"
           },
           {
-            "label": "Hierarchy",
-            "path": "guide/di/dependency-injection-hierarchy"
+            "label": "Lazy loading services",
+            "badge": "New",
+            "path": "guide/di/lazy-loading-services"
           },
           {
-            "label": "DI in Action",
+            "label": "Defining dependency providers",
+            "path": "guide/di/defining-dependency-providers"
+          },
+          {
+            "label": "Injection context",
+            "path": "guide/di/dependency-injection-context"
+          },
+          {
+            "label": "Hierarchical injectors",
+            "path": "guide/di/hierarchical-dependency-injection"
+          },
+          {
+            "label": "Optimizing injection tokens",
+            "path": "guide/di/lightweight-injection-tokens"
+          },
+          {
+            "label": "DI in action",
             "path": "guide/di/di-in-action"
+          },
+          {
+            "label": "Debugging and troubleshooting DI",
+            "badge": "New",
+            "path": "guide/di/debugging-di"
           }
         ]
       },
@@ -183,8 +246,69 @@
             "path": "guide/routing"
           },
           {
+            "label": "Define routes",
+            "path": "guide/routing/define-routes"
+          },
+          {
+            "label": "Route loading strategies",
+            "path": "guide/routing/loading-strategies"
+          },
+          {
+            "label": "Show routes with outlets",
+            "path": "guide/routing/show-routes-with-outlets"
+          },
+          {
+            "label": "Navigate to routes",
+            "path": "guide/routing/navigate-to-routes"
+          },
+          {
+            "label": "Read route state",
+            "path": "guide/routing/read-route-state"
+          },
+          {
+            "label": "Redirecting routes",
+            "path": "guide/routing/redirecting-routes"
+          },
+          {
+            "label": "Control route access with guards",
+            "path": "guide/routing/route-guards"
+          },
+          {
+            "label": "Data resolvers",
+            "path": "guide/routing/data-resolvers"
+          },
+          {
+            "label": "Data fetching with resources",
+            "badge": "New",
+            "path": "guide/routing/data-fetching-with-resources"
+          },
+          {
+            "label": "Router lifecycle and events",
+            "path": "guide/routing/lifecycle-and-events"
+          },
+          {
+            "label": "Testing routing and navigation",
+            "path": "guide/routing/testing"
+          },
+          {
             "label": "Common Router Tasks",
             "path": "guide/routing/common-router-tasks"
+          },
+          {
+            "label": "Custom route matching",
+            "path": "guide/routing/routing-with-urlmatcher"
+          },
+          {
+            "label": "Rendering strategies",
+            "path": "guide/routing/rendering-strategies"
+          },
+          {
+            "label": "Customizing route behavior",
+            "path": "guide/routing/customizing-route-behavior"
+          },
+          {
+            "label": "Route transition animations",
+            "path": "guide/routing/route-transition-animations"
           },
           {
             "label": "Router Reference",
@@ -201,8 +325,92 @@
             "path": "guide/forms"
           },
           {
+            "label": "Forms with Signals",
+            "badge": "New",
+            "path": "guide/forms/signals"
+          },
+          {
+            "label": "Form Models",
+            "badge": "New",
+            "path": "guide/forms/signals/models"
+          },
+          {
+            "label": "Designing Form Models",
+            "badge": "New",
+            "path": "guide/forms/signals/model-design"
+          },
+          {
+            "label": "Field State Management",
+            "badge": "New",
+            "path": "guide/forms/signals/field-state-management"
+          },
+          {
+            "label": "Validation with Signals",
+            "badge": "New",
+            "path": "guide/forms/signals/validation"
+          },
+          {
+            "label": "Adding Form Logic",
+            "badge": "New",
+            "path": "guide/forms/signals/form-logic"
+          },
+          {
+            "label": "Cross-field Logic",
+            "badge": "New",
+            "path": "guide/forms/signals/cross-field-logic"
+          },
+          {
+            "label": "Form Submission",
+            "badge": "New",
+            "path": "guide/forms/signals/form-submission"
+          },
+          {
+            "label": "Schemas & Composability",
+            "badge": "New",
+            "path": "guide/forms/signals/schemas"
+          },
+          {
+            "label": "Field Metadata",
+            "badge": "New",
+            "path": "guide/forms/signals/field-metadata"
+          },
+          {
+            "label": "Async Operations",
+            "badge": "New",
+            "path": "guide/forms/signals/async-operations"
+          },
+          {
+            "label": "Dynamic Forms with JSON",
+            "badge": "New",
+            "path": "guide/forms/signals/dynamic-forms-with-json"
+          },
+          {
+            "label": "Custom Controls",
+            "badge": "New",
+            "path": "guide/forms/signals/custom-controls"
+          },
+          {
+            "label": "Testing Signal Forms",
+            "badge": "New",
+            "path": "guide/forms/signals/testing"
+          },
+          {
+            "label": "Form Approaches Comparison",
+            "badge": "New",
+            "path": "guide/forms/signals/comparison"
+          },
+          {
+            "label": "Migrating to Signal Forms",
+            "badge": "New",
+            "path": "guide/forms/signals/migration"
+          },
+          {
             "label": "Reactive Forms",
             "path": "guide/forms/reactive-forms"
+          },
+          {
+            "label": "Typed Forms",
+            "path": "guide/forms/typed-forms"
           },
           {
             "label": "Template-driven Forms",
@@ -211,6 +419,10 @@
           {
             "label": "Validation",
             "path": "guide/forms/form-validation"
+          },
+          {
+            "label": "Dynamic Forms",
+            "path": "guide/forms/dynamic-forms"
           }
         ]
       },
@@ -222,12 +434,25 @@
             "path": "guide/http"
           },
           {
+            "label": "Setting up HttpClient",
+            "path": "guide/http/setup"
+          },
+          {
             "label": "Making Requests",
             "path": "guide/http/making-requests"
           },
           {
+            "label": "httpResource (Signals)",
+            "badge": "New",
+            "path": "guide/http/http-resource"
+          },
+          {
             "label": "Interceptors",
             "path": "guide/http/interceptors"
+          },
+          {
+            "label": "Testing",
+            "path": "guide/http/testing"
           }
         ]
       },
@@ -235,12 +460,21 @@
         "label": "Server-side & hybrid-rendering",
         "children": [
           {
-            "label": "SSR Overview",
+            "label": "Overview",
+            "path": "guide/performance"
+          },
+          {
+            "label": "Server-side and hybrid-rendering",
             "path": "guide/ssr"
           },
           {
             "label": "Hydration",
             "path": "guide/hydration"
+          },
+          {
+            "label": "Incremental Hydration",
+            "badge": "New",
+            "path": "guide/incremental-hydration"
           },
           {
             "label": "Prerendering",

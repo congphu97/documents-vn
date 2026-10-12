@@ -1,0 +1,71 @@
+{
+  "slug": "guide/http/http-resource",
+  "title": "Reactive data fetching with httpResource",
+  "description": "Learn how to use httpResource in Angular: declarative and reactive data fetching integrated directly with Angular Signals.",
+  "source": "https://angular.dev/guide/http/http-resource",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "<code>httpResource</code> is a reactive wrapper around <code>HttpClient</code> that gives you the request status and response as signals. You can use these signals with <code>computed</code>, <code>effect</code>, <code>linkedSignal</code>, or any other reactive API. Built on top of <code>HttpClient</code>, <code>httpResource</code> supports all features such as interceptors."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "using-http-resource",
+      "text": "Using httpResource"
+    },
+    {
+      "type": "paragraph",
+      "text": "In its simplest form, <code>httpResource</code> takes a URL string or an options object:"
+    },
+    {
+      "type": "code",
+      "file": "user-profile.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, httpResource } from '@angular/core';",
+        "",
+        "@Component({",
+        "  selector: 'app-user-profile',",
+        "  standalone: true,",
+        "  template: `",
+        "    @if (userResource.isLoading()) {",
+        "      <p>Loading user data...</p>",
+        "    } @else if (userResource.error()) {",
+        "      <p>Error: {{ userResource.error() }}</p>",
+        "    } @else {",
+        "      <h2>{{ userResource.value()?.name }}</h2>",
+        "      <p>Email: {{ userResource.value()?.email }}</p>",
+        "    }",
+        "  `",
+        "})",
+        "export class UserProfileComponent {",
+        "  userResource = httpResource<User>('/api/user/1');",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reactive-requests",
+      "text": "Reactive requests based on signals"
+    },
+    {
+      "type": "paragraph",
+      "text": "Pass a reactive function to automatically reload data whenever an underlying signal dependency changes:"
+    },
+    {
+      "type": "code",
+      "file": "search.component.ts",
+      "lang": "ts",
+      "code": [
+        "export class SearchComponent {",
+        "  query = signal('angular');",
+        "",
+        "  searchResults = httpResource<SearchResult[]>(() => `/api/search?q=${this.query()}`);",
+        "}"
+      ]
+    }
+  ]
+}

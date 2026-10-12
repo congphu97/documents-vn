@@ -1,0 +1,324 @@
+{
+  "slug": "guide/routing/show-routes-with-outlets",
+  "title": "Hiển thị tuyến đường với Outlets (Show routes with outlets)",
+  "description": "Tìm hiểu cách sử dụng chỉ thị RouterOutlet, lồng ghép child routes, cấu hình named outlets phụ, lắng nghe vòng đời outlet và truyền dữ liệu ngữ cảnh với routerOutletData.",
+  "source": "https://angular.dev/guide/routing/show-routes-with-outlets",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Chỉ thị <code>RouterOutlet</code> đóng vai trò là một điểm giữ chỗ (placeholder) đánh dấu vị trí mà Router sẽ hiển thị component ứng với URL hiện tại."
+    },
+    {
+      "type": "code",
+      "file": "app.html",
+      "lang": "html",
+      "code": [
+        "<app-header />",
+        "",
+        "<!-- Angular sẽ chèn nội dung của route vào đây -->",
+        "<router-outlet />",
+        "",
+        "<app-footer />"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "app.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { RouterOutlet } from '@angular/router';",
+        "",
+        "@Component({",
+        "  selector: 'app-root',",
+        "  imports: [RouterOutlet],",
+        "  templateUrl: './app.html',",
+        "  styleUrl: './app.css',",
+        "})",
+        "export class App {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ này, giả sử ứng dụng đã định nghĩa các tuyến đường sau:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { Home } from './home';",
+        "import { Products } from './products';",
+        "",
+        "const routes: Routes = [",
+        "  {",
+        "    path: '',",
+        "    component: Home,",
+        "    title: 'Home Page',",
+        "  },",
+        "  {",
+        "    path: 'products',",
+        "    component: Products,",
+        "    title: 'Our Products',",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi người dùng truy cập vào <code>/products</code>, Angular sẽ render ra cấu trúc DOM tương ứng:"
+    },
+    {
+      "type": "code",
+      "file": "rendered-output.html",
+      "lang": "html",
+      "code": [
+        "<app-header />",
+        "<app-products />",
+        "<app-footer />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu người dùng quay lại trang chủ (đường dẫn rỗng), Angular sẽ render:"
+    },
+    {
+      "type": "code",
+      "file": "rendered-output.html",
+      "lang": "html",
+      "code": [
+        "<app-header />",
+        "<app-home />",
+        "<app-footer />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi hiển thị một route, phần tử <code>&lt;router-outlet&gt;</code> vẫn tồn tại trong cây DOM như một điểm mốc tham chiếu cho các lần điều hướng tiếp theo. Angular sẽ chèn component của route vào ngay sau phần tử outlet như một phần tử anh em (sibling):"
+    },
+    {
+      "type": "code",
+      "file": "dom-structure.html",
+      "lang": "html",
+      "code": [
+        "<!-- Cấu trúc trong DOM khi người dùng truy cập /admin -->",
+        "<app-header />",
+        "<router-outlet />",
+        "<app-admin-page />",
+        "<app-footer />"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "nesting-routes-with-child-routes",
+      "text": "Lồng ghép routes với child routes (Nesting routes with child routes)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi ứng dụng của bạn ngày càng phát triển phức tạp, bạn có thể muốn tạo các tuyến đường có tính chất tương đối so với một component khác ngoài component gốc (Root Component). Điều này mang lại trải nghiệm mà chỉ một phần cụ thể của ứng dụng thay đổi khi URL thay đổi, thay vì làm người dùng cảm thấy như toàn bộ trang đang bị tải lại."
+    },
+    {
+      "type": "paragraph",
+      "text": "Các kiểu tuyến đường lồng nhau này được gọi là <strong>child routes (tuyến đường con)</strong>. Điều này đồng nghĩa với việc bạn thêm một thẻ <code>&lt;router-outlet&gt;</code> thứ hai (hoặc thứ ba) vào ứng dụng của mình, bổ sung bên cạnh thẻ <code>&lt;router-outlet&gt;</code> trong <code>AppComponent</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ dưới đây, component <code>Settings</code> sẽ hiển thị panel tương ứng dựa trên mục người dùng chọn. Điểm đặc trưng của các component chứa child routes là thường có thanh menu điều hướng riêng cùng với một thẻ <code>&lt;router-outlet&gt;</code> nội bộ:"
+    },
+    {
+      "type": "code",
+      "file": "settings.component.html",
+      "lang": "html",
+      "code": [
+        "<h1>Settings</h1>",
+        "<nav>",
+        "  <ul>",
+        "    <li><a routerLink=\"profile\">Profile</a></li>",
+        "    <li><a routerLink=\"security\">Security</a></li>",
+        "  </ul>",
+        "</nav>",
+        "",
+        "<!-- Outlet dành riêng cho các route con của Settings -->",
+        "<router-outlet />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Một route con cũng giống như bất kỳ route thông thường nào khác, đều cần một <code>path</code> và một <code>component</code>. Điểm khác biệt duy nhất là bạn đặt các route con vào mảng <code>children</code> bên trong route cha:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "const routes: Routes = [",
+        "  {",
+        "    path: 'settings',",
+        "    component: Settings, // Component chứa <router-outlet> trong template",
+        "    children: [",
+        "      {",
+        "        path: 'profile', // Khớp với URL /settings/profile",
+        "        component: Profile,",
+        "      },",
+        "      {",
+        "        path: 'security', // Khớp với URL /settings/security",
+        "        component: Security,",
+        "      },",
+        "    ],",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "secondary-routes-with-named-outlets",
+      "text": "Tuyến đường phụ với Outlet có đặt tên (Secondary routes with named outlets)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các trang có thể chứa nhiều outlet cùng lúc trên cùng một giao diện. Bạn có thể đặt tên (<code>name</code>) cho từng outlet để chỉ định nội dung nào sẽ hiển thị trong outlet nào:"
+    },
+    {
+      "type": "code",
+      "file": "app.html",
+      "lang": "html",
+      "code": [
+        "<app-header />",
+        "<router-outlet />",
+        "<router-outlet name=\"read-more\" />",
+        "<router-outlet name=\"additional-actions\" />",
+        "<app-footer />"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi outlet phải có một tên duy nhất. Tên này là tĩnh và không thể thiết lập hoặc thay đổi động. Mặc định, outlet chính không đặt tên sẽ mang tên là <code>'primary'</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular khớp thuộc tính <code>name</code> của outlet với thuộc tính <code>outlet</code> được khai báo trên từng route:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "{",
+        "  path: 'user/:id',",
+        "  component: UserDetails,",
+        "  outlet: 'additional-actions',",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "outlet-lifecycle-events",
+      "text": "Sự kiện vòng đời của Outlet (Outlet lifecycle events)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một <code>RouterOutlet</code> có thể phát ra bốn sự kiện vòng đời:"
+    },
+    {
+      "type": "table",
+      "headers": ["Sự kiện (Event)", "Mô tả (Description)"],
+      "rows": [
+        ["<code>activate</code>", "Được phát ra khi một component mới được khởi tạo và gắn vào outlet."],
+        ["<code>deactivate</code>", "Được phát ra khi component hiện tại bị hủy bỏ khỏi outlet."],
+        ["<code>attach</code>", "Được phát ra khi <code>RouteReuseStrategy</code> chỉ thị cho outlet gắn lại cây component con đã lưu cache."],
+        ["<code>detach</code>", "Được phát ra khi <code>RouteReuseStrategy</code> chỉ thị cho outlet tách rời cây component con để tái sử dụng sau."]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể lắng nghe các sự kiện này bằng cú pháp gắn sự kiện thông thường trong Angular:"
+    },
+    {
+      "type": "code",
+      "file": "app.html",
+      "lang": "html",
+      "code": [
+        "<router-outlet",
+        "  (activate)=\"onActivate($event)\"",
+        "  (deactivate)=\"onDeactivate($event)\"",
+        "  (attach)=\"onAttach($event)\"",
+        "  (detach)=\"onDetach($event)\"",
+        "/>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "passing-contextual-data-to-routed-components",
+      "text": "Truyền dữ liệu ngữ cảnh tới Routed Components (Passing contextual data)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trước đây, việc truyền dữ liệu ngữ cảnh trực tiếp tới các component được kích hoạt bởi router thường đòi hỏi state toàn cục hoặc cấu hình route phức tạp. Để giải quyết điều này, mỗi <code>RouterOutlet</code> hỗ trợ thuộc tính đầu vào <code>routerOutletData</code>. Component bên trong outlet và các con của nó có thể đọc dữ liệu này dưới dạng một Signal thông qua token injection <code>ROUTER_OUTLET_DATA</code>, cho phép cấu hình linh hoạt theo từng outlet mà không cần sửa đổi định nghĩa route."
+    },
+    {
+      "type": "code",
+      "file": "dashboard.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { RouterOutlet } from '@angular/router';",
+        "",
+        "@Component({",
+        "  selector: 'app-dashboard',",
+        "  imports: [RouterOutlet],",
+        "  template: `",
+        "    <h2>Dashboard</h2>",
+        "    <router-outlet [routerOutletData]=\"{ layout: 'sidebar' }\" />",
+        "  `,",
+        "})",
+        "export class Dashboard {}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Component được router kích hoạt có thể inject dữ liệu outlet đã truyền thông qua <code>ROUTER_OUTLET_DATA</code>:"
+    },
+    {
+      "type": "code",
+      "file": "stats.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, inject, Signal } from '@angular/core';",
+        "import { ROUTER_OUTLET_DATA } from '@angular/router';",
+        "",
+        "@Component({",
+        "  selector: 'app-stats',",
+        "  template: `<p>Stats view (layout: {{ outletData().layout }})</p>`,",
+        "})",
+        "export class Stats {",
+        "  outletData = inject(ROUTER_OUTLET_DATA) as Signal<{ layout: string }>;",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi Angular kích hoạt <code>Stats</code> trong outlet đó, component sẽ nhận được <code>{ layout: 'sidebar' }</code> từ token đã inject."
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Nếu thuộc tính đầu vào <code>routerOutletData</code> không được thiết lập, giá trị của signal được inject mặc định sẽ là <code>undefined</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tìm hiểu cách [Điều hướng đến các tuyến đường (Navigate to routes)](/docs/guide/routing/navigate-to-routes) với Angular Router."
+    }
+  ]
+}

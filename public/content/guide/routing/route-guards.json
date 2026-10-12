@@ -1,0 +1,317 @@
+{
+  "slug": "guide/routing/route-guards",
+  "title": "Kiểm soát truy cập tuyến đường với Guards (Control route access with guards)",
+  "description": "Tìm hiểu cách bảo vệ và kiểm soát điều hướng với các Route Guards trong Angular: CanActivate, CanActivateChild, CanDeactivate, CanMatch, các kiểu trả về và cách áp dụng nhiều guard đồng thời.",
+  "source": "https://angular.dev/guide/routing/route-guards",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "caution",
+      "text": "QUAN TRỌNG: Tuyệt đối không bao giờ dựa hoàn toàn vào các guard phía client (trình duyệt) như biện pháp kiểm soát truy cập duy nhất. Toàn bộ mã JavaScript chạy trên trình duyệt đều có thể bị người dùng can thiệp hoặc sửa đổi. Luôn luôn thực thi xác thực và phân quyền phía server (back-end), bên cạnh các route guards phía client."
+    },
+    {
+      "type": "paragraph",
+      "text": "Route guards là các hàm kiểm soát việc người dùng có được phép điều hướng đến hoặc rời khỏi một tuyến đường cụ thể hay không. Chúng hoạt động giống như các trạm kiểm soát (checkpoints). Các trường hợp sử dụng phổ biến bao gồm xác thực danh tính người dùng (authentication) và phân quyền truy cập (access control)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-a-route-guard",
+      "text": "Tạo một Route Guard (Creating a route guard)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể tạo một route guard bằng Angular CLI:"
+    },
+    {
+      "type": "code",
+      "file": "terminal",
+      "lang": "bash",
+      "code": [
+        "ng generate guard CUSTOM_NAME"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Lệnh này sẽ hiển thị lời nhắc để bạn chọn loại route guard mong muốn, sau đó tạo tệp tương ứng <code>CUSTOM_NAME-guard.ts</code>."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Bạn cũng có thể tạo guard thủ công bằng cách tạo một tệp TypeScript riêng biệt. Các lập trình viên thường đặt hậu tố <code>-guard.ts</code> hoặc <code>.guard.ts</code> trong tên tệp để dễ phân biệt."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "route-guard-return-types",
+      "text": "Các kiểu trả về của Route Guard (Route guard return types)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tất cả các loại route guard đều chia sẻ chung các kiểu giá trị trả về có thể có, mang lại sự linh hoạt tối đa khi điều phối điều hướng:"
+    },
+    {
+      "type": "table",
+      "headers": ["Kiểu trả về (Return types)", "Mô tả (Description)"],
+      "rows": [
+        ["<code>boolean</code>", "<code>true</code> cho phép tiếp tục điều hướng; <code>false</code> chặn đứng điều hướng (xem lưu ý đối với CanMatch)."],
+        ["<code>UrlTree</code> hoặc <code>RedirectCommand</code>", "Chuyển hướng người dùng sang một tuyến đường khác thay vì chỉ chặn lại."],
+        ["<code>Promise&lt;T&gt;</code> hoặc <code>Observable&lt;T&gt;</code>", "Router sẽ lấy giá trị đầu tiên được phát ra (first emitted value) rồi tự động unsubscribe/hoàn tất."]
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "<code>CanMatch</code> có hành vi khác biệt: khi nó trả về <code>false</code>, Angular sẽ thử tìm các route khác khớp với URL tiếp theo trong cấu hình, thay vì chặn đứng hoàn toàn việc điều hướng của người dùng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "types-of-route-guards",
+      "text": "Các loại Route Guard (Types of route guards)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular cung cấp bốn loại route guards phục vụ các mục đích riêng biệt: <code>CanActivate</code>, <code>CanActivateChild</code>, <code>CanDeactivate</code>, và <code>CanMatch</code>. Tất cả các guard đều có thể sử dụng hàm <code>inject()</code> để lấy các dịch vụ được cung cấp ở cấp độ route hoặc root, cũng như truy cập thông tin route qua các đối số truyền vào."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "canactivate",
+      "text": "CanActivate"
+    },
+    {
+      "type": "paragraph",
+      "text": "Guard <code>CanActivate</code> xác định xem người dùng có thể truy cập vào một route hay không. Đây là loại guard phổ biến nhất để kiểm tra đăng nhập và phân quyền người dùng."
+    },
+    {
+      "type": "paragraph",
+      "text": "Nó nhận hai đối số mặc định:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>route: ActivatedRouteSnapshot</code> - Chứa thông tin về route đang được chuẩn bị kích hoạt.",
+        "<code>state: RouterStateSnapshot</code> - Chứa trạng thái hiện tại của router."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "auth.guard.ts",
+      "lang": "ts",
+      "code": [
+        "import { inject } from '@angular/core';",
+        "import { CanActivateFn, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';",
+        "import { AuthService } from './auth.service';",
+        "",
+        "export const authGuard: CanActivateFn = (",
+        "  route: ActivatedRouteSnapshot,",
+        "  state: RouterStateSnapshot,",
+        ") => {",
+        "  const authService = inject(AuthService);",
+        "  return authService.isAuthenticated();",
+        "};"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Nếu bạn muốn chuyển hướng người dùng khi không hợp lệ (ví dụ chuyển về trang đăng nhập), hãy trả về một <code>UrlTree</code> hoặc <code>RedirectCommand</code>. Không nên trả về <code>false</code> rồi gọi <code>router.navigate()</code> theo cách thủ công."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "canactivatechild",
+      "text": "CanActivateChild"
+    },
+    {
+      "type": "paragraph",
+      "text": "Guard <code>CanActivateChild</code> xác định xem người dùng có thể truy cập vào các tuyến đường con (child routes) của một route cha hay không. Điều này hữu ích khi bạn muốn bảo vệ toàn bộ một nhánh tính năng lồng nhau mà không cần gán guard cho từng route con. <code>canActivateChild</code> sẽ chạy cho tất cả các con, kể cả các cấp lồng nhau sâu hơn."
+    },
+    {
+      "type": "code",
+      "file": "admin-child.guard.ts",
+      "lang": "ts",
+      "code": [
+        "import { inject } from '@angular/core';",
+        "import { CanActivateChildFn, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';",
+        "import { AuthService } from './auth.service';",
+        "",
+        "export const adminChildGuard: CanActivateChildFn = (",
+        "  childRoute: ActivatedRouteSnapshot,",
+        "  state: RouterStateSnapshot,",
+        ") => {",
+        "  const authService = inject(AuthService);",
+        "  return authService.hasRole('admin');",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "candeactivate",
+      "text": "CanDeactivate"
+    },
+    {
+      "type": "paragraph",
+      "text": "Guard <code>CanDeactivate</code> xác định xem người dùng có thể rời khỏi tuyến đường hiện tại hay không. Trường hợp sử dụng phổ biến nhất là cảnh báo người dùng khi họ chuẩn bị rời khỏi một biểu mẫu chưa được lưu (unsaved form changes)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Guard này nhận trực tiếp thể hiện của component đang kích hoạt làm đối số đầu tiên:"
+    },
+    {
+      "type": "code",
+      "file": "unsaved-changes.guard.ts",
+      "lang": "ts",
+      "code": [
+        "import { CanDeactivateFn, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';",
+        "",
+        "export interface FormComponent {",
+        "  hasUnsavedChanges(): boolean;",
+        "}",
+        "",
+        "export const unsavedChangesGuard: CanDeactivateFn<FormComponent> = (",
+        "  component: FormComponent,",
+        "  currentRoute: ActivatedRouteSnapshot,",
+        "  currentState: RouterStateSnapshot,",
+        "  nextState: RouterStateSnapshot,",
+        ") => {",
+        "  return component.hasUnsavedChanges()",
+        "    ? confirm('Bạn có các thay đổi chưa được lưu. Bạn có chắc chắn muốn rời đi?')",
+        "    : true;",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "canmatch",
+      "text": "CanMatch"
+    },
+    {
+      "type": "paragraph",
+      "text": "Guard <code>CanMatch</code> xác định xem một route có thể được khớp trong giai đoạn so khớp đường dẫn hay không. Khác với các guard khác, khi <code>CanMatch</code> trả về <code>false</code>, router sẽ bỏ qua cấu hình này và tiếp tục tìm kiếm route tiếp theo có path tương tự thay vì chặn đứng toàn bộ điều hướng. Điều này vô cùng tiện lợi cho việc bật tắt tính năng (feature flags), A/B testing hoặc render component khác nhau cho cùng một URL:"
+    },
+    {
+      "type": "code",
+      "file": "feature-toggle.guard.ts",
+      "lang": "ts",
+      "code": [
+        "import { inject } from '@angular/core';",
+        "import { CanMatchFn, Route, UrlSegment } from '@angular/router';",
+        "import { FeatureService } from './feature.service';",
+        "",
+        "export const featureToggleGuard: CanMatchFn = (route: Route, segments: UrlSegment[]) => {",
+        "  const featureService = inject(FeatureService);",
+        "  return featureService.isFeatureEnabled('newDashboard');",
+        "};"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ cấu hình hai component khác nhau cho cùng một đường dẫn <code>dashboard</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { AdminDashboard, UserDashboard } from './dashboards';",
+        "import { adminGuard, userGuard } from './guards';",
+        "",
+        "const routes: Routes = [",
+        "  {",
+        "    path: 'dashboard',",
+        "    component: AdminDashboard,",
+        "    canMatch: [adminGuard],",
+        "  },",
+        "  {",
+        "    path: 'dashboard',",
+        "    component: UserDashboard,",
+        "    canMatch: [userGuard],",
+        "  },",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "applying-guards-to-routes",
+      "text": "Áp dụng Guards vào Routes (Applying guards to routes)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sau khi tạo các route guards, bạn cấu hình chúng vào định nghĩa route dưới dạng các mảng. Router sẽ kích hoạt các guard theo thứ tự xuất hiện trong mảng, nhưng không chờ một guard bất đồng bộ hoàn tất trước khi bắt đầu guard tiếp theo. Các guard trả về Promise hoặc Observable sẽ chạy <strong>đồng thời (concurrently)</strong>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Thứ tự trong mảng xác định quyền ưu tiên kết quả. Quá trình điều hướng chỉ tiếp tục nếu tất cả các guard đều trả về <code>true</code>. Nếu không, router sẽ sử dụng kết quả của guard đầu tiên trong mảng không trả về <code>true</code>."
+    },
+    {
+      "type": "callout",
+      "kind": "important",
+      "text": "Bởi vì các guard bất đồng bộ chạy đồng thời, một guard KHÔNG ĐƯỢC phụ thuộc vào kết quả của một guard đứng trước trong cùng mảng (ví dụ: guard thứ 2 dựa vào việc guard thứ 1 đã load user). Hãy đưa logic phụ thuộc đó vào một service dùng chung hoặc gộp hai kiểm tra vào cùng một guard duy nhất."
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "import { Routes } from '@angular/router';",
+        "import { authGuard } from './guards/auth.guard';",
+        "import { adminGuard } from './guards/admin.guard';",
+        "import { canDeactivateGuard } from './guards/can-deactivate.guard';",
+        "import { featureToggleGuard } from './guards/feature-toggle.guard';",
+        "",
+        "const routes: Routes = [",
+        "  // CanActivate cơ bản - yêu cầu xác thực",
+        "  {",
+        "    path: 'dashboard',",
+        "    component: Dashboard,",
+        "    canActivate: [authGuard],",
+        "  },",
+        "",
+        "  // Nhiều CanActivate guards - yêu cầu vừa đăng nhập VÀ có quyền admin",
+        "  {",
+        "    path: 'admin',",
+        "    component: Admin,",
+        "    canActivate: [authGuard, adminGuard],",
+        "  },",
+        "",
+        "  // CanActivate kết hợp CanDeactivate - kiểm tra quyền truy cập và kiểm tra chưa lưu form",
+        "  {",
+        "    path: 'profile',",
+        "    component: Profile,",
+        "    canActivate: [authGuard],",
+        "    canDeactivate: [canDeactivateGuard],",
+        "  },",
+        "",
+        "  // CanActivateChild - bảo vệ toàn bộ các route con",
+        "  {",
+        "    path: 'users', // Đường dẫn /users này KHÔNG bị bảo vệ",
+        "    canActivateChild: [authGuard],",
+        "    children: [",
+        "      { path: 'list', component: UserList },       // /users/list - ĐƯỢC BẢO VỆ",
+        "      { path: 'detail/:id', component: UserDetail }, // /users/detail/:id - ĐƯỢC BẢO VỆ",
+        "    ],",
+        "  },",
+        "",
+        "  // CanMatch - chỉ khớp route dựa trên feature flag",
+        "  {",
+        "    path: 'beta-feature',",
+        "    component: BetaFeature,",
+        "    canMatch: [featureToggleGuard],",
+        "  },",
+        "  // Tuyến đường fallback dự phòng nếu beta feature bị tắt",
+        "  {",
+        "    path: 'beta-feature',",
+        "    component: ComingSoon,",
+        "  },",
+        "];"
+      ]
+    }
+  ]
+}

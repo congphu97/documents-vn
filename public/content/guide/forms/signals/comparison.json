@@ -1,0 +1,278 @@
+{
+  "slug": "guide/forms/signals/comparison",
+  "title": "So sánh với các phương pháp biểu mẫu khác (Comparison with other form approaches)",
+  "description": "So sánh chi tiết 3 giải pháp biểu mẫu trong Angular: Signal Forms, Reactive Forms và Template-driven Forms về nguồn dữ liệu (source of truth), an toàn kiểu dữ liệu (type safety), cơ chế kiểm thực (validation) và hướng dẫn chọn giải pháp phù hợp.",
+  "source": "https://angular.dev/guide/forms/signals/comparison",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Angular cung cấp ba giải pháp chính để xây dựng biểu mẫu: <strong>Signal Forms</strong>, <strong>Reactive Forms</strong>, và <strong>Template-driven Forms</strong>. Mỗi giải pháp sở hữu các đặc trưng và mô hình riêng để quản lý trạng thái, kiểm thực dữ liệu và luồng dữ liệu (data flow). Hướng dẫn này giúp bạn hiểu rõ sự khác biệt then chốt để lựa chọn phương án tối ưu nhất cho dự án của mình."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "quick-comparison",
+      "text": "Bảng so sánh nhanh (Quick comparison)"
+    },
+    {
+      "type": "table",
+      "headers": ["Đặc điểm", "Signal Forms", "Reactive Forms", "Template-driven Forms"],
+      "rows": [
+        ["<strong>Nguồn chân lý (Source of truth)</strong>", "Writable Signal do người dùng định nghĩa", "Cây đối tượng FormControl / FormGroup", "Thuộc tính component qua NgModel"],
+        ["<strong>An toàn kiểu dữ liệu (Type safety)</strong>", "Tự động suy diễn toàn diện từ Model", "Tường minh qua Typed Forms", "Tối thiểu (Minimal)"],
+        ["<strong>Kiểm thực (Validation)</strong>", "Schema tập trung theo đường dẫn (path-based)", "Danh sách validator gắn vào từng Control", "Dựa trên các chỉ thị (Directives) trong HTML"],
+        ["<strong>Quản lý trạng thái</strong>", "Dựa trên Angular Signals", "Dựa trên RxJS Observables", "Angular ngầm quản lý"],
+        ["<strong>Cách thiết lập</strong>", "Signal + hàm Schema", "Khởi tạo cây FormControl / FormGroup", "Cú pháp [(ngModel)] trong template"],
+        ["<strong>Phù hợp nhất cho</strong>", "Ứng dụng Angular hiện đại dùng Signals", "Biểu mẫu phức tạp, dự án truyền thống", "Biểu mẫu đơn giản (nhập email, tìm kiếm)"],
+        ["<strong>Độ dốc học tập</strong>", "Trung bình (Medium)", "Trung bình - Cao (Medium-High)", "Thấp (Low)"],
+        ["<strong>Trạng thái</strong>", "Stable (Angular v22+)", "Stable", "Stable"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "by-example-login-form",
+      "text": "Ví dụ đối chiếu: Biểu mẫu Đăng nhập (Login Form)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cách tốt nhất để thấy sự khác biệt là quan sát cùng một biểu mẫu đăng nhập được viết bằng cả 3 phương pháp:"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "example-signal-forms",
+      "text": "1. Signal Forms"
+    },
+    {
+      "type": "code",
+      "file": "login-signal-forms.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, signal } from '@angular/core';",
+        "import { form, FormField, FormRoot, required, email, minLength, submit } from '@angular/forms/signals';",
+        "",
+        "@Component({",
+        "  selector: 'app-login-signal',",
+        "  imports: [FormField, FormRoot],",
+        "  template: `",
+        "    <form [formRoot]=\"loginForm\" (submit)=\"onSubmit()\">",
+        "      <div>",
+        "        <label>Email <input type=\"email\" [formField]=\"loginForm.email\" /></label>",
+        "        @if (loginForm.email().touched() && loginForm.email().invalid()) {",
+        "          <span class=\"error\">{{ loginForm.email().errors()[0].message }}</span>",
+        "        }",
+        "      </div>",
+        "      <div>",
+        "        <label>Password <input type=\"password\" [formField]=\"loginForm.password\" /></label>",
+        "        @if (loginForm.password().touched() && loginForm.password().invalid()) {",
+        "          <span class=\"error\">{{ loginForm.password().errors()[0].message }}</span>",
+        "        }",
+        "      </div>",
+        "      <button type=\"submit\" [disabled]=\"loginForm().invalid()\">Đăng nhập</button>",
+        "    </form>",
+        "  `,",
+        "})",
+        "export class LoginSignalComponent {",
+        "  loginModel = signal({ email: '', password: '' });",
+        "",
+        "  loginForm = form(this.loginModel, (path) => {",
+        "    required(path.email, { message: 'Email là bắt buộc' });",
+        "    email(path.email, { message: 'Email không hợp lệ' });",
+        "    required(path.password, { message: 'Mật khẩu là bắt buộc' });",
+        "    minLength(path.password, 8, { message: 'Mật khẩu phải từ 8 ký tự trở lên' });",
+        "  });",
+        "",
+        "  onSubmit() {",
+        "    submit(this.loginForm, async (field) => {",
+        "      console.log('Dữ liệu gửi đi:', field().value());",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "example-reactive-forms",
+      "text": "2. Reactive Forms"
+    },
+    {
+      "type": "code",
+      "file": "login-reactive.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';",
+        "",
+        "@Component({",
+        "  selector: 'app-login-reactive',",
+        "  imports: [ReactiveFormsModule],",
+        "  template: `",
+        "    <form [formGroup]=\"loginForm\" (ngSubmit)=\"onSubmit()\">",
+        "      <input type=\"email\" formControlName=\"email\" />",
+        "      <input type=\"password\" formControlName=\"password\" />",
+        "      <button type=\"submit\" [disabled]=\"loginForm.invalid\">Đăng nhập</button>",
+        "    </form>",
+        "  `,",
+        "})",
+        "export class LoginReactiveComponent {",
+        "  loginForm = new FormGroup({",
+        "    email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),",
+        "    password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(8)] }),",
+        "  });",
+        "",
+        "  onSubmit() {",
+        "    if (this.loginForm.valid) console.log(this.loginForm.getRawValue());",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "example-template-driven-forms",
+      "text": "3. Template-driven Forms"
+    },
+    {
+      "type": "code",
+      "file": "login-template-driven.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component } from '@angular/core';",
+        "import { FormsModule } from '@angular/forms';",
+        "",
+        "@Component({",
+        "  selector: 'app-login-template',",
+        "  imports: [FormsModule],",
+        "  template: `",
+        "    <form #form=\"ngForm\" (ngSubmit)=\"onSubmit(form)\">",
+        "      <input type=\"email\" name=\"email\" [(ngModel)]=\"credentials.email\" required email />",
+        "      <input type=\"password\" name=\"password\" [(ngModel)]=\"credentials.password\" required minlength=\"8\" />",
+        "      <button type=\"submit\" [disabled]=\"form.invalid\">Đăng nhập</button>",
+        "    </form>",
+        "  `,",
+        "})",
+        "export class LoginTemplateComponent {",
+        "  credentials = { email: '', password: '' };",
+        "  onSubmit(form: any) {",
+        "    if (form.valid) console.log(this.credentials);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "understanding-the-differences",
+      "text": "Phân tích các điểm khác biệt then chốt"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "where-your-form-data-lives",
+      "text": "Dữ liệu biểu mẫu được lưu trữ ở đâu?"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Signal Forms:</strong> Lưu trữ trong một <code>WritableSignal</code> duy nhất. Cấu trúc trường ánh xạ 1:1 theo data model, tự động kích hoạt Angular Change Detection một cách tối ưu và gọn nhẹ.",
+        "<strong>Reactive Forms:</strong> Lưu trữ bên trong các thể hiện của lớp <code>FormControl</code> và <code>FormGroup</code>. Tách biệt đối tượng form với data model nghiệp vụ, yêu cầu khởi tạo cây điều khiển thủ công.",
+        "<strong>Template-driven Forms:</strong> Lưu trữ trực tiếp trong các biến thuộc tính thông thường của component và được đồng bộ thông qua chỉ thị hai chiều <code>[(ngModel)]</code>."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "how-validation-works",
+      "text": "Cơ chế Kiểm thực (Validation) hoạt động thế nào?"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Signal Forms:</strong> Toàn bộ logic validation và thông báo lỗi được định nghĩa tập trung tại một nơi thông qua <strong>hàm Schema</strong>. Rất dễ kiểm thử độc lập mà không cần template.",
+        "<strong>Reactive Forms:</strong> Các hàm validator được truyền vào mảng cấu hình của từng <code>FormControl</code>. Thông báo lỗi thường được viết thủ công trong template HTML.",
+        "<strong>Template-driven Forms:</strong> Khai báo trực tiếp các thuộc tính chỉ thị (như <code>required</code>, <code>minlength</code>, <code>email</code>) ngay trên thẻ HTML trong template."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "type-safety-and-autocomplete",
+      "text": "An toàn kiểu dữ liệu (Type Safety)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Signal Forms:</strong> Tự động suy luận kiểu tĩnh (inferred types) từ shape của model signal. Bạn chỉ cần định nghĩa dữ liệu một lần duy nhất, TypeScript sẽ tự động gợi ý và bắt lỗi khi truy cập sai tên trường.",
+        "<strong>Reactive Forms:</strong> Yêu cầu khai báo kiểu tường minh thông qua Typed Forms (ví dụ <code>FormGroup<{ email: FormControl<string> }></code>).",
+        "<strong>Template-driven Forms:</strong> Khả năng kiểm tra kiểu tối thiểu, không có định kiểu ở cấp độ form."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "choose-your-approach",
+      "text": "Lựa chọn giải pháp phù hợp cho dự án của bạn"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "use-signal-forms-if",
+      "text": "Nên dùng Signal Forms khi:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bạn đang xây dựng ứng dụng mới dựa trên Angular Signals (Angular v22+).",
+        "Bạn muốn tính an toàn kiểu dữ liệu cao nhất được tự động suy luận trực tiếp từ model.",
+        "Bạn yêu thích phong cách kiểm thực tập trung theo Schema và kiến trúc hai lớp rõ ràng.",
+        "Đội ngũ phát triển của bạn đã quen thuộc và thành thạo với Signals."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "use-reactive-forms-if",
+      "text": "Nên dùng Reactive Forms khi:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Dự án cần độ ổn định lâu dài và bạn đang duy trì codebase Reactive Forms hiện có.",
+        "Bạn quen thuộc và phụ thuộc sâu vào các luồng RxJS Observable.",
+        "Bạn cần khả năng tùy biến điều khiển sâu ở mức đối tượng FormControl."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "use-template-driven-forms-if",
+      "text": "Nên dùng Template-driven Forms khi:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bạn xây dựng các biểu mẫu cực kỳ đơn giản (ô tìm kiếm, đăng ký nhận tin, liên hệ cơ bản).",
+        "Bạn cần tạo nguyên mẫu nhanh (rapid prototyping).",
+        "Bạn muốn giữ toàn bộ cấu hình form ngay trong template HTML."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "next-steps",
+      "text": "Các bước tiếp theo (Next steps)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<a href=\"/docs/guide/forms/signals\">Tổng quan về Signal Forms (Forms with Angular Signals)</a>",
+        "<a href=\"/docs/guide/forms/signals/models\">Mô hình biểu mẫu (Form Models)</a>",
+        "<a href=\"/docs/guide/forms/signals/validation\">Kiểm thực dữ liệu trong Signal Forms (Validation)</a>",
+        "<a href=\"/docs/guide/forms/reactive-forms\">Hướng dẫn Reactive Forms truyền thống</a>"
+      ]
+    }
+  ]
+}

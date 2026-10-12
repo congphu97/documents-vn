@@ -1,44 +1,447 @@
 {
   "slug": "guide/forms/form-validation",
-  "title": "Validation",
-  "description": "Tài liệu hướng dẫn về Validation trong Angular.",
+  "title": "Kiểm thực dữ liệu biểu mẫu (Validating form input)",
+  "description": "Hướng dẫn toàn diện về kiểm thực (validation) trong Angular cho cả Reactive và Template-driven forms: built-in validators, custom validators, cross-field validation, async validators, quản lý validator động và tối ưu hóa hiệu năng.",
   "source": "https://angular.dev/guide/forms/form-validation",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/forms/form-validation](https://angular.dev/guide/forms/form-validation)."
-    },
-    {
       "type": "paragraph",
-      "text": "Validation là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Bạn có thể cải thiện chất lượng dữ liệu tổng thể bằng cách kiểm thực (validate) dữ liệu nhập vào từ người dùng để đảm bảo tính chính xác và đầy đủ. Hướng dẫn này chỉ dẫn cách kiểm thực dữ liệu từ giao diện UI và hiển thị thông báo lỗi hữu ích cho cả <strong>Reactive Forms</strong> lẫn <strong>Template-driven Forms</strong>."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "validating-input-in-template-driven-forms",
+      "text": "Kiểm thực trong Template-driven Forms"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Validation, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Để thêm validation vào biểu mẫu hướng template, bạn thêm các thuộc tính kiểm thực tương tự như cơ chế validation nguyên bản của HTML (native HTML form validation). Angular sử dụng các directive để đối chiếu những thuộc tính này với các hàm validator trong framework."
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi khi giá trị của một form control thay đổi, Angular thực thi quá trình kiểm thực và trả về một danh sách các lỗi (trạng thái <code>INVALID</code>) hoặc <code>null</code> (trạng thái <code>VALID</code>)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn kiểm tra trạng thái của control bằng cách xuất <code>ngModel</code> ra một biến tham chiếu cục bộ trong template (<code>#name=\"ngModel\"</code>):"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "actor-form-template.component.html",
+      "lang": "html",
+      "code": [
+        "<input",
+        "  type=\"text\"",
+        "  id=\"name\"",
+        "  name=\"name\"",
+        "  class=\"form-control\"",
+        "  required",
+        "  minlength=\"4\"",
+        "  appForbiddenName=\"bob\"",
+        "  [(ngModel)]=\"actor.name\"",
+        "  #name=\"ngModel\"",
+        "/>",
+        "",
+        "@if (name.invalid && (name.dirty || name.touched)) {",
+        "  <div class=\"alert alert-danger\">",
+        "    @if (name.hasError('required')) {",
+        "      <div>Tên không được để trống.</div>",
+        "    }",
+        "    @if (name.hasError('minlength')) {",
+        "      <div>Tên phải dài tối thiểu 4 ký tự.</div>",
+        "    }",
+        "    @if (name.hasError('forbiddenName')) {",
+        "      <div>Tên không được là Bob.</div>",
+        "    }",
+        "  </div>",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "tip",
+      "title": "Tránh hiển thị lỗi sớm",
+      "text": "Để tránh hiển thị lỗi cảnh báo trước khi người dùng kịp tương tác, luôn kiểm tra điều kiện <code>dirty</code> (người dùng đã sửa đổi nội dung) hoặc <code>touched</code> (người dùng đã focus vào và blur ra ngoài field)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "validating-input-in-reactive-forms",
+      "text": "Kiểm thực trong Reactive Forms"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong Reactive Forms, nguồn chân lý (source of truth) là component class. Thay vì đặt thuộc tính trong HTML, bạn truyền trực tiếp các hàm validator vào đối tượng <code>FormControl</code>:"
+    },
+    {
+      "type": "table",
+      "headers": ["Loại Validator", "Đặc điểm & Cơ chế hoạt động"],
+      "rows": [
+        ["<strong>Sync Validators (Đồng bộ)</strong>", "Hàm nhận vào một control và trả về ngay lập tức danh sách lỗi <code>ValidationErrors</code> hoặc <code>null</code>. Được truyền làm đối số thứ hai khi khởi tạo <code>FormControl</code>."],
+        ["<strong>Async Validators (Bất đồng bộ)</strong>", "Hàm nhận vào một control và trả về một <code>Promise</code> hoặc <code>Observable</code> phát ra lỗi hoặc <code>null</code> sau đó. Được truyền làm đối số thứ ba."]
+      ]
+    },
+    {
+      "type": "callout",
+      "calloutType": "note",
+      "title": "Tối ưu hiệu năng thực thi",
+      "text": "Angular chỉ thực thi các async validators sau khi TẤT CẢ các sync validators đã vượt qua thành công. Điều này giúp ngăn chặn các tác vụ bất đồng bộ tốn kém (như gọi HTTP API) nếu dữ liệu cơ bản đã không hợp lệ."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "built-in-validator-functions",
+      "text": "Các hàm Validator tích hợp sẵn (Built-in Validators)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Lớp <code>Validators</code> cung cấp đầy đủ các hàm kiểm thực phổ biến như <code>Validators.required</code>, <code>Validators.minLength</code>, <code>Validators.maxLength</code>, <code>Validators.email</code>, <code>Validators.pattern</code>:"
+    },
+    {
+      "type": "code",
+      "file": "actor-form-reactive.component.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Validation",
-        "import { Component } from \"@angular/core\";",
+        "import { Component } from '@angular/core';",
+        "import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';",
+        "import { forbiddenNameValidator } from './forbidden-name.directive';",
         "",
         "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Validation</h1>`",
+        "  selector: 'app-actor-form-reactive',",
+        "  imports: [ReactiveFormsModule],",
+        "  templateUrl: './actor-form-reactive.component.html',",
         "})",
-        "export class ExampleComponent {}"
+        "export class ActorFormReactiveComponent {",
+        "  actor = { name: '', role: '', skill: '' };",
+        "",
+        "  actorForm = new FormGroup({",
+        "    name: new FormControl(this.actor.name, [",
+        "      Validators.required,",
+        "      Validators.minLength(4),",
+        "      forbiddenNameValidator(/bob/i), // Custom validator",
+        "    ]),",
+        "    role: new FormControl(this.actor.role),",
+        "    skill: new FormControl(this.actor.skill, Validators.required),",
+        "  });",
+        "",
+        "  get name() { return this.actorForm.get('name'); }",
+        "  get skill() { return this.actorForm.get('skill'); }",
+        "}"
       ]
+    },
+    {
+      "type": "code",
+      "file": "actor-form-reactive.component.html",
+      "lang": "html",
+      "code": [
+        "<input id=\"name\" type=\"text\" formControlName=\"name\" required />",
+        "",
+        "@if (name?.invalid && (name?.dirty || name?.touched)) {",
+        "  <div class=\"alert alert-danger\">",
+        "    @if (name?.hasError('required')) { <div>Tên không được để trống.</div> }",
+        "    @if (name?.hasError('minlength')) { <div>Tên phải dài tối thiểu 4 ký tự.</div> }",
+        "    @if (name?.hasError('forbiddenName')) { <div>Tên không được là Bob.</div> }",
+        "  </div>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "defining-custom-validators",
+      "text": "Định nghĩa Custom Validators"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một custom validator thường là một hàm factory nhận tham số cấu hình (như biểu thức chính quy <code>RegExp</code>) và trả về một hàm kiểu <code>ValidatorFn</code>:"
+    },
+    {
+      "type": "code",
+      "file": "forbidden-name.directive.ts",
+      "lang": "ts",
+      "code": [
+        "import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';",
+        "",
+        "/** Kiểm tra tên không được chứa biểu thức chính quy bị cấm */",
+        "export function forbiddenNameValidator(nameRe: RegExp): ValidatorFn {",
+        "  return (control: AbstractControl): ValidationErrors | null => {",
+        "    const forbidden = nameRe.test(control.value);",
+        "    return forbidden ? { forbiddenName: { value: control.value } } : null;",
+        "  };",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "adding-custom-validators-to-template-driven-forms",
+      "text": "Tích hợp Custom Validator vào Template-driven Forms bằng Directive"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong Template-driven Forms, bạn tạo một directive bọc hàm validator và đăng ký vào token <code>NG_VALIDATORS</code> với <code>multi: true</code>:"
+    },
+    {
+      "type": "code",
+      "file": "forbidden-name.directive.ts",
+      "lang": "ts",
+      "code": [
+        "import { Directive, input, forwardRef } from '@angular/core';",
+        "import { NG_VALIDATORS, Validator, AbstractControl, ValidationErrors } from '@angular/forms';",
+        "import { forbiddenNameValidator } from './forbidden-name.validator';",
+        "",
+        "@Directive({",
+        "  selector: '[appForbiddenName]',",
+        "  providers: [",
+        "    {",
+        "      provide: NG_VALIDATORS,",
+        "      useExisting: forwardRef(() => ForbiddenValidatorDirective),",
+        "      multi: true,",
+        "    },",
+        "  ],",
+        "})",
+        "export class ForbiddenValidatorDirective implements Validator {",
+        "  readonly forbiddenName = input<string>('', { alias: 'appForbiddenName' });",
+        "",
+        "  validate(control: AbstractControl): ValidationErrors | null {",
+        "    return this.forbiddenName()",
+        "      ? forbiddenNameValidator(new RegExp(this.forbiddenName(), 'i'))(control)",
+        "      : null;",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "control-status-css-classes",
+      "text": "Các CSS class phản ánh trạng thái Form Control"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular tự động phản ánh trạng thái của control lên phần tử HTML thông qua các class CSS đặc trưng:"
+    },
+    {
+      "type": "table",
+      "headers": ["Class CSS", "Ý nghĩa trạng thái"],
+      "rows": [
+        ["<code>.ng-valid</code> / <code>.ng-invalid</code>", "Giá trị của control hợp lệ hoặc không hợp lệ."],
+        ["<code>.ng-pending</code>", "Đang trong quá trình chạy async validator."],
+        ["<code>.ng-pristine</code> / <code>.ng-dirty</code>", "Giá trị chưa từng thay đổi hoặc đã bị sửa đổi."],
+        ["<code>.ng-untouched</code> / <code>.ng-touched</code>", "Người dùng chưa hoặc đã blur ra khỏi trường nhập."],
+        ["<code>.ng-submitted</code>", "Biểu mẫu bao bọc bên ngoài đã được submit."]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "cross-field-validation",
+      "text": "Kiểm thực chéo giữa các trường (Cross-field validation)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cross-field validation so sánh giá trị giữa nhiều trường cùng cấp trong một form (ví dụ: mật khẩu và xác nhận mật khẩu, hoặc tên diễn viên không được trùng với tên nhân vật)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "adding-cross-validation-to-reactive-forms",
+      "text": "Cross-validation trong Reactive Forms"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong Reactive Forms, bạn gán validator lên cấp <code>FormGroup</code> cha thay vì từng control con lẻ loi:"
+    },
+    {
+      "type": "code",
+      "file": "unambiguous-role.validator.ts",
+      "lang": "ts",
+      "code": [
+        "import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';",
+        "",
+        "/** Tên diễn viên không được trùng với tên vai diễn */",
+        "export const unambiguousRoleValidator: ValidatorFn = (",
+        "  control: AbstractControl",
+        "): ValidationErrors | null => {",
+        "  const name = control.get('name');",
+        "  const role = control.get('role');",
+        "  return name && role && name.value === role.value ? { unambiguousRole: true } : null;",
+        "};",
+        "",
+        "// Gán vào FormGroup cha:",
+        "const actorForm = new FormGroup(",
+        "  {",
+        "    name: new FormControl(''),",
+        "    role: new FormControl(''),",
+        "  },",
+        "  { validators: unambiguousRoleValidator }",
+        ");"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "cross-validation-template.html",
+      "lang": "html",
+      "code": [
+        "@if (actorForm.hasError('unambiguousRole') && (actorForm.touched || actorForm.dirty)) {",
+        "  <div class=\"alert alert-danger\">",
+        "    Tên diễn viên không được trùng với tên vai diễn!",
+        "  </div>",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "adding-cross-validation-to-template-driven-forms",
+      "text": "Cross-validation trong Template-driven Forms"
+    },
+    {
+      "type": "paragraph",
+      "text": "Gắn directive lên chính thẻ <code>&lt;form&gt;</code> cha:"
+    },
+    {
+      "type": "code",
+      "file": "unambiguous-role.directive.ts",
+      "lang": "ts",
+      "code": [
+        "@Directive({",
+        "  selector: '[appUnambiguousRole]',",
+        "  providers: [",
+        "    {",
+        "      provide: NG_VALIDATORS,",
+        "      useExisting: forwardRef(() => UnambiguousRoleValidatorDirective),",
+        "      multi: true,",
+        "    },",
+        "  ],",
+        "})",
+        "export class UnambiguousRoleValidatorDirective implements Validator {",
+        "  validate(control: AbstractControl): ValidationErrors | null {",
+        "    return unambiguousRoleValidator(control);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "code",
+      "file": "template-cross-validation.html",
+      "lang": "html",
+      "code": [
+        "<form #actorForm=\"ngForm\" appUnambiguousRole>",
+        "  <!-- ... input name và role ... -->",
+        "  @if (actorForm.hasError('unambiguousRole') && (actorForm.touched || actorForm.dirty)) {",
+        "    <div class=\"alert alert-danger\">Tên không được trùng với vai diễn.</div>",
+        "  }",
+        "</form>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "creating-asynchronous-validators",
+      "text": "Tạo Asynchronous Validators (Kiểm thực bất đồng bộ)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Async validator thực hiện kiểm tra qua các nguồn bên ngoài (như gọi backend API để kiểm tra username/email đã tồn tại hay chưa). Lớp async validator cần triển khai <code>AsyncValidator</code> và trả về một Observable có giới hạn (finite observable, tự complete):"
+    },
+    {
+      "type": "code",
+      "file": "unique-role.validator.ts",
+      "lang": "ts",
+      "code": [
+        "import { Injectable, inject } from '@angular/core';",
+        "import { AsyncValidator, AbstractControl, ValidationErrors } from '@angular/forms';",
+        "import { Observable, of } from 'rxjs';",
+        "import { map, catchError } from 'rxjs/operators';",
+        "import { ActorsService } from './actors.service';",
+        "",
+        "@Injectable({ providedIn: 'root' })",
+        "export class UniqueRoleValidator implements AsyncValidator {",
+        "  private readonly actorsService = inject(ActorsService);",
+        "",
+        "  validate(control: AbstractControl): Observable<ValidationErrors | null> {",
+        "    return this.actorsService.isRoleTaken(control.value).pipe(",
+        "      map((isTaken) => (isTaken ? { uniqueRole: true } : null)),",
+        "      catchError(() => of(null))",
+        "    );",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "optimizing-performance-of-async-validators",
+      "text": "Tối ưu hóa hiệu năng Async Validator với updateOn: 'blur'"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định Angular kích hoạt validator mỗi khi có phím bấm thay đổi (<code>change</code>). Với các async validator gửi HTTP request, điều này gây áp lực lớn lên server. Hãy chuyển <code>updateOn</code> sang <code>'blur'</code> hoặc <code>'submit'</code>:"
+    },
+    {
+      "type": "code",
+      "file": "update-on-blur.ts",
+      "lang": "ts",
+      "code": [
+        "// Reactive Forms:",
+        "const roleControl = new FormControl('', {",
+        "  asyncValidators: [this.roleValidator.validate.bind(this.roleValidator)],",
+        "  updateOn: 'blur', // Chỉ gửi request kiểm tra khi người dùng rời khỏi input",
+        "});",
+        "",
+        "// Template-driven Forms:",
+        "// <input [(ngModel)]=\"actor.role\" [ngModelOptions]=\"{ updateOn: 'blur' }\" appUniqueRole />"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "managing-validators-dynamically-in-reactive-forms",
+      "text": "Quản lý Validators động trong Reactive Forms"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>AbstractControl</code> cung cấp các hàm giúp bạn thêm, xóa hoặc thay thế validators tại runtime theo tương tác của người dùng:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<code>addValidators(validators)</code>: Thêm một hoặc nhiều validator mới.",
+        "<code>removeValidators(validators)</code>: Gỡ bỏ validator cụ thể.",
+        "<code>setValidators(validators)</code>: Thay thế toàn bộ validator cũ bằng danh sách mới.",
+        "<code>clearValidators()</code>: Xóa bỏ tất cả sync validators.",
+        "<code>updateValueAndValidity()</code>: Bắt buộc gọi sau khi thay đổi validator để tính toán lại trạng thái kiểm thực."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "dynamic-validators-example.ts",
+      "lang": "ts",
+      "code": [
+        "onCountryChange(country: string) {",
+        "  const postalCodeControl = this.profileForm.get('postalCode');",
+        "  if (country === 'US') {",
+        "    postalCodeControl?.addValidators([Validators.required, Validators.pattern(/^\\d{5}$/)]);",
+        "  } else {",
+        "    postalCodeControl?.removeValidators([Validators.required]);",
+        "  }",
+        "  // Bắt buộc tính toán lại tính hợp lệ:",
+        "  postalCodeControl?.updateValueAndValidity();",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "interaction-with-native-html-form-validation",
+      "text": "Tương tác với Native HTML Form Validation"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, Angular tự động thêm thuộc tính <code>novalidate</code> vào thẻ <code>&lt;form&gt;</code> để vô hiệu hóa tooltip kiểm tra nguyên bản của trình duyệt và sử dụng hệ thống của Angular. Nếu bạn vẫn muốn kích hoạt lại bong bóng thông báo của trình duyệt, hãy gắn directive <code>ngNativeValidate</code> lên thẻ form."
     }
   ]
 }

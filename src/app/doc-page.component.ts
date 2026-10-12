@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { Router, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -119,9 +119,14 @@ import { DocPage as DocPageModel } from './models';
           <app-toc [items]="toc()" />
         </div>
       </div>
-    } @else {
+    } @else if (loading()) {
       <div class="loading-state">
         <p>Đang tải tài liệu...</p>
+      </div>
+    } @else {
+      <div class="loading-state">
+        <h2>Không tìm thấy tài liệu</h2>
+        <p>Tài liệu này chưa có nội dung hoặc đường dẫn không hợp lệ.</p>
       </div>
     }
   `,
@@ -296,8 +301,9 @@ export class DocPageComponent {
     filter((e) => e instanceof NavigationEnd),
     startWith(null),
     map(() => {
-      const url = this.router.url.split('?')[0].split('#')[0];
-      let match = url.replace(/^\/docs\/?/, '');
+      const rawUrl = this.router.url.split('?')[0].split('#')[0];
+      const decodedUrl = decodeURIComponent(rawUrl);
+      let match = decodedUrl.replace(/^\/docs\/?/, '');
       if (match.startsWith('en/')) {
         match = match.replace(/^en\//, '');
       }
@@ -307,16 +313,26 @@ export class DocPageComponent {
 
   private lang$ = toObservable(this.docs.currentLang);
 
+  loading = signal<boolean>(true);
+
+  private page$ = combineLatest([this.url$, this.lang$]).pipe(
+    switchMap(([slug]) => {
+      this.loading.set(true);
+      return this.docs.page(slug).pipe(
+        catchError((err) => {
+          console.error('Error loading page:', slug, err);
+          return of(null as DocPageModel | null);
+        })
+      );
+    })
+  );
+
   page = toSignal(
-    combineLatest([this.url$, this.lang$]).pipe(
-      switchMap(([slug]) =>
-        this.docs.page(slug).pipe(
-          catchError((err) => {
-            console.error('Error loading page:', slug, err);
-            return of(null as DocPageModel | null);
-          })
-        )
-      )
+    this.page$.pipe(
+      map((res) => {
+        this.loading.set(false);
+        return res;
+      })
     ),
     { initialValue: null }
   );

@@ -1,43 +1,272 @@
 {
   "slug": "guide/routing/common-router-tasks",
-  "title": "Common Router Tasks",
-  "description": "Tài liệu hướng dẫn về Common Router Tasks trong Angular.",
+  "title": "Các tác vụ định tuyến phổ biến khác (Other common Routing Tasks)",
+  "description": "Hướng dẫn các tác vụ định tuyến thường gặp trong Angular: ràng buộc dữ liệu route vào input component với withComponentInputBinding, xử lý trang lỗi 404, mảng tham số liên kết và chiến lược LocationStrategy.",
   "source": "https://angular.dev/guide/routing/common-router-tasks",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/routing/common-router-tasks](https://angular.dev/guide/routing/common-router-tasks)."
-    },
-    {
       "type": "paragraph",
-      "text": "Common Router Tasks là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "text": "Hướng dẫn này đề cập đến một số tác vụ và kỹ thuật phổ biến khác liên quan đến việc sử dụng Angular Router trong ứng dụng của bạn."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "getting-route-information",
+      "text": "Lấy thông tin tuyến đường và truyền vào Component (Getting route information)"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Common Router Tasks, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Thông thường, khi người dùng điều hướng qua lại trong ứng dụng, bạn muốn truyền thông tin từ component này sang component khác (ví dụ: mở trang chỉnh sửa một món hàng dựa trên mã định danh <code>id</code>). Thay vì phải inject thủ công <code>ActivatedRoute</code>, bạn có thể truyền thẳng dữ liệu này trực tiếp vào các component inputs nhờ tính năng <code>withComponentInputBinding</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "add-withcomponentinputbinding",
+      "text": "1. Thêm withComponentInputBinding vào cấu hình"
+    },
+    {
+      "type": "paragraph",
+      "text": "Kích hoạt tính năng <code>withComponentInputBinding</code> trong phương thức <code>provideRouter</code> tại <code>app.config.ts</code>:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "app.config.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Common Router Tasks",
-        "import { Component } from \"@angular/core\";",
+        "import { provideRouter, withComponentInputBinding } from '@angular/router';",
+        "import { appRoutes } from './app.routes';",
         "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Common Router Tasks</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+        "export const appConfig = {",
+        "  providers: [provideRouter(appRoutes, withComponentInputBinding())],",
+        "};"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "add-an-input-to-the-component",
+      "text": "2. Khai báo Input trong Component"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cập nhật component để khai báo một thuộc tính <code>input()</code> có tên trùng khớp với tên tham số trên URL:"
+    },
+    {
+      "type": "code",
+      "file": "hero-detail.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, computed, inject, input } from '@angular/core';",
+        "import { HeroService } from './hero.service';",
+        "",
+        "@Component({/* ... */})",
+        "export class HeroDetail {",
+        "  private service = inject(HeroService);",
+        "",
+        "  // Khớp với tham số :id trên URL",
+        "  id = input.required<string>();",
+        "  hero = computed(() => this.service.getHero(this.id()));",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "optional-use-a-default-value",
+      "text": "3. Tùy chọn: Sử dụng giá trị mặc định"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi <code>withComponentInputBinding</code> được bật, router sẽ gán <code>undefined</code> nếu không có dữ liệu route nào khớp với khóa input (chẳng hạn khi thiếu một query parameter tùy chọn). Bạn có thể cung cấp giá trị mặc định bằng cách sử dụng tùy chọn <code>transform</code> trên input hoặc quản lý state cục bộ với <code>linkedSignal</code>:"
+    },
+    {
+      "type": "code",
+      "file": "default-values.ts",
+      "lang": "ts",
+      "code": [
+        "// Cách 1: Sử dụng transform",
+        "id = input.required({",
+        "  transform: (maybeUndefined: string | undefined) => maybeUndefined ?? '0',",
+        "});",
+        "",
+        "// Cách 2: Sử dụng linkedSignal",
+        "id = input<string | undefined>();",
+        "internalId = linkedSignal(() => this.id() ?? getDefaultId());"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Bạn có thể liên kết tất cả dữ liệu route có cấu trúc key-value vào component inputs: route resources, dữ liệu tĩnh hoặc dữ liệu từ resolver, path parameters, matrix parameters và query parameters."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "input-binding-priority",
+      "text": "Thứ tự ưu tiên liên kết Input (Input binding priority)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi nhiều nguồn dữ liệu trong route chứa cùng một khóa tên (trùng key), Router sẽ giải quyết xung đột theo thứ tự ưu tiên từ cao xuống thấp như sau:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>1. Route resources:</strong> Giá trị được định nghĩa trong map <code>resources</code> của route. Blocking resource liên kết giá trị đã unwrap (<code>resource.value()</code>), còn non-blocking resource liên kết trực tiếp thể hiện <code>Resource</code>.",
+        "<strong>2. Route data và resolvers:</strong> Dữ liệu tĩnh khai báo trong <code>data</code> hoặc giá trị phân giải từ <code>resolve</code>.",
+        "<strong>3. Path parameters và Matrix parameters:</strong> Tham số đường dẫn (như <code>:id</code>) và tham số ma trận (<code>;view=grid</code>).",
+        "<strong>4. Query parameters:</strong> Tham số từ chuỗi truy vấn (như <code>?id=123</code>)."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ: Nếu một route vừa có tham số đường dẫn <code>:id</code> vừa có query param <code>?id=...</code>, giá trị của path parameter sẽ được gán cho input <code>id</code>. Nếu route đồng thời khai báo resource tên <code>id</code>, giá trị của resource sẽ chiếm ưu thế cao nhất."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "disable-query-parameter-binding",
+      "text": "Vô hiệu hóa liên kết Query Parameters"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể tắt tính năng tự động liên kết query parameters nếu muốn tự quản lý chúng riêng biệt:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "provideRouter(appRoutes, withComponentInputBinding({ queryParams: false }));"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "configure-behavior-for-inputs-not-available-in-router-data",
+      "text": "Cấu hình hành vi cho inputs không có trong dữ liệu Router"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, router sẽ đặt input thành <code>undefined</code> nếu nó không có trong dữ liệu router khi chuyển trang để tránh lưu giữ dữ liệu cũ (stale data). Nếu bạn muốn tránh việc router gán <code>undefined</code> cho các input chưa từng xuất hiện trong dữ liệu router, hãy đặt tùy chọn <code>unmatchedInputBehavior: 'undefinedIfStale'</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "provideRouter(",
+        "  appRoutes,",
+        "  withComponentInputBinding({",
+        "    queryParams: false,",
+        "    unmatchedInputBehavior: 'undefinedIfStale',",
+        "  }),",
+        ");"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "inherit-parent-route-data",
+      "text": "Kế thừa dữ liệu từ Route cha (Inherit parent route data)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Theo mặc định, các route con tự động kế thừa các tham số và dữ liệu từ các route cha (tương đương <code>paramsInheritanceStrategy: 'always'</code>). Điều này cho phép bạn truy cập trực tiếp thông tin route cha trong các component con."
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn muốn khôi phục hành vi cũ (nơi mà tham số chỉ được kế thừa từ các route có đường dẫn rỗng), bạn có thể thiết lập <code>paramsInheritanceStrategy: 'emptyOnly'</code>:"
+    },
+    {
+      "type": "code",
+      "file": "app.config.ts",
+      "lang": "ts",
+      "code": [
+        "provideRouter(",
+        "  routes,",
+        "  withRouterConfig({ paramsInheritanceStrategy: 'emptyOnly' }),",
+        ");"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "displaying-a-404-page",
+      "text": "Hiển thị trang lỗi 404 (Displaying a 404 page)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Để hiển thị trang 404, hãy thiết lập một tuyến đường với ký tự đại diện (wildcard route <code>**</code>) ở cuối mảng routes trỏ đến component thông báo không tìm thấy trang:"
+    },
+    {
+      "type": "code",
+      "file": "app.routes.ts",
+      "lang": "ts",
+      "code": [
+        "const routes: Routes = [",
+        "  { path: 'first-component', component: First },",
+        "  { path: 'second-component', component: Second },",
+        "  { path: '**', component: PageNotFound }, // Wildcard route cho trang 404",
+        "];"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "link-parameters-array",
+      "text": "Mảng tham số liên kết (Link parameters array)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mảng tham số liên kết trong chỉ thị <code>[routerLink]</code> chứa các thành phần phục vụ việc điều hướng:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Đường dẫn của route đến component đích.",
+        "Các tham số route bắt buộc và tùy chọn trong URL."
+      ]
+    },
+    {
+      "type": "code",
+      "file": "link-parameters-examples.html",
+      "lang": "html",
+      "code": [
+        "<!-- Điều hướng đơn giản -->",
+        "<a [routerLink]=\"['/heroes']\">Heroes</a>",
+        "",
+        "<!-- Kèm tham số bắt buộc: /hero/123 -->",
+        "<a [routerLink]=\"['/hero', hero.id]\">{{ hero.name }}</a>",
+        "",
+        "<!-- Kèm tham số ma trận tùy chọn: /crisis-center;foo=foo -->",
+        "<a [routerLink]=\"['/crisis-center', { foo: 'foo' }]\">Crisis Center</a>",
+        "",
+        "<!-- Điều hướng qua route con: /crisis-center/1 -->",
+        "<a [routerLink]=\"['/crisis-center', 1]\">Dragon Crisis</a>"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "locationstrategy-and-browser-url-styles",
+      "text": "LocationStrategy và các kiểu URL trình duyệt"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi router điều hướng đến một view mới, nó sẽ cập nhật thanh địa chỉ và lịch sử của trình duyệt. Trình duyệt HTML5 hiện đại hỗ trợ <code>history.pushState</code>, cho phép thay đổi URL mà không gửi yêu cầu tải lại trang lên máy chủ."
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular hỗ trợ hai chiến lược <code>LocationStrategy</code> chính:"
+    },
+    {
+      "type": "table",
+      "headers": ["Chiến lược (Providers)", "Chi tiết (Details)"],
+      "rows": [
+        ["<code>PathLocationStrategy</code>", "Kiểu URL HTML5 pushState mặc định (ví dụ: <code>localhost:3002/crisis-center</code>). Tạo ra các URL tự nhiên, chuẩn SEO."],
+        ["<code>HashLocationStrategy</code>", "Kiểu URL băm với dấu thăng <code>#</code> (ví dụ: <code>localhost:3002/#/crisis-center</code>), thường được dùng cho các hệ thống máy chủ tĩnh cũ không cấu hình được rewrite URL."]
       ]
     }
   ]
