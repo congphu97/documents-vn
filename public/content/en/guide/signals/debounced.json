@@ -1,0 +1,146 @@
+{
+  "slug": "guide/signals/debounced",
+  "title": "Debouncing signals with debounced",
+  "description": "Learn how to use Angular debounced to delay reacting to signal values until they stop changing.",
+  "source": "https://angular.dev/guide/signals/debounced",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "<code>debounced</code> is experimental. It's ready for you to try, but it might change before it is stable."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use <code>debounced</code> to delay reacting to a signal's value until it stops changing. It returns a <code>Resource</code> whose value reflects the debounced value of the source signal."
+    },
+    {
+      "type": "code",
+      "file": "search.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, debounced, resource, signal } from '@angular/core';",
+        "",
+        "@Component({",
+        "  template: `",
+        "    <input (input)=\"query.set($event.target.value)\" />",
+        "    @if (results.isLoading()) {",
+        "      <p>Searching…</p>",
+        "    }",
+        "    @for (item of results.value(); track item.id) {",
+        "      <li>{{ item.name }}</li>",
+        "    }",
+        "  `,",
+        "})",
+        "export class Search {",
+        "  query = signal('');",
+        "  debouncedQuery = debounced(this.query, 300);",
+        "  results = resource({",
+        "    params: () => this.debouncedQuery.value(),",
+        "    loader: ({ params }) => fetchResults(params),",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>debounced</code> takes the source signal and a wait duration in milliseconds. The returned resource's <code>value()</code> always contains the last settled value, and <code>status()</code> tells you whether a new value is still pending."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "status-during-debounce",
+      "text": "Status during debounce"
+    },
+    {
+      "type": "paragraph",
+      "text": "While the debounce timer is counting down, <code>status()</code> is <code>'loading'</code> and <code>value()</code> returns the previously resolved value. When the timer expires, the resource settles to <code>'resolved'</code>. If the source signal throws, the resource enters <code>'error'</code> immediately; no timer runs."
+    },
+    {
+      "type": "paragraph",
+      "text": "See <a href=\"/guide/signals/resource#resource-status\">Resource status</a> for the full list of statuses and their <code>value()</code> behavior."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "custom-wait-function",
+      "text": "Custom wait function"
+    },
+    {
+      "type": "paragraph",
+      "text": "Instead of a millisecond duration, you can pass a function that returns a <code>Promise&lt;void&gt;</code>. The resource resolves when the promise resolves. If the source signal changes before the promise settles, Angular discards the previous promise and starts a new one."
+    },
+    {
+      "type": "code",
+      "file": "custom-wait.ts",
+      "lang": "ts",
+      "code": [
+        "debouncedQuery = debounced(query, (value, lastSnapshot) => {",
+        "  // Retry immediately after an error rather than making the user wait again.",
+        "  if (lastSnapshot.status === 'error') return;",
+        "",
+        "  // Short queries get a longer delay—the user is likely still typing.",
+        "  const ms = value.length < 3 ? 500 : 200;",
+        "  return new Promise<void>((resolve) => setTimeout(resolve, ms));",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "See the <code>DebounceTimer</code> type in the API reference for details."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "equality",
+      "text": "Equality"
+    },
+    {
+      "type": "paragraph",
+      "text": "By default, <code>debounced</code> uses <code>Object.is</code> to compare values."
+    },
+    {
+      "type": "paragraph",
+      "text": "Provide a custom equality function with the <code>equal</code> option when the default identity check is too strict:"
+    },
+    {
+      "type": "code",
+      "file": "equality.ts",
+      "lang": "ts",
+      "code": [
+        "debouncedFilter = debounced(filter, 200, {",
+        "  equal: (a, b) => a.category === b.category && a.minPrice === b.minPrice,",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "injection-context",
+      "text": "Injection context"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>debounced</code> must be called inside an injection context. Angular automatically destroys the debounced resource and cancels any pending timer when the injector is destroyed."
+    },
+    {
+      "type": "paragraph",
+      "text": "To use <code>debounced</code> outside of an injection context, pass an explicit <code>Injector</code> via the options:"
+    },
+    {
+      "type": "code",
+      "file": "search.service.ts",
+      "lang": "ts",
+      "code": [
+        "@Injectable({ providedIn: 'root' })",
+        "export class SearchService {",
+        "  private injector = inject(Injector);",
+        "",
+        "  createDebouncedQuery(query: Signal<string>): Resource<string> {",
+        "    return debounced(query, 300, { injector: this.injector });",
+        "  }",
+        "}"
+      ]
+    }
+  ]
+}

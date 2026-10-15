@@ -1,0 +1,416 @@
+{
+  "slug": "guide/signals/resource",
+  "title": "Tính phản ứng bất đồng bộ với resources",
+  "description": "Hướng dẫn sử dụng Angular Resources để tích hợp các tác vụ dữ liệu bất đồng bộ vào mô hình reactivity dựa trên signal và truy cập dữ liệu đồng bộ.",
+  "source": "https://angular.dev/guide/signals/resource",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Tất cả các API của signal đều là đồng bộ — <code>signal</code>, <code>computed</code>, <code>input</code>, v.v. Tuy nhiên, các ứng dụng thực tế thường xuyên phải xử lý dữ liệu bất đồng bộ (asynchronous). Một <code>Resource</code> cung cấp cho bạn cơ chế đưa dữ liệu async vào luồng mã nguồn sử dụng signal của ứng dụng nhưng vẫn cho phép bạn truy cập giá trị của nó một cách đồng bộ."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể sử dụng <code>Resource</code> cho bất kỳ tác vụ bất đồng bộ nào, nhưng ca sử dụng phổ biến nhất là lấy dữ liệu từ máy chủ (fetching data). Ví dụ dưới đây tạo một resource để tải thông tin người dùng:"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cách đơn giản nhất để tạo một <code>Resource</code> là sử dụng hàm <code>resource</code>:"
+    },
+    {
+      "type": "code",
+      "file": "user-resource.ts",
+      "lang": "ts",
+      "code": [
+        "import { computed, resource, Signal } from '@angular/core';",
+        "",
+        "const userId: Signal<string> = getUserId();",
+        "",
+        "const userResource = resource({",
+        "  // Định nghĩa một phép tính toán phản ứng (reactive computation).",
+        "  // Giá trị params sẽ tự động tính lại mỗi khi các signal bên trong thay đổi.",
+        "  params: () => ({ id: userId() }),",
+        "",
+        "  // Định nghĩa hàm loader bất đồng bộ để lấy dữ liệu.",
+        "  // Resource sẽ gọi hàm này mỗi khi giá trị `params` thay đổi.",
+        "  loader: ({ params }) => fetchUser(params),",
+        "});",
+        "",
+        "// Tạo một computed signal dựa trên kết quả trả về từ hàm loader của resource.",
+        "const firstName = computed(() => {",
+        "  if (userResource.hasValue()) {",
+        "    // `hasValue` phục vụ 2 mục đích:",
+        "    // - Đóng vai trò là type guard loại bỏ kiểu `undefined`",
+        "    // - Bảo vệ tránh việc đọc `value` gây throw error khi resource đang gặp lỗi",
+        "    return userResource.value().firstName;",
+        "  }",
+        "  // Giá trị dự phòng (fallback) khi resource đang undefined hoặc bị lỗi",
+        "  return undefined;",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>resource</code> nhận vào một đối tượng <code>ResourceOptions</code> với hai thuộc tính chính: <code>params</code> và <code>loader</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Thuộc tính <code>params</code> định nghĩa một phép tính phản ứng tạo ra tham số. Bất cứ khi nào các signal được đọc trong phép tính này thay đổi, resource sẽ tạo ra giá trị tham số mới, tương tự cơ chế của <code>computed</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Thuộc tính <code>loader</code> định nghĩa một <code>ResourceLoader</code> — một hàm async dùng để tải dữ liệu. Resource sẽ gọi hàm loader mỗi khi phép tính params sinh ra giá trị mới, và truyền giá trị đó vào loader."
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối tượng <code>Resource</code> sở hữu một signal <code>value</code> chứa kết quả trả về từ loader."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resource-loaders",
+      "text": "Resource loaders"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi khởi tạo resource, bạn chỉ định một <code>ResourceLoader</code>. Loader này là một hàm bất đồng bộ nhận vào một tham số duy nhất — đối tượng <code>ResourceLoaderParams</code> — và trả về một giá trị Promise."
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối tượng <code>ResourceLoaderParams</code> chứa 3 thuộc tính: <code>params</code>, <code>previous</code>, và <code>abortSignal</code>:"
+    },
+    {
+      "type": "table",
+      "headers": ["Thuộc tính", "Mô tả"],
+      "rows": [
+        ["params", "Giá trị sinh ra từ phép tính toán params của resource."],
+        ["previous", "Một đối tượng chứa thuộc tính status, biểu thị ResourceStatus ở trạng thái trước đó."],
+        ["abortSignal", "Một AbortSignal dùng để phản hồi và hủy các yêu cầu đang chờ xử lý."]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu phép tính <code>params</code> trả về giá trị <code>undefined</code>, hàm loader sẽ không thực thi và trạng thái của resource sẽ chuyển sang <code>'idle'</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "streaming-resources",
+      "text": "Streaming resources (Luồng dữ liệu liên tục)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một số nguồn dữ liệu bất đồng bộ phát ra nhiều giá trị theo thời gian thay vì chỉ trả về một kết quả duy nhất. Ví dụ tiêu biểu là WebSockets, Server-Sent Events (SSE), và các trình lắng nghe Firestore onSnapshot."
+    },
+    {
+      "type": "paragraph",
+      "text": "Hãy sử dụng <code>stream</code> cho các nguồn dữ liệu cập nhật liên tục này. Khác với <code>loader</code> (chỉ giải quyết một lần cho mỗi request), <code>stream</code> trả về một signal mà giá trị của nó có thể tiếp tục cập nhật mỗi khi có dữ liệu mới tới."
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng <code>loader</code> cho các tác vụ bất đồng bộ 1 lần (như gọi HTTP endpoint thông thường)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong ví dụ dưới đây, <code>userUpdates</code> mô phỏng một kết nối bên ngoài như WebSocket hoặc SSE:"
+    },
+    {
+      "type": "code",
+      "file": "stream-example.ts",
+      "lang": "ts",
+      "code": [
+        "const userUpdates = signal({ value: 'Alice' });",
+        "const userResource = resource({",
+        "  stream: () => userUpdates,",
+        "});",
+        "",
+        "// Mô phỏng dữ liệu mới truyền về từ WebSocket / external source:",
+        "userUpdates.set({ value: 'Bob' });"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "aborting-requests",
+      "text": "Hủy bỏ yêu cầu (Aborting requests)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một resource sẽ tự động hủy thao tác tải dữ liệu đang diễn ra nếu biểu thức tính toán <code>params</code> bị thay đổi trong lúc resource vẫn đang trong tiến trình nạp."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể dùng <code>abortSignal</code> bên trong <code>ResourceLoaderParams</code> để phản hồi việc hủy request. Ví dụ hàm <code>fetch</code> nguyên bản của trình duyệt hỗ trợ trực tiếp AbortSignal:"
+    },
+    {
+      "type": "code",
+      "file": "abort-example.ts",
+      "lang": "ts",
+      "code": [
+        "const userId: Signal<string> = getUserId();",
+        "const userResource = resource({",
+        "  params: () => ({ id: userId() }),",
+        "  loader: ({ params, abortSignal }): Promise<User> => {",
+        "    // fetch sẽ tự hủy request HTTP đang chờ nếu AbortSignal báo hiệu bị hủy",
+        "    return fetch(`users/${params.id}`, { signal: abortSignal }).then((res) => res.json());",
+        "  },",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reloading",
+      "text": "Tải lại dữ liệu (Reloading)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể chủ động kích hoạt hàm loader chạy lại bằng phương thức <code>reload()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "reload-example.ts",
+      "lang": "ts",
+      "code": [
+        "const userId: Signal<string> = getUserId();",
+        "const userResource = resource({",
+        "  params: () => ({ id: userId() }),",
+        "  loader: ({ params }) => fetchUser(params),",
+        "});",
+        "",
+        "// Kích hoạt nạp lại dữ liệu bằng lệnh:",
+        "userResource.reload();"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resource-status",
+      "text": "Trạng thái của Resource (Resource status)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối tượng resource cung cấp nhiều thuộc tính dạng signal để đọc trạng thái của loader bất đồng bộ:"
+    },
+    {
+      "type": "table",
+      "headers": ["Thuộc tính", "Mô tả"],
+      "rows": [
+        ["value", "Giá trị mới nhất của resource, hoặc undefined nếu chưa nhận được dữ liệu."],
+        ["hasValue", "Cho biết resource hiện đã có dữ liệu hay chưa."],
+        ["error", "Lỗi gần nhất phát sinh khi chạy loader, hoặc undefined nếu không xảy ra lỗi."],
+        ["isLoading", "Cho biết loader hiện tại có đang trong quá trình thực thi hay không."],
+        ["status", "Mã trạng thái chi tiết ResourceStatus của resource, như mô tả bên dưới."]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal <code>status</code> trả về hằng số chuỗi biểu thị trạng thái chính xác của resource:"
+    },
+    {
+      "type": "table",
+      "headers": ["Status", "value()", "Mô tả"],
+      "rows": [
+        ["'idle'", "undefined", "Resource chưa có request hợp lệ và loader chưa hề chạy."],
+        ["'error'", "Throws an error", "Loader đã gặp sự cố lỗi."],
+        ["'loading'", "undefined", "Loader đang chạy do giá trị params bị thay đổi."],
+        ["'reloading'", "Giá trị cũ", "Loader đang chạy lại do người dùng gọi phương thức reload()."],
+        ["'resolved'", "Giá trị resolved", "Loader đã hoàn tất thành công."],
+        ["'local'", "Giá trị gán cục bộ", "Giá trị của resource vừa được gán trực tiếp qua .set() hoặc .update()"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "caching-resource-data-with-ssr",
+      "text": "Lưu bộ nhớ đệm dữ liệu Resource với SSR (Caching)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi ứng dụng được render trên máy chủ (Server-side Rendering), hàm loader của resource chạy một lần để tạo mã HTML ban đầu. Trong quá trình hydrate ở trình duyệt, thông thường trình duyệt sẽ gọi lại loader này một lần nữa."
+    },
+    {
+      "type": "paragraph",
+      "text": "Để tái sử dụng kết quả đã xử lý từ server, bạn hãy cung cấp một <code>id</code> cho resource. Angular sẽ tự động lưu giá trị đã resolve vào <code>TransferState</code> trên server và sử dụng lại ở client để khởi tạo resource ngay ở trạng thái <code>'resolved'</code>:"
+    },
+    {
+      "type": "code",
+      "file": "ssr-cache.ts",
+      "lang": "ts",
+      "code": [
+        "const userId: Signal<string> = getUserId();",
+        "const userResource = resource({",
+        "  params: () => ({ id: userId() }),",
+        "  loader: ({ params }) => fetchUser(params),",
+        "  id: 'user-unique-id',",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Giá trị <code>id</code> phải là duy nhất trong toàn ứng dụng và giống nhau giữa server và client để Angular ánh xạ đúng mục cache với resource tương ứng."
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Vì giá trị lưu đệm được tuần tự hóa (serialize) trực tiếp vào mã HTML của trang, tránh thiết lập <code>id</code> cho các resource tải dữ liệu nhạy cảm riêng tư của từng người dùng, đặc biệt nếu HTML render có thể bị lưu cache hoặc chia sẻ qua CDN giữa nhiều người dùng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "chaining-resources",
+      "text": "Nối chuỗi các Resources (Chaining resources)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đôi khi một resource phụ thuộc vào kết quả của một resource khác. Bạn có thể thể hiện sự phụ thuộc này thông qua hàm <code>chain</code> được cung cấp trong đối tượng ngữ cảnh của params:"
+    },
+    {
+      "type": "code",
+      "file": "chaining-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { resource } from '@angular/core';",
+        "",
+        "const userResource = resource({",
+        "  params: () => ({ id: getUserId() }),",
+        "  loader: ({ params }) => fetchUser(params),",
+        "});",
+        "",
+        "const companyResource = resource({",
+        "  params: ({ chain }) => chain(userResource)?.companyId,",
+        "  loader: ({ params: companyId }) => fetchCompany(companyId),",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ở đây <code>companyResource</code> phụ thuộc vào <code>companyId</code> của người dùng, mà giá trị này chỉ có thể biết sau khi <code>userResource</code> đã tải xong. Lệnh <code>chain(userResource)</code> sẽ đọc giá trị của userResource và tự động lan truyền trạng thái (status propagation) sang companyResource:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Nếu <code>userResource</code> ở trạng thái <code>idle</code>, <code>companyResource</code> cũng chuyển thành <code>idle</code>.",
+        "Nếu <code>userResource</code> đang <code>loading</code> hoặc <code>reloading</code>, <code>companyResource</code> sẽ vào trạng thái <code>loading</code> và loader của nó tạm thời chưa chạy. (Lưu ý: trong khi reload, chain không trả về giá trị cũ).",
+        "Nếu <code>userResource</code> gặp lỗi (<code>error</code>), <code>companyResource</code> cũng sẽ chuyển sang trạng thái <code>error</code>.",
+        "Nếu <code>userResource</code> đã <code>resolved</code> hoặc <code>local</code>, chain sẽ trả về giá trị hiện tại để companyResource sử dụng làm params."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Hãy trả trực tiếp giá trị đã chained làm params thay vì bọc nó trong một object. Một giá trị dạng <code>{companyId: undefined}</code> vẫn được coi là giá trị hợp lệ, khiến loader tiếp tục chạy với companyId bị undefined thay vì chuyển sang trạng thái idle."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "chaining-vs-reading-resource-values-directly",
+      "text": "So sánh Chaining với việc đọc trực tiếp giá trị resource"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể nghĩ đến việc đọc trực tiếp <code>value()</code> bên trong params:"
+    },
+    {
+      "type": "code",
+      "file": "avoid-chain.ts",
+      "lang": "ts",
+      "code": [
+        "// Nên tránh: đọc trực tiếp value() mà không lan truyền trạng thái status",
+        "const companyResource = resource({",
+        "  params: () => {",
+        "    const user = userResource.value(); // có thể bị undefined",
+        "    return user ? { companyId: user.companyId } : undefined;",
+        "  },",
+        "  loader: ({ params }) => fetchCompany(params.companyId),",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc dù cách này vẫn hoạt động, nhưng việc trả về undefined từ params sẽ đưa resource về trạng thái idle thay vì phản ánh đúng trạng thái loading hay error của resource gốc. Sử dụng <code>chain</code> được ưu tiên vì nó phản chiếu chính xác chuỗi trạng thái."
+    },
+    {
+      "type": "paragraph",
+      "text": "Chỉ dùng <code>chain</code> khi resource phụ thuộc cần tự mình thực hiện thêm tác vụ async dựa trên kết quả của resource trước. Nếu bạn chỉ cần suy diễn một giá trị đồng bộ từ resource, hãy sử dụng <code>computed</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reactive-data-fetching-with-httpresource",
+      "text": "Truy vấn dữ liệu phản ứng với httpResource"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>httpResource</code> là một wrapper bọc quanh <code>HttpClient</code> mang lại trạng thái request và phản hồi dữ liệu dưới dạng signals. Nó thực hiện các request HTTP xuyên suốt stack HTTP của Angular bao gồm cả các interceptors. Xem thêm tại tài liệu <a href=\"/guide/http/http-resource\">Hướng dẫn httpResource</a>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resource-composition-with-snapshots",
+      "text": "Tổng hợp Resource thông qua Snapshots"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một <code>ResourceSnapshot</code> là một biểu diễn có cấu trúc về trạng thái hiện tại của resource. Mỗi resource đều có thuộc tính <code>snapshot</code> cung cấp signal chứa snapshot này:"
+    },
+    {
+      "type": "code",
+      "file": "snapshot-example.ts",
+      "lang": "ts",
+      "code": [
+        "const userId: Signal<string> = getUserId();",
+        "const userResource = resource({",
+        "  params: () => ({ id: userId() }),",
+        "  loader: ({ params }) => fetchUser(params),",
+        "});",
+        "const userSnapshot = userResource.snapshot;"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi snapshot chứa mã <code>status</code> và giá trị dữ liệu <code>value</code> hoặc thông tin <code>error</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "composing-resources-with-snapshots",
+      "text": "Tạo Resource mới từ Snapshots"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể tạo ra các resource mới từ snapshots bằng hàm <code>resourceFromSnapshots</code>. Điều này cho phép kết hợp linh hoạt với các API signal như <code>computed</code> và <code>linkedSignal</code> để biến đổi hành vi của resource (chẳng hạn như giữ lại giá trị trước đó khi đang tải mới):"
+    },
+    {
+      "type": "code",
+      "file": "with-previous-value.ts",
+      "lang": "ts",
+      "code": [
+        "import { linkedSignal, resourceFromSnapshots, Resource, ResourceSnapshot, Component, input } from '@angular/core';",
+        "import { httpResource } from '@angular/common/http';",
+        "",
+        "function withPreviousValue<T>(input: Resource<T>): Resource<T> {",
+        "  const derived = linkedSignal<ResourceSnapshot<T>, ResourceSnapshot<T>>({",
+        "    source: input.snapshot,",
+        "    computation: (snap, previous) => {",
+        "      if (snap.status === 'loading' && previous && previous.value.status !== 'error') {",
+        "        // Khi input resource chuyển sang loading, giữ lại giá trị cũ",
+        "        return { status: 'loading' as const, value: previous.value.value };",
+        "      }",
+        "      // Ngược lại, chuyển tiếp trạng thái bình thường của input resource",
+        "      return snap;",
+        "    },",
+        "  });",
+        "  return resourceFromSnapshots(derived);",
+        "}",
+        "",
+        "@Component({ /* ... */ })",
+        "export class AwesomeProfile {",
+        "  userId = input.required<number>();",
+        "  user = withPreviousValue(httpResource(() => `/user/${this.userId()}`));",
+        "  // Khi userId đổi, user.value() vẫn giữ dữ liệu user cũ cho tới khi user mới tải xong",
+        "}"
+      ]
+    }
+  ]
+}

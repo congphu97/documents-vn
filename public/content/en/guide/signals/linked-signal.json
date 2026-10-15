@@ -1,43 +1,286 @@
 {
   "slug": "guide/signals/linked-signal",
-  "title": "Linked Signal",
-  "description": "Documentation guide for Linked Signal in Angular.",
+  "title": "Dependent state with linkedSignal",
+  "description": "Learn how to use linkedSignal to create writable state that is intrinsically linked to other signals in Angular.",
   "source": "https://angular.dev/guide/signals/linked-signal",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Official documentation from [angular.dev/guide/signals/linked-signal](https://angular.dev/guide/signals/linked-signal)."
+      "type": "paragraph",
+      "text": "You can use the <code>signal</code> function to hold some state in your Angular code. Sometimes, this state depends on some other state. For example, imagine a component that lets the user select a shipping method for an order:"
+    },
+    {
+      "type": "code",
+      "file": "shipping-method-picker.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({ /* ... */ })",
+        "export class ShippingMethodPicker {",
+        "  shippingOptions: Signal<ShippingMethod[]> = getShippingOptions();",
+        "",
+        "  // Select the first shipping option by default.",
+        "  selectedOption = signal(this.shippingOptions()[0]);",
+        "",
+        "  changeShipping(newOptionIndex: number) {",
+        "    this.selectedOption.set(this.shippingOptions()[newOptionIndex]);",
+        "  }",
+        "}"
+      ]
     },
     {
       "type": "paragraph",
-      "text": "Linked Signal is a key part of Angular application architecture, helping developers write clean, high-performance, and maintainable software."
-    },
-    {
-      "type": "heading",
-      "level": 2,
-      "id": "overview-section",
-      "text": "Overview and Concepts"
+      "text": "In this example, the <code>selectedOption</code> defaults to the first option, but changes if the user selects another option. But <code>shippingOptions</code> is a signal— its value may change! If <code>shippingOptions</code> changes, <code>selectedOption</code> may contain a value that is no longer a valid option."
     },
     {
       "type": "paragraph",
-      "text": "To master Linked Signal, explore the core mechanisms and design patterns provided by Angular."
+      "text": "The <code>linkedSignal</code> function lets you create a signal to hold some state that is intrinsically linked to some other state. Revisiting the example above, <code>linkedSignal</code> can replace <code>signal</code>:"
+    },
+    {
+      "type": "code",
+      "file": "shipping-method-picker.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({ /* ... */ })",
+        "export class ShippingMethodPicker {",
+        "  shippingOptions: Signal<ShippingMethod[]> = getShippingOptions();",
+        "",
+        "  // Initialize selectedOption to the first shipping option.",
+        "  selectedOption = linkedSignal(() => this.shippingOptions()[0]);",
+        "",
+        "  changeShipping(index: number) {",
+        "    this.selectedOption.set(this.shippingOptions()[index]);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>linkedSignal</code> works similarly to <code>signal</code> with one key difference— instead of passing a default value, you pass a computation function, just like <code>computed</code>. When the value of the computation changes, the value of the <code>linkedSignal</code> changes to the computation result. This helps ensure that the <code>linkedSignal</code> always has a valid value."
+    },
+    {
+      "type": "paragraph",
+      "text": "The following example shows how the value of a <code>linkedSignal</code> can change based on its linked state:"
     },
     {
       "type": "code",
       "file": "example.ts",
       "lang": "ts",
       "code": [
-        "// Example demonstration for Linked Signal",
-        "import { Component } from \"@angular/core\";",
+        "const shippingOptions = signal(['Ground', 'Air', 'Sea']);",
+        "const selectedOption = linkedSignal(() => shippingOptions()[0]);",
+        "console.log(selectedOption()); // 'Ground'",
         "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Linked Signal</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+        "selectedOption.set(shippingOptions()[2]);",
+        "console.log(selectedOption()); // 'Sea'",
+        "",
+        "shippingOptions.set(['Email', 'Will Call', 'Postal service']);",
+        "console.log(selectedOption()); // 'Email'"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "accounting-for-previous-state",
+      "text": "Accounting for previous state"
+    },
+    {
+      "type": "paragraph",
+      "text": "In some cases, the computation for a <code>linkedSignal</code> needs to account for the previous value of the <code>linkedSignal</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "In the example above, <code>selectedOption</code> always updates back to the first option when <code>shippingOptions</code> changes. You may, however, want to preserve the user's selection if their selected option is still somewhere in the list. To accomplish this, you can create a <code>linkedSignal</code> with a separate <code>source</code> and <code>computation</code>:"
+    },
+    {
+      "type": "code",
+      "file": "shipping-picker.ts",
+      "lang": "ts",
+      "code": [
+        "interface ShippingMethod {",
+        "  id: number;",
+        "  name: string;",
+        "}",
+        "",
+        "@Component({ /* ... */ })",
+        "export class ShippingMethodPicker {",
+        "  constructor() {",
+        "    this.changeShipping(2);",
+        "    this.changeShippingOptions();",
+        "    console.log(this.selectedOption()); // {\"id\":2,\"name\":\"Postal Service\"}",
+        "  }",
+        "",
+        "  shippingOptions = signal<ShippingMethod[]>([",
+        "    { id: 0, name: 'Ground' },",
+        "    { id: 1, name: 'Air' },",
+        "    { id: 2, name: 'Sea' },",
+        "  ]);",
+        "",
+        "  selectedOption = linkedSignal<ShippingMethod[], ShippingMethod>({",
+        "    // `selectedOption` is set to the `computation` result whenever this `source` changes.",
+        "    source: this.shippingOptions,",
+        "    computation: (newOptions, previous) => {",
+        "      // If the newOptions contain the previously selected option, preserve that selection.",
+        "      // Otherwise, default to the first option.",
+        "      return newOptions.find((opt) => opt.id === previous?.value.id) ?? newOptions[0];",
+        "    },",
+        "  });",
+        "",
+        "  changeShipping(index: number) {",
+        "    this.selectedOption.set(this.shippingOptions()[index]);",
+        "  }",
+        "",
+        "  changeShippingOptions() {",
+        "    this.shippingOptions.set([",
+        "      { id: 0, name: 'Email' },",
+        "      { id: 1, name: 'Sea' },",
+        "      { id: 2, name: 'Postal Service' },",
+        "    ]);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "When you create a <code>linkedSignal</code>, you can pass an object with separate <code>source</code> and <code>computation</code> properties instead of providing just a computation."
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>source</code> can be any signal, such as a <code>computed</code> or component input. The <code>linkedSignal</code> updates its value when the source changes or when any signal referenced in the computation changes, updating its value with the result of the provided computation."
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>computation</code> is a function that receives the new value of <code>source</code> and a <code>previous</code> object. The previous object has two properties— <code>previous.source</code> is the previous value of source, and <code>previous.value</code> is the previous value of the <code>linkedSignal</code>. You can use these previous values to decide the new result of the computation."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "When using the <code>previous</code> parameter, it is necessary to provide the generic type arguments of <code>linkedSignal</code> explicitly. The first generic type corresponds with the type of source and the second generic type determines the output type of computation."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "custom-equality-comparison",
+      "text": "Custom equality comparison"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>linkedSignal</code>, as any other signal, can be configured with a custom equality function. This function is used by downstream dependencies to determine if that value of the <code>linkedSignal</code> (result of a computation) changed:"
+    },
+    {
+      "type": "code",
+      "file": "equality-example.ts",
+      "lang": "ts",
+      "code": [
+        "const activeUser = signal({ id: 123, name: 'Morgan', isAdmin: true });",
+        "",
+        "const activeUserEditCopy = linkedSignal(() => activeUser(), {",
+        "  // Consider the user as the same if it's the same `id`.",
+        "  equal: (a, b) => a.id === b.id,",
+        "});",
+        "",
+        "// Or, if separating `source` and `computation`",
+        "const activeUserEditCopy2 = linkedSignal({",
+        "  source: activeUser,",
+        "  computation: (user) => user,",
+        "  equal: (a, b) => a.id === b.id,",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "customizing-the-set-operation",
+      "text": "Customizing the set operation"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sometimes you may want the <code>set</code> and <code>update</code> operations of a <code>linkedSignal</code> to write back to the source of truth instead of updating the <code>linkedSignal</code>'s value directly. You can customize this behavior by passing a <code>set</code> function in the options."
+    },
+    {
+      "type": "paragraph",
+      "text": "The custom <code>set</code> function receives two arguments:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "The new value being set.",
+        "A <code>rawSet</code> function, which you can invoke to update the <code>linkedSignal</code>'s internal state directly (matching the default behavior)."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Using <code>rawSet</code> allows you to update the <code>linkedSignal</code>'s value directly. This can be useful to prevent the computation from running, for example if it is an expensive derivation and you already know the result."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "writing-back-to-a-source-signal",
+      "text": "Writing back to a source signal"
+    },
+    {
+      "type": "paragraph",
+      "text": "Consider a component that displays and allows editing temperature in Fahrenheit, but uses a Celsius signal as its source of truth:"
+    },
+    {
+      "type": "code",
+      "file": "temperature.ts",
+      "lang": "ts",
+      "code": [
+        "const tempC = signal(0);",
+        "const tempF = linkedSignal(() => (tempC() * 9) / 5 + 32, {",
+        "  set: (valF) => tempC.set(((valF - 32) * 5) / 9),",
+        "});",
+        "",
+        "console.log(tempF()); // 32",
+        "",
+        "// Setting Fahrenheit updates Celsius, which reactively updates Fahrenheit",
+        "tempF.set(212);",
+        "console.log(tempC()); // 100",
+        "console.log(tempF()); // 212"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "updating-a-property-inside-a-parent-object",
+      "text": "Updating a property inside a parent object"
+    },
+    {
+      "type": "paragraph",
+      "text": "Another common scenario is updating a specific property inside a parent object. The parent is held in a signal, and you link to a nested property:"
+    },
+    {
+      "type": "code",
+      "file": "order-property.ts",
+      "lang": "ts",
+      "code": [
+        "interface Order {",
+        "  id: number;",
+        "  shippingMethod: string;",
+        "}",
+        "",
+        "const order = signal<Order>({",
+        "  id: 42,",
+        "  shippingMethod: 'Ground',",
+        "});",
+        "",
+        "const shippingMethod = linkedSignal(() => order().shippingMethod, {",
+        "  set: (newMethod) => {",
+        "    // Perform an immutable update to write the change back to the order",
+        "    order.update((currentOrder) => ({",
+        "      ...currentOrder,",
+        "      shippingMethod: newMethod,",
+        "    }));",
+        "  },",
+        "});",
+        "",
+        "console.log(shippingMethod()); // 'Ground'",
+        "",
+        "// Updating the shippingMethod updates the parent order object",
+        "shippingMethod.set('Air');",
+        "console.log(order()); // { id: 42, shippingMethod: 'Air' }",
+        "console.log(shippingMethod()); // 'Air'"
       ]
     }
   ]

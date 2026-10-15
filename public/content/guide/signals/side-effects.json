@@ -1,0 +1,348 @@
+{
+  "slug": "guide/signals/side-effects",
+  "title": "Tác vụ phụ cho các API không phản ứng (Effects)",
+  "description": "Hướng dẫn chi tiết về cách dùng effect và afterRenderEffect trong Angular để thực thi side-effects khi signal thay đổi giá trị.",
+  "source": "https://angular.dev/guide/signals/effect",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Signals rất hữu ích vì chúng chủ động thông báo cho các thành phần tiêu thụ (consumers) khi giá trị thay đổi. Một effect là một thao tác thực thi mỗi khi một hoặc nhiều giá trị signal thay đổi. Bạn có thể tạo effect bằng hàm <code>effect</code>:"
+    },
+    {
+      "type": "code",
+      "file": "effect-basic.ts",
+      "lang": "ts",
+      "code": [
+        "import { effect } from '@angular/core';",
+        "",
+        "effect(() => {",
+        "  console.log(`Số đếm hiện tại là: ${count()}`);",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Các effects luôn luôn chạy ít nhất một lần ban đầu. Khi effect thực thi, nó tự động theo dõi mọi lượt đọc giá trị signal. Bất cứ khi nào một trong các giá trị signal này thay đổi, effect sẽ được kích hoạt chạy lại. Tương tự như computed signals, effects giám sát các quan hệ phụ thuộc (dependencies) một cách linh động (dynamically), và chỉ theo dõi những signal thực sự được đọc trong lần chạy gần nhất."
+    },
+    {
+      "type": "paragraph",
+      "text": "Các effects luôn luôn thực thi bất đồng bộ (asynchronously) trong suốt tiến trình kiểm tra thay đổi (change detection process)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "use-cases-for-effects",
+      "text": "Các trường hợp nên dùng effect"
+    },
+    {
+      "type": "paragraph",
+      "text": "Effect nên là API cuối cùng mà bạn nghĩ tới. Luôn ưu tiên dùng <code>computed()</code> cho các giá trị dẫn xuất và <code>linkedSignal()</code> cho các giá trị vừa có thể dẫn xuất vừa có thể gán thủ công. Nếu bạn thấy mình đang sao chép dữ liệu từ signal này sang signal khác thông qua một effect, đó là dấu hiệu cho thấy bạn nên đưa nguồn dữ liệu chuẩn (source-of-truth) lên cấp cao hơn và dùng <code>computed()</code> hoặc <code>linkedSignal()</code>. Effects phát huy hiệu quả nhất khi bạn cần đồng bộ hóa state của signal với các API mệnh lệnh (imperative), không phản ứng (non-signal APIs)."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Không có tình huống nào mà effect là tốt nhất, chỉ có những tình huống mà nó là giải pháp phù hợp."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Ghi log (logging) các giá trị của signal, phục vụ mục đích phân tích (analytics) hoặc làm công cụ debug.",
+        "Đồng bộ hóa dữ liệu với các loại bộ lưu trữ trình duyệt: window.localStorage, sessionStorage, cookies, v.v.",
+        "Bổ sung các hành vi DOM tùy biến không thể diễn đạt được bằng cú pháp template của Angular.",
+        "Thực hiện vẽ/render tùy chỉnh lên thẻ &lt;canvas&gt;, thư viện biểu đồ charting, hoặc các thư viện giao diện bên thứ ba."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "when-not-to-use-effects",
+      "text": "Khi nào KHÔNG nên dùng effect"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tránh dùng effects để lan truyền các thay đổi trạng thái (state propagation). Điều này dễ dẫn đến các lỗi <code>ExpressionChangedAfterItHasBeenChecked</code>, các vòng lặp cập nhật vô tận (infinite circular updates), hoặc gây ra các chu kỳ change detection dư thừa."
+    },
+    {
+      "type": "paragraph",
+      "text": "Thay vào đó, hãy sử dụng <code>computed</code> signals để mô hình hóa state phụ thuộc vào state khác."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "injection-context",
+      "text": "Ngữ cảnh tiêm phụ thuộc (Injection context)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, bạn chỉ có thể tạo một <code>effect()</code> bên trong một injection context (nơi bạn có quyền truy cập vào hàm <code>inject</code>). Cách dễ nhất để thỏa mãn điều kiện này là gọi <code>effect</code> bên trong constructor của component, directive hoặc service:"
+    },
+    {
+      "type": "code",
+      "file": "effective-counter.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "export class EffectiveCounter {",
+        "  readonly count = signal(0);",
+        "",
+        "  constructor() {",
+        "    // Đăng ký một effect mới.",
+        "    effect(() => {",
+        "      console.log(`Số đếm là: ${this.count()}`);",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Để tạo effect bên ngoài constructor, bạn có thể truyền đối tượng <code>Injector</code> vào <code>effect</code> thông qua thuộc tính options:"
+    },
+    {
+      "type": "code",
+      "file": "injector-effect.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "export class EffectiveCounter {",
+        "  readonly count = signal(0);",
+        "  private injector = inject(Injector);",
+        "",
+        "  initializeLogging(): void {",
+        "    effect(",
+        "      () => {",
+        "        console.log(`Số đếm là: ${this.count()}`);",
+        "      },",
+        "      { injector: this.injector },",
+        "    );",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "execution-of-effects",
+      "text": "Quá trình thực thi của effects"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular định nghĩa hai hành vi thực thi cho effect tùy thuộc vào ngữ cảnh mà nó được tạo ra:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>\"View Effect\"</strong>: Là effect được tạo ra trong ngữ cảnh khởi tạo component. Bao gồm cả các effect được tạo bởi các service gắn liền với injector của component.",
+        "<strong>\"Root Effect\"</strong>: Là effect được tạo ra trong ngữ cảnh khởi tạo service cung cấp ở tầng root (root provided service)."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Việc thực thi cả hai loại effect đều gắn liền với chu kỳ change detection:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "\"View effects\" được thực thi trước khi component tương ứng của nó được kiểm tra bởi tiến trình change detection.",
+        "\"Root effects\" được thực thi trước khi toàn bộ các components được kiểm tra bởi tiến trình change detection."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong cả hai trường hợp, nếu ít nhất một trong các dependencies của effect bị thay đổi trong quá trình effect đang chạy, effect sẽ được chạy lại trước khi chu trình change detection tiếp tục bước tiếp theo."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "destroying-effects",
+      "text": "Hủy bỏ effects (Destroying effects)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi một component hoặc directive bị hủy (destroy), Angular tự động dọn dẹp tất cả các effects liên kết với nó. Ngữ cảnh tạo effect sẽ quyết định thời điểm nó bị hủy:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Một \"View effect\" sẽ bị hủy khi component tương ứng bị hủy.",
+        "Một \"Root effect\" chỉ bị hủy khi toàn bộ ứng dụng bị hủy."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm effect trả về một đối tượng <code>EffectRef</code>. Bạn có thể gọi phương thức <code>destroy()</code> của ref này để chủ động hủy effect thủ công. Bạn có thể kết hợp điều này với tùy chọn <code>manualCleanup: true</code> khi tạo effect để vô hiệu hóa việc dọn dẹp tự động. Lưu ý cần đảm bảo tự hủy các effect này khi không còn cần thiết."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "effect-cleanup-functions",
+      "text": "Hàm dọn dẹp trong Effect (Cleanup functions)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Effect có thể bắt đầu các thao tác chạy dài (như timer hoặc subscription), bạn cần hủy các thao tác này nếu effect bị hủy hoặc chạy lại trước khi thao tác trước đó kết thúc. Khi tạo effect, hàm của bạn có thể nhận vào tham số đầu tiên là hàm <code>onCleanup</code>. Hàm <code>onCleanup</code> cho phép bạn đăng ký một callback dọn dẹp, callback này sẽ được gọi trước lần chạy tiếp theo của effect, hoặc khi effect bị hủy:"
+    },
+    {
+      "type": "code",
+      "file": "cleanup-example.ts",
+      "lang": "ts",
+      "code": [
+        "effect((onCleanup) => {",
+        "  const user = currentUser();",
+        "  const timer = setTimeout(() => {",
+        "    console.log(`1 giây trước, user đã chuyển thành ${user}`);",
+        "  }, 1000);",
+        "",
+        "  onCleanup(() => {",
+        "    clearTimeout(timer);",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "side-effects-on-dom-elements",
+      "text": "Tác vụ phụ lên các phần tử DOM"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>effect</code> là công cụ đa năng để chạy mã theo dõi sự thay đổi của signal. Tuy nhiên, nó lại chạy TRƯỚC KHI Angular cập nhật DOM. Trong một số trường hợp, bạn cần kiểm tra trực tiếp DOM, can thiệp vào các thuộc tính kích thước, hoặc tích hợp thư viện bên thứ ba đòi hỏi truy cập DOM sau khi đã render."
+    },
+    {
+      "type": "paragraph",
+      "text": "Đối với các trường hợp này, bạn hãy sử dụng <code>afterRenderEffect</code>. Nó hoạt động tương tự như <code>effect</code>, nhưng chỉ thực thi SAU KHI Angular đã kết xuất xong và ghi nhận toàn bộ thay đổi lên DOM:"
+    },
+    {
+      "type": "code",
+      "file": "chart.component.ts",
+      "lang": "ts",
+      "code": [
+        "@Component(/* ... */)",
+        "export class MyFancyChart {",
+        "  chartData = input.required<ChartData>();",
+        "  canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');",
+        "  chart: ChartInstance;",
+        "",
+        "  constructor() {",
+        "    // Chạy 1 lần duy nhất để tạo instance biểu đồ",
+        "    afterNextRender({",
+        "      write: () => {",
+        "        this.chart = initializeChart(this.canvas().nativeElement, this.chartData());",
+        "      },",
+        "    });",
+        "",
+        "    // Chạy lại sau khi DOM cập nhật mỗi khi `chartData` thay đổi",
+        "    afterRenderEffect(() => {",
+        "      this.chart.updateData(this.chartData());",
+        "    });",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Bạn thường không cần đến <code>afterRenderEffect</code> chỉ để theo dõi thay đổi kích thước DOM. Các API trình duyệt như ResizeObserver, MutationObserver và IntersectionObserver luôn được ưu tiên hơn so với <code>effect</code> hay <code>afterRenderEffect</code> khi có thể."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "render-phases",
+      "text": "Các giai đoạn Render (Render phases)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Việc đọc và thay đổi DOM tùy tiện có thể ảnh hưởng nặng nề đến hiệu năng ứng dụng (chẳng hạn gây ra hiện tượng layout thrashing hoặc các đợt reflow không cần thiết)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Để tối ưu hóa các thao tác này, <code>afterRenderEffect</code> cung cấp 4 giai đoạn (phases) để gom nhóm các callback và thực thi chúng theo một thứ tự tối ưu nhất:"
+    },
+    {
+      "type": "table",
+      "headers": ["Giai đoạn (Phase)", "Mô tả"],
+      "rows": [
+        ["earlyRead", "Dùng để đọc thông số từ DOM trước khi bước vào callback ghi tiếp theo, ví dụ để tính toán layout tùy chỉnh mà trình duyệt chưa hỗ trợ. Ưu tiên dùng pha read nếu việc đọc có thể chờ được."],
+        ["write", "Dùng để ghi/thay đổi DOM. Tuyệt đối không đọc từ DOM trong pha này."],
+        ["mixedReadWrite", "Dùng để vừa đọc vừa ghi đồng thời lên DOM. Tránh dùng pha này nếu có thể tách rời công việc sang các pha riêng biệt."],
+        ["read", "Dùng để đọc từ DOM. Tuyệt đối không ghi lên DOM trong pha này."]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng các phase này giúp ngăn ngừa hiện tượng layout thrashing và đảm bảo các thao tác DOM diễn ra an toàn, hiệu quả tối đa:"
+    },
+    {
+      "type": "code",
+      "file": "phases-example.ts",
+      "lang": "ts",
+      "code": [
+        "afterRenderEffect({",
+        "  earlyRead: (cleanupFn) => { /* ... */ },",
+        "  write: (previousPhaseValue, cleanupFn) => { /* ... */ },",
+        "  mixedReadWrite: (previousPhaseValue, cleanupFn) => { /* ... */ },",
+        "  read: (previousPhaseValue, cleanupFn) => { /* ... */ },",
+        "});"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Nếu bạn không chỉ định phase cụ thể, <code>afterRenderEffect</code> sẽ chạy callback trong pha <code>mixedReadWrite</code>. Điều này có thể làm giảm hiệu năng ứng dụng do gây ra các đợt reflow DOM không cần thiết."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "phase-executions",
+      "text": "Thứ tự thực thi các Phase"
+    },
+    {
+      "type": "paragraph",
+      "text": "Callback của phase <code>earlyRead</code> chỉ nhận hàm cleanup. Mỗi phase kế tiếp sau đó sẽ nhận giá trị trả về của callback ở phase trước dưới dạng một Signal. Bạn có thể sử dụng cơ chế này để phối hợp nhịp nhàng công việc giữa các phase."
+    },
+    {
+      "type": "paragraph",
+      "text": "Effects chạy theo đúng thứ tự các phase tuần tự:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "1. <code>earlyRead</code>",
+        "2. <code>write</code>",
+        "3. <code>mixedReadWrite</code>",
+        "4. <code>read</code>"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu một trong các phase làm thay đổi giá trị của một signal được theo dõi bởi <code>afterRenderEffect</code>, các phase bị ảnh hưởng sẽ thực thi lại."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "cleanup",
+      "text": "Dọn dẹp tài nguyên (Cleanup)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mỗi phase cung cấp một hàm callback cleanup làm đối số. Callback cleanup này sẽ được thực thi khi <code>afterRenderEffect</code> bị hủy hoặc ngay trước khi chạy lại effect của phase đó."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "server-side-rendering-caveats",
+      "text": "Lưu ý quan trọng với Server-side Rendering (SSR)"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>afterRenderEffect</code>, tương tự như <code>afterNextRender</code> và <code>afterEveryRender</code>, CHỈ chạy ở phía client (trình duyệt) mà không bao giờ chạy trên server."
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Các component không được đảm bảo là đã hoàn tất quá trình hydrate trước khi callback chạy. Bạn cần thận trọng khi trực tiếp đọc hoặc thao tác lên DOM và layout."
+    }
+  ]
+}

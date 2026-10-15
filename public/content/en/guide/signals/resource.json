@@ -1,0 +1,418 @@
+{
+  "slug": "guide/signals/resource",
+  "title": "Async reactivity with resources",
+  "description": "Learn how to use Angular Resources to incorporate asynchronous data operations into signal-based code with synchronous access.",
+  "source": "https://angular.dev/guide/signals/resource",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "All signal APIs are synchronous— <code>signal</code>, <code>computed</code>, input, etc. However, applications often need to deal with data that is available asynchronously. A <code>Resource</code> gives you a way to incorporate async data into your application's signal-based code and still allow you to access its data synchronously."
+    },
+    {
+      "type": "paragraph",
+      "text": "You can use a <code>Resource</code> to perform any kind of async operation, but the most common use-case for <code>Resource</code> is fetching data from a server. The following example creates a resource to fetch some user data."
+    },
+    {
+      "type": "paragraph",
+      "text": "The easiest way to create a <code>Resource</code> is the <code>resource</code> function."
+    },
+    {
+      "type": "code",
+      "file": "user-resource.ts",
+      "lang": "ts",
+      "code": [
+        "import { computed, resource, Signal } from '@angular/core';",
+        "",
+        "const userId: Signal<string> = getUserId();",
+        "",
+        "const userResource = resource({",
+        "  // Define a reactive computation.",
+        "  // The params value recomputes whenever any read signals change.",
+        "  params: () => ({ id: userId() }),",
+        "",
+        "  // Define an async loader that retrieves data.",
+        "  // The resource calls this function every time the `params` value changes.",
+        "  loader: ({ params }) => fetchUser(params),",
+        "});",
+        "",
+        "// Create a computed signal based on the result of the resource's loader function.",
+        "const firstName = computed(() => {",
+        "  if (userResource.hasValue()) {",
+        "    // `hasValue` serves 2 purposes:",
+        "    // - It acts as type guard to strip `undefined` from the type",
+        "    // - It protects against reading a throwing `value` when the resource is in error state",
+        "    return userResource.value().firstName;",
+        "  }",
+        "  // fallback in case the resource value is `undefined` or if the resource is in error state",
+        "  return undefined;",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>resource</code> function accepts a <code>ResourceOptions</code> object with two main properties: <code>params</code> and <code>loader</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>params</code> property defines a reactive computation that produces a parameter value. Whenever signals read in this computation change, the resource produces a new parameter value, similar to <code>computed</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>loader</code> property defines a <code>ResourceLoader</code>— an async function that retrieves some state. The resource calls the loader every time the params computation produces a new value, passing that value to the loader."
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>Resource</code> has a <code>value</code> signal that contains the results of the loader."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resource-loaders",
+      "text": "Resource loaders"
+    },
+    {
+      "type": "paragraph",
+      "text": "When creating a resource, you specify a <code>ResourceLoader</code>. This loader is an async function that accepts a single parameter— a <code>ResourceLoaderParams</code> object— and returns a value."
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>ResourceLoaderParams</code> object contains three properties: <code>params</code>, <code>previous</code>, and <code>abortSignal</code>."
+    },
+    {
+      "type": "table",
+      "headers": ["Property", "Description"],
+      "rows": [
+        ["params", "The value of the resource's params computation."],
+        ["previous", "An object with a status property, containing the previous ResourceStatus."],
+        ["abortSignal", "An AbortSignal used to respond to cancelled/aborted requests."]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "If the <code>params</code> computation returns <code>undefined</code>, the loader function does not run and the resource status becomes <code>'idle'</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "streaming-resources",
+      "text": "Streaming resources"
+    },
+    {
+      "type": "paragraph",
+      "text": "Some asynchronous data sources produce multiple values over time instead of returning a single result. Examples include WebSockets, Server-Sent Events (SSE), and Firestore onSnapshot listeners."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use <code>stream</code> for these continuously updating data sources. Unlike <code>loader</code>, which resolves once for each request, <code>stream</code> returns a signal whose value can continue to update as new data becomes available."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use <code>loader</code> for one-time asynchronous operations, such as fetching data from an HTTP endpoint."
+    },
+    {
+      "type": "paragraph",
+      "text": "In this example, <code>userUpdates</code> simulates an external source such as a WebSocket or SSE connection:"
+    },
+    {
+      "type": "code",
+      "file": "stream-example.ts",
+      "lang": "ts",
+      "code": [
+        "const userUpdates = signal({ value: 'Alice' });",
+        "const userResource = resource({",
+        "  stream: () => userUpdates,",
+        "});",
+        "",
+        "// Simulate a new value arriving from the external data source:",
+        "userUpdates.set({ value: 'Bob' });"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "aborting-requests",
+      "text": "Aborting requests"
+    },
+    {
+      "type": "paragraph",
+      "text": "A resource aborts an outstanding loading operation if the <code>params</code> computation changes while the resource is loading."
+    },
+    {
+      "type": "paragraph",
+      "text": "You can use the <code>abortSignal</code> in <code>ResourceLoaderParams</code> to respond to aborted requests. For example, the native <code>fetch</code> function accepts an AbortSignal:"
+    },
+    {
+      "type": "code",
+      "file": "abort-example.ts",
+      "lang": "ts",
+      "code": [
+        "const userId: Signal<string> = getUserId();",
+        "const userResource = resource({",
+        "  params: () => ({ id: userId() }),",
+        "  loader: ({ params, abortSignal }): Promise<User> => {",
+        "    // fetch cancels any outstanding HTTP requests when the given `AbortSignal`",
+        "    // indicates that the request has been aborted.",
+        "    return fetch(`users/${params.id}`, { signal: abortSignal }).then((res) => res.json());",
+        "  },",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reloading",
+      "text": "Reloading"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can programmatically trigger a resource's loader by calling the <code>reload</code> method."
+    },
+    {
+      "type": "code",
+      "file": "reload-example.ts",
+      "lang": "ts",
+      "code": [
+        "const userId: Signal<string> = getUserId();",
+        "const userResource = resource({",
+        "  params: () => ({ id: userId() }),",
+        "  loader: ({ params }) => fetchUser(params),",
+        "});",
+        "",
+        "// Programmatically re-trigger loader:",
+        "userResource.reload();"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resource-status",
+      "text": "Resource status"
+    },
+    {
+      "type": "paragraph",
+      "text": "The resource object has several signal properties for reading the status of the asynchronous loader."
+    },
+    {
+      "type": "table",
+      "headers": ["Property", "Description"],
+      "rows": [
+        ["value", "The most recent value of the resource, or undefined if no value has been received."],
+        ["hasValue", "Whether the resource has a value."],
+        ["error", "The most recent error encountered while running the resource's loader, or undefined if no error has occurred."],
+        ["isLoading", "Whether the resource loader is currently running."],
+        ["status", "The resource's specific ResourceStatus, as described below."]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>status</code> signal provides a specific <code>ResourceStatus</code> that describes the state of the resource using a string constant:"
+    },
+    {
+      "type": "table",
+      "headers": ["Status", "value()", "Description"],
+      "rows": [
+        ["'idle'", "undefined", "The resource has no valid request and the loader has not run."],
+        ["'error'", "Throws an error", "The loader has encountered an error."],
+        ["'loading'", "undefined", "The loader is running as a result of the params value changing."],
+        ["'reloading'", "Previous value", "The loader is running as a result of calling the resource's reload method."],
+        ["'resolved'", "Resolved value", "The loader has completed."],
+        ["'local'", "Locally set value", "The resource's value has been set locally via .set() or .update()"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "caching-resource-data-with-ssr",
+      "text": "Caching resource data with SSR"
+    },
+    {
+      "type": "paragraph",
+      "text": "When an application renders on the server, a resource loader runs once to produce the initial HTML. During hydration, the browser normally runs the same loader again."
+    },
+    {
+      "type": "paragraph",
+      "text": "To reuse the server result, provide an <code>id</code> for the resource. Angular stores the resolved value in <code>TransferState</code> on the server and uses it on the client to initialize the resource in a <code>'resolved'</code> state."
+    },
+    {
+      "type": "code",
+      "file": "ssr-cache.ts",
+      "lang": "ts",
+      "code": [
+        "const userId: Signal<string> = getUserId();",
+        "const userResource = resource({",
+        "  params: () => ({ id: userId() }),",
+        "  loader: ({ params }) => fetchUser(params),",
+        "  id: 'user-unique-id',",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>id</code> value must be unique within your application and identical on the server and the client so that Angular can match the cached entry to the resource that requested it."
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Because the cached value is serialized into the page's HTML, avoid setting <code>id</code> on resources that load data specific to the user who triggered the server-side render, especially if the rendered HTML can be cached or shared between users."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "chaining-resources",
+      "text": "Chaining resources"
+    },
+    {
+      "type": "paragraph",
+      "text": "Sometimes one resource depends on the result of another. You can express this dependency using the <code>chain</code> function available in the params context object."
+    },
+    {
+      "type": "code",
+      "file": "chaining-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { resource } from '@angular/core';",
+        "",
+        "const userResource = resource({",
+        "  params: () => ({ id: getUserId() }),",
+        "  loader: ({ params }) => fetchUser(params),",
+        "});",
+        "",
+        "const companyResource = resource({",
+        "  params: ({ chain }) => chain(userResource)?.companyId,",
+        "  loader: ({ params: companyId }) => fetchCompany(companyId),",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Here <code>companyResource</code> depends on the user's <code>companyId</code>, which is only known once <code>userResource</code> has loaded. <code>chain(userResource)</code> reads the value of <code>userResource</code> and automatically propagates its status to <code>companyResource</code>:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "If <code>userResource</code> is <code>idle</code>, <code>companyResource</code> also becomes <code>idle</code>.",
+        "If <code>userResource</code> is <code>loading</code> or <code>reloading</code>, <code>companyResource</code> enters the <code>loading</code> state and its loader does not run. Note that during reloading, chain does not return the previously resolved value.",
+        "If <code>userResource</code> is in an <code>error</code> state, <code>companyResource</code> also enters the <code>error</code> state.",
+        "If <code>userResource</code> is <code>resolved</code> or <code>local</code>, chain returns its current value, which <code>companyResource</code> then uses as its params."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Pass the chained value directly as the params value rather than wrapping it in an object. A params value like <code>{companyId: undefined}</code> is still a defined value, so the loader would run with an undefined companyId instead of the resource becoming idle."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "chaining-vs-reading-resource-values-directly",
+      "text": "Chaining vs. reading resource values directly"
+    },
+    {
+      "type": "paragraph",
+      "text": "You might be tempted to read a resource's value directly inside params:"
+    },
+    {
+      "type": "code",
+      "file": "avoid-chain.ts",
+      "lang": "ts",
+      "code": [
+        "// Avoid: reads value() directly without status propagation",
+        "const companyResource = resource({",
+        "  params: () => {",
+        "    const user = userResource.value(); // may be undefined",
+        "    return user ? { companyId: user.companyId } : undefined;",
+        "  },",
+        "  loader: ({ params }) => fetchCompany(params.companyId),",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "While this works, returning undefined from params makes the resource go idle rather than reflecting the actual state of the upstream resource. Using <code>chain</code> is preferred because it correctly mirrors loading and error states."
+    },
+    {
+      "type": "paragraph",
+      "text": "Reach for <code>chain</code> only when the downstream resource performs its own async work that depends on the upstream value. If you only need to derive a value synchronously from a resource, use <code>computed</code> instead."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reactive-data-fetching-with-httpresource",
+      "text": "Reactive data fetching with httpResource"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>httpResource</code> is a wrapper around <code>HttpClient</code> that gives you the request status and response as signals. It makes HTTP requests through the Angular HTTP stack, including interceptors. See <a href=\"/guide/http/http-resource\">httpResource documentation</a> for more information."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "resource-composition-with-snapshots",
+      "text": "Resource composition with snapshots"
+    },
+    {
+      "type": "paragraph",
+      "text": "A <code>ResourceSnapshot</code> is a structured representation of a resource's current state. Every resource has a <code>snapshot</code> property that provides a signal of its current state."
+    },
+    {
+      "type": "code",
+      "file": "snapshot-example.ts",
+      "lang": "ts",
+      "code": [
+        "const userId: Signal<string> = getUserId();",
+        "const userResource = resource({",
+        "  params: () => ({ id: userId() }),",
+        "  loader: ({ params }) => fetchUser(params),",
+        "});",
+        "const userSnapshot = userResource.snapshot;"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Each snapshot contains a <code>status</code> and either a <code>value</code> or an <code>error</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "composing-resources-with-snapshots",
+      "text": "Composing resources with snapshots"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can create new resources from snapshots using <code>resourceFromSnapshots</code>. This enables composition with signal APIs like <code>computed</code> and <code>linkedSignal</code> to transform resource behavior."
+    },
+    {
+      "type": "code",
+      "file": "with-previous-value.ts",
+      "lang": "ts",
+      "code": [
+        "import { linkedSignal, resourceFromSnapshots, Resource, ResourceSnapshot, Component, input } from '@angular/core';",
+        "import { httpResource } from '@angular/common/http';",
+        "",
+        "function withPreviousValue<T>(input: Resource<T>): Resource<T> {",
+        "  const derived = linkedSignal<ResourceSnapshot<T>, ResourceSnapshot<T>>({",
+        "    source: input.snapshot,",
+        "    computation: (snap, previous) => {",
+        "      if (snap.status === 'loading' && previous && previous.value.status !== 'error') {",
+        "        // When the input resource enters loading state, we keep the value",
+        "        // from its previous state, if any.",
+        "        return { status: 'loading' as const, value: previous.value.value };",
+        "      }",
+        "      // Otherwise we simply forward the state of the input resource.",
+        "      return snap;",
+        "    },",
+        "  });",
+        "  return resourceFromSnapshots(derived);",
+        "}",
+        "",
+        "@Component({ /* ... */ })",
+        "export class AwesomeProfile {",
+        "  userId = input.required<number>();",
+        "  user = withPreviousValue(httpResource(() => `/user/${this.userId()}`));",
+        "  // When userId changes, user.value() keeps the old user data until the new one loads",
+        "}"
+      ]
+    }
+  ]
+}

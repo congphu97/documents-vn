@@ -1,0 +1,146 @@
+{
+  "slug": "guide/signals/debounced",
+  "title": "Trì hoãn tín hiệu với debounced (Debouncing signals)",
+  "description": "Hướng dẫn sử dụng API thực nghiệm debounced trong Angular để trì hoãn phản ứng với giá trị signal cho đến khi giá trị dừng thay đổi.",
+  "source": "https://angular.dev/guide/signals/debounced",
+  "status": "reviewed",
+  "blocks": [
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "<code>debounced</code> hiện đang ở giai đoạn thử nghiệm (experimental). Tính năng này đã sẵn sàng để bạn trải nghiệm, nhưng có thể sẽ có thay đổi trước khi đạt trạng thái ổn định."
+    },
+    {
+      "type": "paragraph",
+      "text": "Sử dụng <code>debounced</code> để trì hoãn việc phản ứng với giá trị của một signal cho đến khi giá trị đó ngừng thay đổi. Hàm này trả về một <code>Resource</code> mà giá trị <code>value</code> của nó phản ánh giá trị sau khi đã debounce của signal nguồn."
+    },
+    {
+      "type": "code",
+      "file": "search.component.ts",
+      "lang": "ts",
+      "code": [
+        "import { Component, debounced, resource, signal } from '@angular/core';",
+        "",
+        "@Component({",
+        "  template: `",
+        "    <input (input)=\"query.set($event.target.value)\" />",
+        "    @if (results.isLoading()) {",
+        "      <p>Đang tìm kiếm…</p>",
+        "    }",
+        "    @for (item of results.value(); track item.id) {",
+        "      <li>{{ item.name }}</li>",
+        "    }",
+        "  `,",
+        "})",
+        "export class Search {",
+        "  query = signal('');",
+        "  debouncedQuery = debounced(this.query, 300);",
+        "  results = resource({",
+        "    params: () => this.debouncedQuery.value(),",
+        "    loader: ({ params }) => fetchResults(params),",
+        "  });",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>debounced</code> nhận vào signal nguồn và khoảng thời gian chờ tính bằng mili-giây (milliseconds). Hàm <code>value()</code> của resource trả về luôn giữ giá trị ổn định gần nhất, còn <code>status()</code> cho bạn biết liệu có giá trị mới đang trong thời gian chờ xử lý hay không."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "status-during-debounce",
+      "text": "Trạng thái trong quá trình Debounce (Status during debounce)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong khi bộ đếm thời gian debounce đang đếm ngược, <code>status()</code> sẽ mang giá trị <code>'loading'</code> và <code>value()</code> trả về giá trị đã giải quyết (resolved) trước đó. Khi bộ đếm hết giờ, resource chuyển trạng thái thành <code>'resolved'</code>. Nếu signal nguồn ném ra lỗi (throw exception), resource ngay lập tức chuyển sang trạng thái <code>'error'</code> mà không chạy bộ đếm timer nào."
+    },
+    {
+      "type": "paragraph",
+      "text": "Xem phần <a href=\"/guide/signals/resource#resource-status\">Trạng thái Resource</a> để biết danh sách đầy đủ tất cả các trạng thái và hành vi của hàm <code>value()</code> tương ứng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "custom-wait-function",
+      "text": "Tùy biến hàm thời gian chờ (Custom wait function)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Thay vì truyền một khoảng thời gian bằng mili-giây cố định, bạn có thể truyền vào một hàm trả về <code>Promise&lt;void&gt;</code>. Resource sẽ hoàn tất khi promise này resolve. Nếu signal nguồn thay đổi trước khi promise kịp giải quyết, Angular sẽ tự động hủy promise trước đó và khởi chạy một promise mới."
+    },
+    {
+      "type": "code",
+      "file": "custom-wait.ts",
+      "lang": "ts",
+      "code": [
+        "debouncedQuery = debounced(query, (value, lastSnapshot) => {",
+        "  // Thử lại ngay lập tức sau khi gặp lỗi thay vì bắt người dùng phải chờ thêm.",
+        "  if (lastSnapshot.status === 'error') return;",
+        "",
+        "  // Từ khóa ngắn thì chờ lâu hơn (người dùng khả năng cao vẫn đang gõ tiếp).",
+        "  const ms = value.length < 3 ? 500 : 200;",
+        "  return new Promise<void>((resolve) => setTimeout(resolve, ms));",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Xem kiểu <code>DebounceTimer</code> trong tài liệu API reference của Angular để biết thêm chi tiết."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "equality",
+      "text": "Kiểm tra bằng nhau (Equality)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Mặc định, <code>debounced</code> sử dụng phép so sánh <code>Object.is</code> để so sánh giá trị cũ và mới."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể cung cấp một hàm kiểm tra bằng nhau tùy biến thông qua tùy chọn <code>equal</code> khi phép kiểm tra định danh mặc định quá khắt khe:"
+    },
+    {
+      "type": "code",
+      "file": "equality.ts",
+      "lang": "ts",
+      "code": [
+        "debouncedFilter = debounced(filter, 200, {",
+        "  equal: (a, b) => a.category === b.category && a.minPrice === b.minPrice,",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "injection-context",
+      "text": "Ngữ cảnh tiêm phụ thuộc (Injection context)"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>debounced</code> bắt buộc phải được gọi bên trong một injection context. Angular sẽ tự động dọn dẹp resource debounce và hủy bất kỳ timer nào đang chờ khi injector bị hủy."
+    },
+    {
+      "type": "paragraph",
+      "text": "Để sử dụng <code>debounced</code> bên ngoài injection context, hãy truyền tường minh một đối tượng <code>Injector</code> thông qua options:"
+    },
+    {
+      "type": "code",
+      "file": "search.service.ts",
+      "lang": "ts",
+      "code": [
+        "@Injectable({ providedIn: 'root' })",
+        "export class SearchService {",
+        "  private injector = inject(Injector);",
+        "",
+        "  createDebouncedQuery(query: Signal<string>): Resource<string> {",
+        "    return debounced(query, 300, { injector: this.injector });",
+        "  }",
+        "}"
+      ]
+    }
+  ]
+}

@@ -49,12 +49,22 @@
             "path": "guide/signals"
           },
           {
-            "label": "RxJS Interop",
-            "path": "guide/signals/rxjs-interop"
+            "label": "Dependent state with linkedSignal",
+            "path": "guide/signals/linked-signal"
           },
           {
-            "label": "Linked Signal",
-            "path": "guide/signals/linked-signal"
+            "label": "Async reactivity with resources",
+            "path": "guide/signals/resource"
+          },
+          {
+            "label": "Debounced signals",
+            "badge": "New",
+            "path": "guide/signals/debounced"
+          },
+          {
+            "label": "Side effects for non-reactives APIs",
+            "badge": "New",
+            "path": "guide/signals/side-effects"
           }
         ]
       },

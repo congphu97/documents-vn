@@ -1,43 +1,286 @@
 {
   "slug": "guide/signals/linked-signal",
-  "title": "Linked Signal",
-  "description": "Tài liệu hướng dẫn về Linked Signal trong Angular.",
+  "title": "State phụ thuộc với linkedSignal",
+  "description": "Hướng dẫn chi tiết cách dùng linkedSignal trong Angular để tạo state có thể ghi nhưng gắn liền mật thiết với các signal nguồn khác.",
   "source": "https://angular.dev/guide/signals/linked-signal",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/signals/linked-signal](https://angular.dev/guide/signals/linked-signal)."
+      "type": "paragraph",
+      "text": "Bạn có thể sử dụng hàm <code>signal</code> để lưu trữ state trong mã nguồn Angular. Tuy nhiên, đôi lúc state này lại phụ thuộc vào một state khác. Hãy lấy ví dụ về một component cho phép người dùng chọn phương thức vận chuyển (shipping method) cho đơn hàng:"
+    },
+    {
+      "type": "code",
+      "file": "shipping-method-picker.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({ /* ... */ })",
+        "export class ShippingMethodPicker {",
+        "  shippingOptions: Signal<ShippingMethod[]> = getShippingOptions();",
+        "",
+        "  // Mặc định chọn phương thức vận chuyển đầu tiên.",
+        "  selectedOption = signal(this.shippingOptions()[0]);",
+        "",
+        "  changeShipping(newOptionIndex: number) {",
+        "    this.selectedOption.set(this.shippingOptions()[newOptionIndex]);",
+        "  }",
+        "}"
+      ]
     },
     {
       "type": "paragraph",
-      "text": "Linked Signal là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
-    },
-    {
-      "type": "heading",
-      "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "text": "Trong ví dụ trên, <code>selectedOption</code> mặc định lấy phần tử đầu tiên, và sẽ thay đổi khi người dùng bấm chọn phương thức khác. Nhưng <code>shippingOptions</code> là một signal — giá trị của nó có thể thay đổi bất cứ lúc nào! Khi <code>shippingOptions</code> thay đổi danh sách mới, <code>selectedOption</code> có thể sẽ mang một giá trị không còn tồn tại hoặc không còn hợp lệ trong danh sách mới đó nữa."
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Linked Signal, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Hàm <code>linkedSignal</code> cho phép bạn tạo ra một signal lưu trữ state có liên kết mật thiết (intrinsically linked) với state khác. Quay trở lại ví dụ trên, <code>linkedSignal</code> có thể thay thế hoàn toàn cho <code>signal</code>:"
+    },
+    {
+      "type": "code",
+      "file": "shipping-method-picker.ts",
+      "lang": "ts",
+      "code": [
+        "@Component({ /* ... */ })",
+        "export class ShippingMethodPicker {",
+        "  shippingOptions: Signal<ShippingMethod[]> = getShippingOptions();",
+        "",
+        "  // Khởi tạo selectedOption gắn liền với phương thức vận chuyển đầu tiên.",
+        "  selectedOption = linkedSignal(() => this.shippingOptions()[0]);",
+        "",
+        "  changeShipping(index: number) {",
+        "    this.selectedOption.set(this.shippingOptions()[index]);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>linkedSignal</code> hoạt động tương tự như <code>signal</code> nhưng có một điểm khác biệt then chốt: thay vì truyền vào một giá trị mặc định, bạn truyền vào một hàm tính toán (computation function), giống như hàm <code>computed</code>. Mỗi khi giá trị tính toán của hàm này thay đổi, giá trị của <code>linkedSignal</code> sẽ tự động được gán bằng kết quả tính toán mới. Điều này đảm bảo rằng <code>linkedSignal</code> luôn luôn giữ một giá trị hợp lệ."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ sau đây minh họa cách giá trị của <code>linkedSignal</code> thay đổi linh hoạt theo state mà nó liên kết:"
     },
     {
       "type": "code",
       "file": "example.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Linked Signal",
-        "import { Component } from \"@angular/core\";",
+        "const shippingOptions = signal(['Ground', 'Air', 'Sea']);",
+        "const selectedOption = linkedSignal(() => shippingOptions()[0]);",
+        "console.log(selectedOption()); // 'Ground'",
         "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Linked Signal</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+        "selectedOption.set(shippingOptions()[2]);",
+        "console.log(selectedOption()); // 'Sea'",
+        "",
+        "shippingOptions.set(['Email', 'Will Call', 'Postal service']);",
+        "console.log(selectedOption()); // 'Email'"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "accounting-for-previous-state",
+      "text": "Tính đến giá trị trước đó (Accounting for previous state)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong một số trường hợp, phép tính toán của <code>linkedSignal</code> cần phải cân nhắc đến giá trị trước đó của chính <code>linkedSignal</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ở ví dụ trước, <code>selectedOption</code> luôn bị reset về tùy chọn đầu tiên mỗi khi <code>shippingOptions</code> đổi. Tuy nhiên, bạn có thể muốn giữ lại lựa chọn hiện tại của người dùng nếu tùy chọn đó vẫn còn nằm trong danh sách mới. Để làm được điều này, bạn có thể khởi tạo <code>linkedSignal</code> với hai thuộc tính riêng biệt: <code>source</code> và <code>computation</code>:"
+    },
+    {
+      "type": "code",
+      "file": "shipping-picker.ts",
+      "lang": "ts",
+      "code": [
+        "interface ShippingMethod {",
+        "  id: number;",
+        "  name: string;",
+        "}",
+        "",
+        "@Component({ /* ... */ })",
+        "export class ShippingMethodPicker {",
+        "  constructor() {",
+        "    this.changeShipping(2);",
+        "    this.changeShippingOptions();",
+        "    console.log(this.selectedOption()); // {\"id\":2,\"name\":\"Postal Service\"}",
+        "  }",
+        "",
+        "  shippingOptions = signal<ShippingMethod[]>([",
+        "    { id: 0, name: 'Ground' },",
+        "    { id: 1, name: 'Air' },",
+        "    { id: 2, name: 'Sea' },",
+        "  ]);",
+        "",
+        "  selectedOption = linkedSignal<ShippingMethod[], ShippingMethod>({",
+        "    // `selectedOption` được gán bằng kết quả `computation` bất cứ khi nào `source` thay đổi.",
+        "    source: this.shippingOptions,",
+        "    computation: (newOptions, previous) => {",
+        "      // Nếu newOptions vẫn chứa lựa chọn đã chọn trước đó, hãy giữ lại lựa chọn đó.",
+        "      // Ngược lại, mặc định lấy tùy chọn đầu tiên.",
+        "      return newOptions.find((opt) => opt.id === previous?.value.id) ?? newOptions[0];",
+        "    },",
+        "  });",
+        "",
+        "  changeShipping(index: number) {",
+        "    this.selectedOption.set(this.shippingOptions()[index]);",
+        "  }",
+        "",
+        "  changeShippingOptions() {",
+        "    this.shippingOptions.set([",
+        "      { id: 0, name: 'Email' },",
+        "      { id: 1, name: 'Sea' },",
+        "      { id: 2, name: 'Postal Service' },",
+        "    ]);",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi tạo một <code>linkedSignal</code>, bạn có thể truyền vào một đối tượng chứa 2 thuộc tính tách biệt là <code>source</code> và <code>computation</code> thay vì chỉ truyền một hàm tính toán duy nhất."
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>source</code> có thể là bất kỳ signal nào, chẳng hạn như một <code>computed</code> hoặc component input. <code>linkedSignal</code> sẽ cập nhật giá trị khi <code>source</code> thay đổi hoặc khi bất kỳ signal nào được tham chiếu trong hàm <code>computation</code> thay đổi, gán giá trị mới bằng kết quả trả về từ <code>computation</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>computation</code> nhận vào 2 tham số: giá trị mới của <code>source</code> và một đối tượng <code>previous</code>. Đối tượng previous gồm hai thuộc tính: <code>previous.source</code> là giá trị trước đó của source, và <code>previous.value</code> là giá trị trước đó của <code>linkedSignal</code>. Bạn có thể tận dụng các giá trị trước đó này để quyết định giá trị trả về mới."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Khi sử dụng tham số <code>previous</code>, bạn cần cung cấp tường minh các kiểu generic cho <code>linkedSignal</code>. Kiểu generic thứ nhất tương ứng với kiểu dữ liệu của <code>source</code>, và kiểu generic thứ hai xác định kiểu dữ liệu kết quả đầu ra của <code>computation</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "custom-equality-comparison",
+      "text": "So sánh bằng tùy biến (Custom equality comparison)"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>linkedSignal</code>, tương tự như các signal khác, có thể cấu hình kèm hàm kiểm tra bằng nhau tùy biến. Hàm này được các dependencies phía sau sử dụng để xác định xem giá trị của <code>linkedSignal</code> (kết quả tính toán) có thực sự thay đổi hay không:"
+    },
+    {
+      "type": "code",
+      "file": "equality-example.ts",
+      "lang": "ts",
+      "code": [
+        "const activeUser = signal({ id: 123, name: 'Morgan', isAdmin: true });",
+        "",
+        "const activeUserEditCopy = linkedSignal(() => activeUser(), {",
+        "  // Coi người dùng là như nhau nếu có cùng `id`.",
+        "  equal: (a, b) => a.id === b.id,",
+        "});",
+        "",
+        "// Hoặc tách biệt `source` và `computation`",
+        "const activeUserEditCopy2 = linkedSignal({",
+        "  source: activeUser,",
+        "  computation: (user) => user,",
+        "  equal: (a, b) => a.id === b.id,",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "customizing-the-set-operation",
+      "text": "Tùy biến thao tác set (Customizing the set operation)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Đôi khi bạn muốn thao tác <code>set</code> và <code>update</code> của một <code>linkedSignal</code> ghi ngược lại nguồn dữ liệu gốc (source of truth) thay vì trực tiếp thay đổi giá trị nội bộ của <code>linkedSignal</code>. Bạn có thể tùy biến hành vi này bằng cách truyền hàm <code>set</code> trong tùy chọn options."
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm <code>set</code> tùy biến nhận vào hai đối số:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Giá trị mới đang được gán.",
+        "Hàm <code>rawSet</code>, bạn có thể gọi hàm này để cập nhật trực tiếp state nội bộ của <code>linkedSignal</code> (hành vi mặc định)."
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "note",
+      "text": "Sử dụng <code>rawSet</code> cho phép bạn cập nhật trực tiếp giá trị của <code>linkedSignal</code>. Điều này hữu ích để ngăn hàm computation phải chạy lại, ví dụ như khi phép tính dẫn xuất tốn nhiều tài nguyên và bạn đã biết trước kết quả."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "writing-back-to-a-source-signal",
+      "text": "Ghi ngược dữ liệu về Source Signal (Writing back)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Xét ví dụ một component hiển thị và cho phép chỉnh sửa nhiệt độ theo độ Fahrenheit, nhưng sử dụng signal độ Celsius làm nguồn dữ liệu chuẩn (source of truth):"
+    },
+    {
+      "type": "code",
+      "file": "temperature.ts",
+      "lang": "ts",
+      "code": [
+        "const tempC = signal(0);",
+        "const tempF = linkedSignal(() => (tempC() * 9) / 5 + 32, {",
+        "  set: (valF) => tempC.set(((valF - 32) * 5) / 9),",
+        "});",
+        "",
+        "console.log(tempF()); // 32",
+        "",
+        "// Gán nhiệt độ Fahrenheit sẽ cập nhật Celsius, và Celsius kích hoạt cập nhật lại Fahrenheit",
+        "tempF.set(212);",
+        "console.log(tempC()); // 100",
+        "console.log(tempF()); // 212"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "updating-a-property-inside-a-parent-object",
+      "text": "Cập nhật một thuộc tính lồng trong đối tượng cha"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một kịch bản phổ biến khác là cập nhật một thuộc tính cụ thể nằm bên trong đối tượng cha. Đối tượng cha được giữ trong một signal, và bạn liên kết tới thuộc tính lồng nhau đó:"
+    },
+    {
+      "type": "code",
+      "file": "order-property.ts",
+      "lang": "ts",
+      "code": [
+        "interface Order {",
+        "  id: number;",
+        "  shippingMethod: string;",
+        "}",
+        "",
+        "const order = signal<Order>({",
+        "  id: 42,",
+        "  shippingMethod: 'Ground',",
+        "});",
+        "",
+        "const shippingMethod = linkedSignal(() => order().shippingMethod, {",
+        "  set: (newMethod) => {",
+        "    // Cập nhật bất biến (immutable) để ghi ngược thay đổi về object order cha",
+        "    order.update((currentOrder) => ({",
+        "      ...currentOrder,",
+        "      shippingMethod: newMethod,",
+        "    }));",
+        "  },",
+        "});",
+        "",
+        "console.log(shippingMethod()); // 'Ground'",
+        "",
+        "// Cập nhật shippingMethod sẽ cập nhật đối tượng cha order",
+        "shippingMethod.set('Air');",
+        "console.log(order()); // { id: 42, shippingMethod: 'Air' }",
+        "console.log(shippingMethod()); // 'Air'"
       ]
     }
   ]

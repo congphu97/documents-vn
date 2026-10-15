@@ -1,44 +1,529 @@
 {
   "slug": "guide/signals",
-  "title": "Overview",
-  "description": "Tài liệu hướng dẫn về Overview trong Angular.",
+  "title": "Angular Signals",
+  "description": "Angular Signals là hệ thống theo dõi chi tiết (granular) nơi và cách thức state được sử dụng trong toàn bộ ứng dụng, giúp framework tối ưu hóa việc cập nhật render giao diện.",
   "source": "https://angular.dev/guide/signals",
   "status": "reviewed",
   "blocks": [
     {
-      "type": "callout",
-      "kind": "tip",
-      "text": "Tài liệu chuẩn từ trang chính thức [angular.dev/guide/signals](https://angular.dev/guide/signals)."
+      "type": "paragraph",
+      "text": "Angular Signals là một hệ thống theo dõi chi tiết (granular) cách thức và vị trí state của bạn được sử dụng trong toàn bộ ứng dụng, cho phép framework tối ưu hóa quá trình cập nhật giao diện (rendering updates)."
     },
     {
-      "type": "paragraph",
-      "text": "Overview là một phần quan trọng trong kiến trúc phát triển ứng dụng của Angular, giúp lập trình viên viết mã nguồn sạch sẽ, hiệu năng cao và dễ bảo trì."
+      "type": "callout",
+      "kind": "tip",
+      "text": "Hãy xem qua phần <a href=\"/essentials/signals\">Kiến thức cốt lõi (Essentials)</a> của Angular trước khi đi sâu vào tài liệu hướng dẫn toàn diện này."
     },
     {
       "type": "heading",
       "level": 2,
-      "id": "overview-section",
-      "text": "Tổng quan và Khái niệm"
+      "id": "what-are-signals",
+      "text": "Signals là gì?"
     },
     {
       "type": "paragraph",
-      "text": "Để nắm vững Overview, bạn cần hiểu rõ cách thức hoạt động và các API liên quan được cung cấp bởi Angular core."
+      "text": "Một signal là một lớp bọc (wrapper) bao quanh một giá trị, có khả năng thông báo cho các thành phần tiêu thụ (consumers) quan tâm mỗi khi giá trị đó thay đổi. Signals có thể chứa bất kỳ giá trị nào, từ kiểu dữ liệu nguyên thủy đến các cấu trúc dữ liệu phức tạp."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn đọc giá trị của một signal bằng cách gọi hàm getter của nó, điều này cho phép Angular theo dõi chính xác nơi signal đang được sử dụng."
+    },
+    {
+      "type": "paragraph",
+      "text": "Signals có thể thuộc loại ghi được (writable) hoặc chỉ đọc (read-only)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "writable-signals",
+      "text": "Writable signals (Signal có thể ghi)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Writable signals cung cấp API để bạn trực tiếp cập nhật giá trị của chúng. Bạn tạo ra một writable signal bằng cách gọi hàm <code>signal</code> với giá trị khởi tạo:"
     },
     {
       "type": "code",
-      "file": "example.ts",
+      "file": "counter.ts",
       "lang": "ts",
       "code": [
-        "// Ví dụ minh họa cho Overview",
-        "import { Component } from \"@angular/core\";",
+        "const count = signal(0);",
         "",
-        "@Component({",
-        "  selector: \"app-example\",",
-        "  standalone: true,",
-        "  template: `<h1>Overview</h1>`",
-        "})",
-        "export class ExampleComponent {}"
+        "// Signals là các hàm getter - gọi chúng để đọc giá trị.",
+        "console.log('The count is: ' + count());"
       ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Để thay đổi giá trị của writable signal, bạn có thể gán trực tiếp bằng <code>.set()</code>:"
+    },
+    {
+      "type": "code",
+      "file": "counter.ts",
+      "lang": "ts",
+      "code": [
+        "count.set(3);"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "hoặc sử dụng thao tác <code>.update()</code> để tính toán giá trị mới dựa trên giá trị trước đó:"
+    },
+    {
+      "type": "code",
+      "file": "counter.ts",
+      "lang": "ts",
+      "code": [
+        "// Tăng giá trị của count lên 1.",
+        "count.update((value) => value + 1);"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Writable signals mang kiểu dữ liệu <code>WritableSignal</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "converting-writable-signals-to-readonly",
+      "text": "Chuyển đổi writable signal thành readonly"
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>WritableSignal</code> cung cấp phương thức <code>asReadonly()</code> trả về phiên bản chỉ đọc của signal. Điều này rất hữu ích khi bạn muốn công khai giá trị signal cho bên ngoài đọc nhưng không cho phép họ trực tiếp chỉnh sửa:"
+    },
+    {
+      "type": "code",
+      "file": "counter.service.ts",
+      "lang": "ts",
+      "code": [
+        "@Injectable({ providedIn: 'root' })",
+        "export class CounterState {",
+        "  // State có thể ghi nội bộ (private)",
+        "  private readonly _count = signal(0);",
+        "",
+        "  // Signal chỉ đọc công khai (public readonly)",
+        "  readonly count = this._count.asReadonly();",
+        "",
+        "  increment() {",
+        "    this._count.update((v) => v + 1);",
+        "  }",
+        "}",
+        "",
+        "@Component({/* ... */})",
+        "export class AwesomeCounter {",
+        "  state = inject(CounterState);",
+        "  count = this.state.count; // có thể đọc nhưng không thể sửa",
+        "",
+        "  increment() {",
+        "    this.state.increment();",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal readonly sẽ phản ánh mọi thay đổi diễn ra trên writable signal gốc, nhưng không thể bị sửa đổi thông qua phương thức <code>set()</code> hay <code>update()</code>."
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Các readonly signals không có cơ chế tích hợp sẵn để ngăn chặn việc thay đổi thuộc tính lồng bên trong (deep mutation) của đối tượng/mảng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "computed-signals",
+      "text": "Computed signals (Signal tính toán)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Computed signals là các signal chỉ đọc có giá trị được dẫn xuất (derive) từ các signal khác. Bạn định nghĩa computed signal bằng hàm <code>computed</code> kèm theo một hàm dẫn xuất:"
+    },
+    {
+      "type": "code",
+      "file": "computed-example.ts",
+      "lang": "ts",
+      "code": [
+        "const count: WritableSignal<number> = signal(0);",
+        "const doubleCount: Signal<number> = computed(() => count() * 2);"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Signal <code>doubleCount</code> phụ thuộc vào signal <code>count</code>. Bất cứ khi nào <code>count</code> cập nhật, Angular biết rằng <code>doubleCount</code> cũng cần được cập nhật theo."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "computed-signals-are-both-lazily-evaluated-and-memoized",
+      "text": "Computed signal vừa được đánh giá lười (lazily evaluated) vừa lưu đệm nhớ (memoized)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm dẫn xuất của <code>doubleCount</code> không hề chạy để tính giá trị cho đến lần đầu tiên bạn đọc <code>doubleCount</code>. Giá trị tính toán sau đó được lưu vào bộ nhớ cache, và nếu bạn đọc <code>doubleCount</code> lần nữa, nó sẽ trả về ngay giá trị trong cache mà không tính lại."
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu sau đó bạn thay đổi <code>count</code>, Angular hiểu rằng giá trị trong cache của <code>doubleCount</code> không còn hợp lệ, và lần tiếp theo khi bạn đọc <code>doubleCount</code>, giá trị mới sẽ được tính toán lại."
+    },
+    {
+      "type": "paragraph",
+      "text": "Nhờ đó, bạn hoàn toàn có thể thực hiện an toàn các phép tính dẫn xuất tốn nhiều tài nguyên bên trong computed signal, chẳng hạn như lọc mảng (array filtering)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "computed-signals-are-not-writable-signals",
+      "text": "Computed signals không phải là writable signals"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn không thể trực tiếp gán giá trị cho một computed signal. Ví dụ:"
+    },
+    {
+      "type": "code",
+      "file": "error-example.ts",
+      "lang": "ts",
+      "code": [
+        "doubleCount.set(3);"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "sẽ gây lỗi biên dịch, bởi vì <code>doubleCount</code> không phải là một <code>WritableSignal</code>."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "computed-signal-dependencies-are-dynamic",
+      "text": "Dependencies của computed signal mang tính động (dynamic)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Chỉ những signal thực sự được đọc trong quá trình chạy hàm dẫn xuất mới được theo dõi. Ví dụ, trong hàm <code>computed</code> dưới đây, signal <code>count</code> chỉ được đọc khi <code>showCount</code> mang giá trị true:"
+    },
+    {
+      "type": "code",
+      "file": "dynamic-computed.ts",
+      "lang": "ts",
+      "code": [
+        "const showCount = signal(false);",
+        "const count = signal(0);",
+        "const conditionalCount = computed(() => {",
+        "  if (showCount()) {",
+        "    return `The count is ${count()}.`;",
+        "  } else {",
+        "    return 'Nothing to see here!';",
+        "  }",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn đọc <code>conditionalCount</code>, nếu <code>showCount</code> là false thì chuỗi 'Nothing to see here!' được trả về mà không đọc đến <code>count</code>. Điều này đồng nghĩa với việc nếu sau đó bạn cập nhật <code>count</code>, nó sẽ không khiến <code>conditionalCount</code> bị tính toán lại."
+    },
+    {
+      "type": "paragraph",
+      "text": "Nếu bạn đặt <code>showCount</code> thành true rồi đọc lại <code>conditionalCount</code>, hàm dẫn xuất sẽ chạy lại và rẽ vào nhánh true, đọc giá trị của <code>count</code>. Kể từ lúc này, việc đổi <code>count</code> sẽ làm mất hiệu lực giá trị cache của <code>conditionalCount</code>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Lưu ý rằng dependencies có thể bị gỡ bỏ cũng như được thêm mới linh hoạt. Nếu sau này bạn chuyển <code>showCount</code> về lại false, <code>count</code> sẽ không còn được xem là dependency của <code>conditionalCount</code> nữa."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reactive-contexts",
+      "text": "Ngữ cảnh phản ứng (Reactive contexts)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Một reactive context là trạng thái lúc runtime nơi Angular giám sát các lượt đọc signal để thiết lập quan hệ phụ thuộc. Khối mã đọc signal đóng vai trò consumer (bên tiêu thụ), còn signal được đọc là producer (bên cung cấp)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular tự động bước vào một reactive context khi:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Thực thi một callback <code>effect</code> hoặc <code>afterRenderEffect</code>.",
+        "Đánh giá một <code>computed</code> signal.",
+        "Đánh giá một <code>linkedSignal</code>.",
+        "Đánh giá các params hoặc hàm loader của một <code>resource</code>.",
+        "Render template của component (bao gồm cả các binding trong host property)."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong suốt các thao tác này, Angular thiết lập một kết nối trực tiếp. Nếu signal được theo dõi thay đổi, Angular cuối cùng sẽ chạy lại consumer tương ứng."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "asserts-the-reactive-context",
+      "text": "Kiểm tra khẳng định Reactive Context (Asserts)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular cung cấp hàm hỗ trợ <code>assertNotInReactiveContext</code> để khẳng định rằng đoạn mã không được phép chạy bên trong một reactive context. Hãy truyền tham chiếu của hàm gọi để thông báo lỗi chỉ đúng API entry point nếu điều kiện khẳng định bị vi phạm. Điều này mang lại thông báo lỗi rõ ràng, dễ hành động hơn thay vì lỗi reactive context chung chung."
+    },
+    {
+      "type": "code",
+      "file": "assertion-example.ts",
+      "lang": "ts",
+      "code": [
+        "import { assertNotInReactiveContext } from '@angular/core';",
+        "",
+        "function subscribeToEvents() {",
+        "  assertNotInReactiveContext(subscribeToEvents);",
+        "  // An toàn để tiếp tục - logic đăng ký sự kiện tại đây",
+        "}"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reading-without-tracking-dependencies",
+      "text": "Đọc giá trị mà không theo dõi phụ thuộc (Untracked read)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong một số trường hợp hiếm hoi, bạn muốn thực thi đoạn mã đọc signal bên trong một hàm phản ứng như <code>computed</code> hoặc <code>effect</code> mà không tạo ra liên kết phụ thuộc."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ, giả sử khi <code>currentUser</code> thay đổi, bạn muốn ghi log giá trị của một bộ đếm counter. Bạn có thể tạo một <code>effect</code> đọc cả hai signal:"
+    },
+    {
+      "type": "code",
+      "file": "effect-tracking.ts",
+      "lang": "ts",
+      "code": [
+        "effect(() => {",
+        "  console.log(`User set to ${currentUser()} and the counter is ${counter()}`);",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Ví dụ trên sẽ ghi log mỗi khi <code>currentUser</code> hoặc <code>counter</code> thay đổi. Tuy nhiên, nếu bạn chỉ muốn effect chạy khi <code>currentUser</code> đổi, việc đọc <code>counter</code> chỉ là ngẫu nhiên và việc <code>counter</code> thay đổi không nên kích hoạt thông báo mới."
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể ngăn signal bị theo dõi bằng cách gọi getter của nó thông qua <code>untracked</code>:"
+    },
+    {
+      "type": "code",
+      "file": "effect-untracked.ts",
+      "lang": "ts",
+      "code": [
+        "effect(() => {",
+        "  console.log(`User set to ${currentUser()} and the counter is ${untracked(counter)}`);",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "<code>untracked</code> cũng rất hữu ích khi một effect cần gọi hàm bên ngoài mà không muốn mã bên ngoài đó trở thành dependency:"
+    },
+    {
+      "type": "code",
+      "file": "effect-untracked-fn.ts",
+      "lang": "ts",
+      "code": [
+        "effect(() => {",
+        "  const user = currentUser();",
+        "  untracked(() => {",
+        "    // Nếu `loggingService` có đọc các signal, chúng cũng sẽ không",
+        "    // bị coi là dependencies của effect này.",
+        "    this.loggingService.log(`User set to ${user}`);",
+        "  });",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reactive-context-and-async-operations",
+      "text": "Ngữ cảnh phản ứng và các tác vụ bất đồng bộ"
+    },
+    {
+      "type": "paragraph",
+      "text": "Reactive context chỉ hoạt động đối với mã đồng bộ (synchronous code). Bất kỳ lượt đọc signal nào diễn ra sau ranh giới bất đồng bộ (sau <code>await</code> hoặc trong callback bất đồng bộ) đều sẽ không được theo dõi như là dependencies."
+    },
+    {
+      "type": "callout",
+      "kind": "warning",
+      "text": "Tránh đọc signals sau câu lệnh <code>await</code>, vì reactive context đã bị mất:"
+    },
+    {
+      "type": "code",
+      "file": "async-avoid.ts",
+      "lang": "ts",
+      "code": [
+        "// Nên tránh",
+        "effect(async () => {",
+        "  const data = await fetchUserData();",
+        "  // Reactive context bị mất ở đây - theme() sẽ không được theo dõi",
+        "  console.log(`User: ${data.name}, Theme: ${theme()}`);",
+        "});"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Để đảm bảo tất cả signal được theo dõi đúng cách, hãy đọc chúng trước từ khóa <code>await</code>. Bạn cũng có thể truyền signal vào làm đối số của hàm được await, vì đối số luôn được đánh giá đồng bộ:"
+    },
+    {
+      "type": "code",
+      "file": "async-prefer.ts",
+      "lang": "ts",
+      "code": [
+        "// Khuyên dùng",
+        "effect(async () => {",
+        "  const currentTheme = theme(); // Đọc trước khi await",
+        "  const data = await fetchUserData();",
+        "  console.log(`User: ${data.name}, Theme: ${currentTheme}`);",
+        "});",
+        "",
+        "// Cũng hoạt động: signal được đọc trước await (dưới dạng đối số của hàm)",
+        "effect(async () => {",
+        "  await renderContent(docContent());",
+        "});"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "advanced-derivations",
+      "text": "Các phép dẫn xuất nâng cao"
+    },
+    {
+      "type": "paragraph",
+      "text": "Trong khi <code>computed</code> đáp ứng nhu cầu dẫn xuất chỉ đọc đơn giản, đôi khi bạn cần một state vừa có thể ghi (writable) nhưng lại phụ thuộc vào các signals khác. Để biết thêm chi tiết, hãy xem hướng dẫn <a href=\"/guide/signals/linked-signal\">Dependent state with linkedSignal</a>."
+    },
+    {
+      "type": "paragraph",
+      "text": "Mọi Signal API mặc định đều là đồng bộ — <code>signal</code>, <code>computed</code>, input, v.v. Tuy nhiên, các ứng dụng thường xuyên cần làm việc với dữ liệu bất đồng bộ. <code>Resource</code> cung cấp cho bạn giải pháp tích hợp dữ liệu async vào luồng mã dạng signal và vẫn cho phép truy cập dữ liệu đồng bộ. Xem thêm tại hướng dẫn <a href=\"/guide/signals/resource\">Async reactivity with resources</a>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "executing-side-effects-on-non-reactive-apis",
+      "text": "Thực thi tác vụ phụ với các API không phản ứng (Non-reactive APIs)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Các phép dẫn xuất đồng bộ hoặc bất đồng bộ luôn là phương án được khuyến khích khi phản ứng với thay đổi state. Dẫu vậy, vẫn có những trường hợp bạn cần phản ứng với sự thay đổi của signal trên các API không có tính phản ứng (non-reactive). Hãy sử dụng <code>effect</code> hoặc <code>afterRenderEffect</code> cho các ca sử dụng đặc thù này. Tham khảo hướng dẫn <a href=\"/guide/signals/side-effects\">Side effects for non-reactive APIs</a>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "reading-signals-in-onpush-components",
+      "text": "Đọc signals trong component OnPush"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi bạn đọc một signal trong template của component sử dụng chiến lược OnPush, Angular sẽ theo dõi signal đó như một dependency của component. Khi giá trị của signal thay đổi, Angular tự động đánh dấu (<code>markForCheck</code>) component để đảm bảo nó được cập nhật vào chu kỳ change detection tiếp theo. Bạn có thể tham khảo bài viết <a href=\"/best-practices/runtime-performance\">Skipping component subtrees</a> để tìm hiểu thêm về OnPush."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "id": "advanced-topics",
+      "text": "Các chủ đề nâng cao"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "signal-equality-functions",
+      "text": "Hàm kiểm tra bằng nhau (Signal equality functions)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Khi khởi tạo một signal, bạn có thể truyền tùy chọn một hàm kiểm tra bằng nhau (equality function), dùng để xác định xem giá trị mới có thực sự khác với giá trị trước đó hay không."
+    },
+    {
+      "type": "code",
+      "file": "equality-example.ts",
+      "lang": "ts",
+      "code": [
+        "import isEqual from 'lodash/isEqual';",
+        "",
+        "const data = signal(['test'], { equal: isEqual });",
+        "",
+        "// Dù đây là một instance mảng mới, hàm so sánh sâu (deep equality)",
+        "// sẽ coi các giá trị là bằng nhau, và signal sẽ không kích hoạt cập nhật.",
+        "data.set(['test']);"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hàm equality có thể áp dụng cho cả writable signal lẫn computed signal."
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "text": "Mặc định, signals sử dụng so sánh tham chiếu (toán tử so sánh <code>Object.is()</code>)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "type-checking-signals",
+      "text": "Kiểm tra kiểu dữ liệu của signals"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bạn có thể sử dụng hàm <code>isSignal</code> để kiểm tra xem một giá trị có phải là <code>Signal</code> hay không:"
+    },
+    {
+      "type": "code",
+      "file": "type-checking.ts",
+      "lang": "ts",
+      "code": [
+        "const count = signal(0);",
+        "const doubled = computed(() => count() * 2);",
+        "",
+        "isSignal(count);   // true",
+        "isSignal(doubled); // true",
+        "isSignal(42);      // false"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Để kiểm tra cụ thể xem một signal có thể ghi (writable) hay không, hãy dùng <code>isWritableSignal</code>:"
+    },
+    {
+      "type": "code",
+      "file": "type-checking-writable.ts",
+      "lang": "ts",
+      "code": [
+        "const count = signal(0);",
+        "const doubled = computed(() => count() * 2);",
+        "",
+        "isWritableSignal(count);   // true",
+        "isWritableSignal(doubled); // false"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "using-signals-with-rxjs",
+      "text": "Sử dụng signals kết hợp với RxJS"
+    },
+    {
+      "type": "paragraph",
+      "text": "Xem tài liệu <a href=\"/guide/signals/rxjs-interop\">Tương tác RxJS với Angular Signals</a> để tìm hiểu chi tiết khả năng tương tác mượt mà giữa signals và RxJS Observables."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "id": "debugging-signals",
+      "text": "Gỡ lỗi Signals (Debugging signals)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Angular DevTools có khả năng trực quan hóa đồ thị signal (signal graph) của một component hoặc directive, biểu diễn trực quan cách các signals, computeds, effects và reactive nodes liên kết phụ thuộc với nhau. Xem hướng dẫn <a href=\"/devtools\">Gỡ lỗi đồ thị signal</a> để biết cách mở, đọc và kiểm tra biểu đồ này."
     }
   ]
 }
